@@ -1,0 +1,21 @@
+#!/bin/sh
+# wrapper for jqjq cli entrypoint
+# shellcheck disable=SC2016,SC3030,SC3054
+
+JQ="jq"
+JQJQ_PATH="$(dirname "$0")"
+ARGS=("$@")
+
+JQ_ARGS="--raw-output --null-input"
+# some arguments require to run jq in different input/output mode
+while [ "$1" != "" ]; do
+    case "$1" in
+      --jq) shift; JQ="$1";;
+      --run-tests) JQ_ARGS="$JQ_ARGS --raw-input --slurp";;
+      --repl) JQ_ARGS="$JQ_ARGS --raw-input --join-output";;
+    esac
+    shift
+done
+
+# shellcheck disable=SC2086
+exec "$JQ" -L "$JQJQ_PATH" $JQ_ARGS --args 'include "jqjq"; jqjq($ARGS.positional; $ENV)' -- "${ARGS[@]}"

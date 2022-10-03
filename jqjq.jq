@@ -2133,6 +2133,8 @@ def jqjq($args; $env):
       if length == 0 then empty
       elif .[0] == "-h" or .[0] == "--help" then
         {help: true}, (.[1:] | _f)
+      elif .[0] == "--dot" then
+        {dot: true}, (.[1:] | _f)
       elif .[0] == "--jq" then
         {jq: .[1]}, (.[2:] | _f)
       elif .[0] == "--lex" then
@@ -2171,6 +2173,60 @@ def jqjq($args; $env):
     , "  --repl           REPL"
     , "  --run-tests      Run jq tests from stdin"
     , "  --slurp,-s       Slurp inputs into an array"
+    );
+
+  def _dot:
+    def _f($name):
+      ( def _esc: gsub("(?<s>[|\"])"; "\\\(.s)");
+        if .op then
+          ( "\($name) [shape=record label=\"{<left>|\(.op | _esc)|<right>}\"];"
+          , "\($name):left -> \($name)_left;"
+          , "\($name):right -> \($name)_right;"
+          , ( .left | _f($name+"_left"))
+          , ( .right | _f($name+"_right"))
+          )
+        elif .term.type then
+          ( def _is_literal:
+              ( .term.type as $t
+              | { TermTypeNull: true
+                , TermTypeTrue: true
+                , TermTypeFalse: true
+                , TermTypeString: true
+                , TermTypeNumber: true
+                }
+              | has($t)
+              );
+            def _s:
+              ( .term.number
+              // (.term.str | values | "\\\"\(.)\\\"")
+              // .term.func.name
+              // (select(.term.type == "TermTypeTrue") | "true")
+              // (select(.term.type == "TermTypeFalse") | "false")
+              // (select(.term.type == "TermTypeNull") | "null")
+              // (select(.term.type == "TermTypeIdentity") | ".")
+              // (select(.term.type == "TermTypeQuery") | "(...)")
+              // .term.type
+              );
+            if _is_literal then
+              "\($name) [shape=plaintext label=\"\(_s)\"];"
+            else
+              ( "\($name) [shape=circle label=\"\(_s)\"];"
+              , if .term.query then
+                  ( "\($name) -> \($name)_query;"
+                  , (.term.query | _f($name+"_query"))
+                  )
+                else empty
+                end
+              )
+            end
+          )
+        else empty
+        end
+      );
+    ( "digraph filter {"
+    , "rankdir=\"LR\""
+    , _f("start")
+    , "}"
     );
 
   def _repl:
@@ -2314,6 +2370,7 @@ def jqjq($args; $env):
     + ($args | _parse_args)
     ) as $opts
   | if $opts.help then _help
+    elif $opts.dot then $opts.filter | lex | parse | _dot
     elif $opts.lex then $opts.filter | lex
     elif $opts.parse then $opts.filter | lex | parse
     elif $opts.repl then _repl

@@ -1433,6 +1433,58 @@ def eval_ast($ast):
   eval_ast($ast; []; {}; undefined_func_error);
 
 
+def ast_tostring:
+  def _f:
+    ( . as {term: {type: $type}, $op, $func_defs}
+    | if $type then
+        ( . as $input
+        | if $type == "TermTypeNull" then "null"
+          elif $type == "TermTypeNumber" then .term.number | tostring
+          elif $type == "TermTypeString" then .term.str | tojson
+          elif $type == "TermTypeTrue" then "true"
+          elif $type == "TermTypeFalse" then "false"
+          elif $type == "TermTypeIdentity" then "."
+          elif $type == "TermTypeIndex" then "[TODO]"
+          elif $type == "TermTypeFunc" then "\(.term.func)(TODO)"
+          elif $type == "TermTypeObject" then
+            ( .term.object.key_vals[]
+            | debug
+            | "{"
+            , ( .key # TODO: string
+              , ( if .val.queries then
+                    ( ": "
+                    , .val.queries | map(_f) | join(", ") # TODO: ()?
+                    )
+                  else empty
+                  end
+                )
+              )
+            , "}"
+            )
+          elif $type == "TermTypeArray" then  "[", (.term.array.query | _f), "]"
+          elif $type == "TermTypeIf" then "if TODO else TODO end"
+          elif $type == "TermTypeReduce" then "reduce"
+          elif $type == "TermTypeForeach" then "foreach"
+          elif $type == "TermTypeQuery" then "(", (.term.query | _f), ")"
+          else error("unsupported term: \(.)")
+          end
+        # | if $query.term.suffix_list then _suffix_list($input; $path)
+        #   else .
+        #   end
+        )
+      elif $op then
+        ( (if $op | . == "," then "" else " " end) as $pad
+        | (.left | _f)
+        , $pad
+        , "\($op)"
+        , " "
+        , (.right | _f)
+        )
+      else error("unsupported query: \(.)")
+      end
+    );
+  [_f] | join("");
+
 def _builtins_src: "
 # used to implement lhs = rhs
 def _assign(lhs; $op; rhs):

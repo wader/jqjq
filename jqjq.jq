@@ -1704,7 +1704,9 @@ def jqjq($args; $env):
               )
             ] as $actual_output
           | if $test.output == $actual_output then
-              "OK: \($test_name)"
+              ( "OK: \($test_name)"
+              , {ok: true}
+              )
             else
               ( "DIFF: \($test_name)"
               , "  Expected: \($test.output | tojson)"
@@ -1721,14 +1723,25 @@ def jqjq($args; $env):
       );
     # this mess make it possible to run all tests and exit with non-zero if any test failed
     ( foreach (_f, {end: true}) as $l (
-        {};
-        if ($l | type) == "object" then . + $l+ {line: false} else . + {line: $l} end;
+        { errors: 0
+        , oks: 0
+        };
+        if ($l | type) == "object" then
+          ( .line = false
+          | if $l.error then .errors +=1
+            elif $l.ok then .oks += 1
+            elif $l.end then .end = true
+            else .
+            end
+          )
+        else . + {line: $l}
+        end;
         .
       )
     | if .end then
-        if .error then null | halt_error(1)
-        else empty
-        end
+        ( "\(.oks) of \(.oks + .errors) tests passed"
+        , if .errors > 0 then null | halt_error(1) else empty end
+        )
       elif .line then .line
       else empty
       end

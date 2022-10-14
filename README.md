@@ -136,7 +136,9 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
 - Suffix with multiple `[]` outputs values in wrong order.
 - Non-associate operators like `==` should fail, ex: `1 == 2 == 3`.
 - Object are parsed differently comapred to gojq. gojq has a list of pipe queries, jqjq will only have one that might be pipe op.
-- How to support `try/catch`, picky back on jq's error handling or have some special return value?
+- Less "passthru" piggyback on jq features:
+  - `reduce/foreach` via recursive function? similar to `if` or `{}`-literal?
+  - `try/catch` via some backtrack return value? change `[path, value]` to include an error somehow?
 - How to support `label/break`?
 - How to support `delpaths` (usd by `del` etc). Have to keep paths same while deleting a group of paths? use sentinel value? work with paths instead?
 

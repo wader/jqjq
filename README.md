@@ -117,14 +117,13 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
   - [x] `def f(lambda): lambda` Lambda argument
   - [x] `(def f: 123; f) | .` Closure function
   - [x] `def f: def _f: 123; _f; f` Local function
-  - [x] `def f($binding): lambda` Binding argument
-  - [x] Iterate binding arguments
-  - [x] Recursion
+  - [x] `def f($binding): $binding` Binding arguments
+  - [x] `def f: f;` Recursion
 - [x] `path(f)` Output paths for `f` for input
 - [x] `try f`, `try f catch .` Catch error
-- [ ] `f?` Empty catch
+- [ ] `f?` Empty shorthand catch
 - [x] `..` Recurse input
-- [ ] `//`, `?//` Alteration
+- [ ] `//`, `?//` Alternative operator
 - [ ] `$ENV`
 - [ ] `"\(f)"` String interpolation
 - [ ] `@format "string"` Format string
@@ -153,6 +152,9 @@ $ ./jqjq --run-tests < ../jq/tests/jq.test | grep passed
   - `try/catch` via some backtrack return value? change `[path, value]` to include an error somehow?
 - How to support `label/break`?
 - How to support `delpaths` (usd by `del` etc). Have to keep paths same while deleting a group of paths? use sentinel value? work with paths instead?
+- Rewrite AST before eval, currently `if` and some other do rewrite (optional parts etc) while evaluating.
+- Rethink invalid path handling, current `[null]` is used as sentinel value.
+- `{a:123} | .a |= empty` should remove key.
 
 ## Thanks, references, tools and tricks
 

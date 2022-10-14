@@ -1,23 +1,15 @@
 # jqjq - jq implementation of jq
 # Copyright (c) 2022 Mattias Wadman
 # MIT License
-
+#
 # TODO:
-# throw using return value? also for break?
 # jq bug with error undefined function
 # ".end" lex
-# invalid path [null] rethink?
-# throw error, use return value or just try/catch?
-# speedup by rewrite ast to not require logic at eval (if, object, etc)
-# try avoid more "passthrough" to jq to learn more
-# .a |= empty -> remove key
 # test assoc 1|2|3?
-# string interpolation
-
-# Notes:
-# AST is more or less identical to the one used by gojq to make it easer to
-# test parser
+# add some term builder helper, _term("TermTypeArray"; {query: ...}) etc?
 #
+# Notes:
+# AST is more or less identical to the one used by gojq to make it easer to test parser
 # jq bindings $<name>_ is used if <name> is a keyword as jq (not gojq) does not allow it
 #
 

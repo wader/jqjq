@@ -95,7 +95,9 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
   - [x] `debug` (passthru)
   - [x] `empty` (passthru)
   - [x] `error($v)` (passthru)
+  - [x] `fromjson` (passthru)
   - [x] `getpath(path)` (passthru)
+  - [x] `join($s)`
   - [x] `length` (passthru)
   - [x] `map(f)`
   - [x] `max`
@@ -103,15 +105,13 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
   - [x] `range($to)`, `range($from; $to)`, `range($from; $to; $by)`
   - [x] `recurse`, `recurse(f)`
   - [x] `reverse`
+  - [x] `scalars`
   - [x] `select(f)`
   - [x] `setpath` (passthru)
   - [x] `sort`, `sort_by(f)`
-  - [x] `type` (passthru)
-  - [x] `scalars`
-  - [x] `tostring` (passthru)
   - [x] `tojson` (passthru)
-  - [x] `fromjson` (passthru)
-  - [x] `join($s)`
+  - [x] `tostring` (passthru)
+  - [x] `type` (passthru)
   - [ ] ...
 - [x] `def f: .` Function declaration
   - [x] `def f(lambda): lambda` Lambda argument

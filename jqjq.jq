@@ -975,7 +975,10 @@ def eval_ast($query; $path; $env; undefined_func):
           elif $name == "type/0" then [[null], type]
           elif $name == "length/0" then [[null], length]
           elif $name == "explode/0" then [[null], explode]
-          elif $name == "implode/0" then [[null], implode]
+          # TODO: implement in jqjq?
+          elif $name == "tostring/0" then [[null], tostring]
+          elif $name == "tojson/0" then [[null], tojson]
+          elif $name == "fromjson/0" then [[null], fromjson]
           # TODO: make args general
           # TODO: path
           elif $name == "error/1" then
@@ -1442,6 +1445,7 @@ def _assign(lhs; $op; rhs):
       setpath($p; $v)
     )
   );
+
 # used to implement lhs |= rhs and lhs op= rhs
 def _update(lhs; $op; rhs):
   ( . as $c
@@ -1460,10 +1464,36 @@ def _update(lhs; $op; rhs):
     )
   );
 
-def add: reduce .[] as $v (null; . + $v);
+def _is_scalar:
+  ( type
+  | . == \"boolean\" or
+    . == \"null\" or
+    . == \"number\" or
+    . == \"string\"
+  );
+
+# is early as they are used by others
 def not: if . then false else true end;
 def select(f): if f then . else empty end;
 def map(f): [.[] | f];
+
+def scalars: select(_is_scalar);
+
+def add: reduce .[] as $v (null; . + $v);
+
+def join($s):
+  if length == 0 then \"\"
+  else
+    ( map(
+        ( if . == null then \"\" end
+        | $s
+        , if _is_scalar then tostring end
+        )
+      )[1:]
+    | add
+    )
+  end;
+
 def _minmax(f):
   if . == null then null
   else reduce .[] as $v (
@@ -1473,6 +1503,7 @@ def _minmax(f):
   end;
 def min: _minmax(.[0] < .[1]);
 def max: _minmax(.[0] > .[1]);
+
 def range($from; $to; $by):
   def _f(stop):
     if stop then empty
@@ -1482,11 +1513,12 @@ def range($from; $to; $by):
   elif $by > 0 then $from | _f(. >= $to)
   else $from | _f(. <= $to)
   end;
+def range($from; $to): range($from; $to; 1);
+def range($to): range(0; $to; 1);
+
 def recurse(f): def _f: ., (f | _f); _f;
 # TODO: .[]?
 def recurse: recurse(try .[] catch empty);
-def range($from; $to): range($from; $to; 1);
-def range($to): range(0; $to; 1);
 def reverse: length as $l | [.[$l-1-range($l)]];
 
 def _quicksort(f):
@@ -1518,7 +1550,6 @@ def _quicksort(f):
 # [f] to support multiple outputs
 def sort_by(f): _quicksort((.[0] | [f]) < (.[1] | [f]));
 def sort: sort_by(.);
-
 ";
 
 def builtins_env:

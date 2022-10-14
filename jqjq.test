@@ -546,6 +546,18 @@ map(add)
 [[], [1], [1,2,3]]
 [null,1,6]
 
+join("-")
+[1,"a",null,true,false]
+"1-a--true-false"
+
+join("-")
+[]
+""
+
+map(scalars)
+[1,"a",null,true,false,{},[]]
+[1,"a",null,true,false]
+
 map(not)
 [null,false,true,1]
 [true,true,false,false]

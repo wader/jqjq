@@ -92,21 +92,26 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
 - [x] `+=`, `-=`, `*=`, `/=`, `%=` Arithmetic update assignment
 - [ ] Builtins / standard library
   - [x] `add`
-  - [x] `debug`
-  - [x] `empty`
-  - [x] `error($v)`
-  - [x] `getpath`
-  - [x] `length`
-  - [x] `map`
+  - [x] `debug` (passthru)
+  - [x] `empty` (passthru)
+  - [x] `error($v)` (passthru)
+  - [x] `getpath(path)` (passthru)
+  - [x] `length` (passthru)
+  - [x] `map(f)`
   - [x] `max`
   - [x] `min`
   - [x] `range($to)`, `range($from; $to)`, `range($from; $to; $by)`
   - [x] `recurse`, `recurse(f)`
   - [x] `reverse`
-  - [x] `select`
-  - [x] `setpath`
+  - [x] `select(f)`
+  - [x] `setpath` (passthru)
   - [x] `sort`, `sort_by(f)`
-  - [x] `type`
+  - [x] `type` (passthru)
+  - [x] `scalars`
+  - [x] `tostring` (passthru)
+  - [x] `tojson` (passthru)
+  - [x] `fromjson` (passthru)
+  - [x] `join($s)`
   - [ ] ...
 - [x] `def f: .` Function declaration
   - [x] `def f(lambda): lambda` Lambda argument
@@ -127,6 +132,13 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
 - [ ] `include "f"`, `import "f"` Include
 - [ ] Run jqjq with jqjq
 - [x] Bugs
+
+### jq's jq.test testsuite
+
+```
+$ ./jqjq --run-tests < ../jq/tests/jq.test | grep passed
+147 of 348 tests passed
+```
 
 ### Design problems, issues and unknowns
 

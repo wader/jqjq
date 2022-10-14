@@ -547,8 +547,8 @@ def parse:
             | _p("query") as [$rest, $body]
             | $rest
             | _consume(.semicolon)
-            | [ .,
-                { name: $name
+            | [ .
+              , { name: $name
                 , args: $args
                 , body: $body
                 }
@@ -606,7 +606,7 @@ def parse:
         | _optional(_p("query")) as [$rest, $end_]
         | $rest
         | _consume(.rsquare)
-        # fail is both missing
+        # fail if both missing
         | if $start == null and $end_ == null then empty else . end
         | [ .
           , { index:
@@ -783,7 +783,7 @@ def parse:
       );
 
     # ..
-    # transform .. into recuse call
+    # transform .. into recurse call
     def _recurse:
       ( _consume(.dotdot)
       | [ .

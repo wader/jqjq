@@ -1515,7 +1515,8 @@ def _quicksort(f):
       )
     )
   end;
-def sort_by(f): _quicksort((.[0] | f) < (.[1] | f));
+# [f] to support multiple outputs
+def sort_by(f): _quicksort((.[0] | [f]) < (.[1] | [f]));
 def sort: sort_by(.);
 
 ";

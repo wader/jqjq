@@ -604,6 +604,10 @@ map(sort)
 [[],[{"a":1}],[{"a":3},{"a":2}],[{"a":3},{"a":1},{"a":2}]]
 [[],[{"a":1}],[{"a":2},{"a":3}],[{"a":1},{"a":2},{"a":3}]]
 
+sort_by(.b, .a)
+[{"a":1, "b":2}, {"a":2, "b": 1}]
+[{"a":2,"b":1},{"a":1,"b":2}]
+
 # SKIP_JQ
 # test below does not work with standard jq because of missing features or bugs
 

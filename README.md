@@ -163,31 +163,34 @@ Not that expected test values are based on stedolan jq. If they are run with a d
 - Rethink invalid path handling, current `[null]` is used as sentinel value.
 - `{a:123} | .a |= empty` should remove key.
 
-## Thanks, references, tools and tricks
-
-Thanks to
-
-- [stedolan](https://github.com/stedolan) for jq and got me interesting in generator/backtracking based languages.
-- [pkoppstein](https://github.com/pkoppstein) for writing about [jq and PEG parsing](https://github.com/stedolan/jq/wiki/Parsing-Expression-Grammars).
-- [itchyny](https://github.com/itchyny) for [gojq](https://github.com/itchyny/gojq) where most of jqjq's AST design comes from which made it easier to compare parser output (ex via [fq's `_query_from
-- string`](https://github.com/wader/fq)). It also fixes some confusing jq bugs and has better error messages which saves a lot of time.
-- Michael Färber [@01mf02](https://github.com/01m) for [jaq](https://github.com/01mf02/jaq) and where I also learned about precedence climbing.
-
-Useful references
+### Useful references
 
 - [jq - Command-line JSON processor](https://github.com/stedolan/jq)
+- [jq's builtin.jq](https://github.com/stedolan/jq/blob/master/src/builtin.jq)
+- [jq Language Description](https://github.com/stedolan/jq/wiki/jq-Language-Description)
+- [jq simplified grammar](https://github.com/fadado/JBOL/blob/master/doc/JQ-language-grammar.md)
 - [gojq - Pure Go implementation of jq](https://github.com/itchyny/gojq)
 - [jaq - A jq clone focussed on correctness, speed, and simplicity](https://github.com/01mf02/jaq)
 - [xq - Pure rust implementation of jq](https://github.com/MiSawa/xq)
 - [jq wiki: jq as a PEG engine by pkoppstein](https://github.com/stedolan/jq/wiki/Parsing-Expression-Grammars)
 - [Precedence climbing](https://www.engr.mun.ca/~theo/Misc/exp_parsing.htm#climbing)
 
-Tools and tricks
+### Tools and tricks
 
 - `jq -n --debug-dump-disasm '...'` show jq byte code
 - `jq -n --debug-trace=all '...'` show jq byte code run trace
 - `jq -n '{a: "hello"} | debug' 2> >(jq -R 'gsub("\u001b\\[.*?m";"") | fromjson' >&2)` pretty print debug messages
 - `GOJQ_DEBUG=1 go run -tags gojq_debug cmd/gojq/main.go -n '...'` run gojq in debug mode
+- `fq -n '".a.b" | _query_fromstring'` gojq parse tree for string
+- `fq -n '{...} | _query_tostring'` jq expression string for gojq parse tree
+
+## Thanks to
+
+- [stedolan](https://github.com/stedolan) for jq and got me interesting in generator/backtracking based languages.
+- [pkoppstein](https://github.com/pkoppstein) for writing about [jq and PEG parsing](https://github.com/stedolan/jq/wiki/Parsing-Expression-Grammars).
+- [itchyny](https://github.com/itchyny) for [gojq](https://github.com/itchyny/gojq) where most of jqjq's AST design comes from which made it easier to compare parser output (ex via [fq's `_query_from
+- string`](https://github.com/wader/fq)). It also fixes some confusing jq bugs and has better error messages which saves a lot of time.
+- Michael Färber [@01mf02](https://github.com/01m) for [jaq](https://github.com/01mf02/jaq) and where I also learned about precedence climbing.
 
 ## License
 

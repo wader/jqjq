@@ -1430,13 +1430,17 @@ def _update(lhs; $op; rhs):
     )
   );
 
+def _is_array: type == \"array\";
+def _is_boolean: type == \"boolean\";
+def _is_null: type == \"null\";
+def _is_number: type == \"number\";
+def _is_object: type == \"object\";
+def _is_string: type == \"string\";
 def _is_scalar:
-  ( type
-  | . == \"boolean\" or
-    . == \"null\" or
-    . == \"number\" or
-    . == \"string\"
-  );
+  _is_boolean or
+  _is_null or
+  _is_number or
+  _is_string;
 
 # some are early as they are used by others
 
@@ -1545,6 +1549,22 @@ def from_entries:
     .[$kv.key] = $kv.value
   );
 def with_entries(f): to_entries | map(f) | from_entries;
+
+# TODO: rewrite this, objects are one level flatten?
+def _flatten($max):
+  def _f($d):
+    if _is_array and ($max == -1 or $d <= $max) then .[] | _f($d+1)
+    else .
+    end;
+  [ if _is_object then .[] | _f($max)
+    else _f(0)
+    end
+  ];
+def flatten($max):
+  if $max < 0 then error(\"flatten depth must not be negative\")
+  else _flatten($max)
+  end;
+def flatten: _flatten(-1);
 
 ";
 

@@ -943,6 +943,7 @@ def eval_ast($query; $path; $env; undefined_func):
           elif $name == "type/0" then [[null], type]
           elif $name == "length/0" then [[null], length]
           elif $name == "explode/0" then [[null], explode]
+          elif $name == "implode/0" then [[null], implode]
           # TODO: implement in jqjq?
           elif $name == "tostring/0" then [[null], tostring]
           elif $name == "tojson/0" then [[null], tojson]
@@ -1464,15 +1465,17 @@ def join($s):
     )
   end;
 
-def _minmax(f):
+def _minmax(f; c):
   if . == null then null
   else reduce .[] as $v (
       .[0];
-      if [., $v] | f then . else $v end
+      if [(. | f), ($v | f)] | c then . else $v end
     )
   end;
-def min: _minmax(.[0] < .[1]);
-def max: _minmax(.[0] > .[1]);
+def min_by(f): _minmax(f; .[0] <= .[1]);
+def min: min_by(.);
+def max_by(f): _minmax(f; .[0] > .[1]);
+def max: max_by(.);
 
 def range($from; $to; $by):
   def _f(stop):
@@ -1520,6 +1523,18 @@ def _quicksort(f):
 # [f] to support multiple outputs
 def sort_by(f): _quicksort((.[0] | [f]) < (.[1] | [f]));
 def sort: sort_by(.);
+
+def repeat(f):
+  def _f: f, _f;
+  _f;
+
+def while(cond; update):
+  def _f: if cond then ., (update | _f) else empty end;
+  _f;
+
+def until(cond; next):
+  def _f: if cond then . else next | _f end;
+  _f;
 ";
 
 def builtins_env:

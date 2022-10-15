@@ -8,4 +8,4 @@ test-jq:
 
 .PHONY: test-jqjq
 test-jqjq:
-	./jqjq --jq ${JQ} --run-tests < jqjq.test
+	./jqjq --jq "${JQ}" --run-tests < jqjq.test

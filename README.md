@@ -92,13 +92,13 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
 - [x] `+=`, `-=`, `*=`, `/=`, `%=` Arithmetic update assignment
 - [ ] Builtins / standard library
   - [x] `add`
-  - [x] `debug` (passthru)
-  - [x] `empty` (passthru)
-  - [x] `error($v)` (passthru)
-  - [x] `fromjson` (passthru)
-  - [x] `getpath(path)` (passthru)
+  - [x] `debug` (passthrough)
+  - [x] `empty` (passthrough)
+  - [x] `error($v)` (passthrough)
+  - [x] `fromjson` (passthrough)
+  - [x] `getpath(path)` (passthrough)
   - [x] `join($s)`
-  - [x] `length` (passthru)
+  - [x] `length` (passthrough)
   - [x] `map(f)`
   - [x] `max`
   - [x] `min`
@@ -107,11 +107,11 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
   - [x] `reverse`
   - [x] `scalars`
   - [x] `select(f)`
-  - [x] `setpath` (passthru)
+  - [x] `setpath` (passthrough)
   - [x] `sort`, `sort_by(f)`
-  - [x] `tojson` (passthru)
-  - [x] `tostring` (passthru)
-  - [x] `type` (passthru)
+  - [x] `tojson` (passthrough)
+  - [x] `tostring` (passthrough)
+  - [x] `type` (passthrough)
   - [ ] ...
 - [x] `def f: .` Function declaration
   - [x] `def f(lambda): lambda` Lambda argument
@@ -132,7 +132,7 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
 - [ ] Run jqjq with jqjq
 - [x] Bugs
 
-### jq's jq.test testsuite
+### jq's jq.test test suite
 
 ```
 $ ./jqjq --run-tests < ../jq/tests/jq.test | grep passed
@@ -146,8 +146,8 @@ $ ./jqjq --run-tests < ../jq/tests/jq.test | grep passed
 - "," operator in jq (and gojq) is left associate but for the way jqjq parses it creates the correct parse tree when it's right associate. Don't know why.
 - Suffix with multiple `[]` outputs values in wrong order.
 - Non-associate operators like `==` should fail, ex: `1 == 2 == 3`.
-- Object are parsed differently comapred to gojq. gojq has a list of pipe queries, jqjq will only have one that might be pipe op.
-- Less "passthru" piggyback on jq features:
+- Object are parsed differently compared to gojq. gojq has a list of pipe queries, jqjq will only have one that might be pipe op.
+- Less "passthrough" piggyback on jq features:
   - `reduce/foreach` via recursive function? similar to `if` or `{}`-literal?
   - `try/catch` via some backtrack return value? change `[path, value]` to include an error somehow?
 - How to support `label/break`?
@@ -162,7 +162,8 @@ Thanks to
 
 - [stedolan](https://github.com/stedolan) for jq and got me interesting in generator/backtracking based languages.
 - [pkoppstein](https://github.com/pkoppstein) for writing about [jq and PEG parsing](https://github.com/stedolan/jq/wiki/Parsing-Expression-Grammars).
-- [itchyny](https://github.com/itchyny) for [gojq](https://github.com/itchyny/gojq) where most of jqjq's AST design comes from which made it easier to compare parser output (ex via [fq's `_query_fromstring`](https://github.com/wader/fq)). It also fixes some confusing jq bugs and has better error messages which saves a lot of time.
+- [itchyny](https://github.com/itchyny) for [gojq](https://github.com/itchyny/gojq) where most of jqjq's AST design comes from which made it easier to compare parser output (ex via [fq's `_query_from
+- string`](https://github.com/wader/fq)). It also fixes some confusing jq bugs and has better error messages which saves a lot of time.
 - Michael Färber [@01mf02](https://github.com/01m) for [jaq](https://github.com/01mf02/jaq) and where I also learned about precedence climbing.
 
 Useful references

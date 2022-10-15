@@ -139,6 +139,8 @@ $ ./jqjq --run-tests < ../jq/tests/jq.test | grep passed
 148 of 348 tests passed
 ```
 
+Not that expected test values are based on stedolan jq. If they are run with a different jq implementation like gojq some might fail because of different error messages, support for arbitrary precision integers etc.
+
 ### Design problems, issues and unknowns
 
 - Better parser errors.

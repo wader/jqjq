@@ -96,6 +96,7 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
   - [x] `empty` (passthrough)
   - [x] `error($v)` (passthrough)
   - [x] `explode` (passthrough)
+  - [x] `from_entries`
   - [x] `fromjson` (passthrough)
   - [x] `getpath(path)` (passthrough)
   - [x] `implode` (passthrough)
@@ -112,11 +113,13 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
   - [x] `select(f)`
   - [x] `setpath` (passthrough)
   - [x] `sort`, `sort_by(f)`
+  - [x] `to_entries`
   - [x] `tojson` (passthrough)
   - [x] `tostring` (passthrough)
   - [x] `type` (passthrough)
   - [x] `until(cond; next)`
   - [x] `while(cond; update)`
+  - [x] `with_entries`
   - [ ] More...
 - [x] `def f: .` Function declaration
   - [x] `def f(lambda): lambda` Lambda argument
@@ -141,7 +144,7 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
 
 ```
 $ ./jqjq --run-tests < ../jq/tests/jq.test | grep passed
-152 of 348 tests passed
+168 of 348 tests passed
 ```
 
 Not that expected test values are based on stedolan jq. If they are run with a different jq implementation like gojq some might fail because of different error messages, support for arbitrary precision integers etc.

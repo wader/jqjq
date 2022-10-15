@@ -661,6 +661,23 @@ implode
 null
 123
 
+# suffix path
+.[].c = 123
+{"a":{"c":1},"b":{"c":2}}
+{"a":{"c":123},"b":{"c":123}}
+
+to_entries
+{"a":1,"b":2}
+[{"key":"a","value":1},{"key":"b","value":2}]
+
+from_entries
+[{"key":"a","value":1},{"key":"b","value":2}]
+{"a":1,"b":2}
+
+with_entries(.key |= "_"+. | .value += 100)
+{"a":1,"b":2}
+{"_a":101,"_b":102}
+
 # object key using a keyword
 {and: 1, as: 2, catch: 3, def: 4, elif: 5, else: 6, end: 7, false: 8, foreach: 9, if: 10, null: 11, or: 12, reduce: 13, then: 14, true: 15, try: 16}
 null

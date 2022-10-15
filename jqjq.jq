@@ -7,6 +7,7 @@
 # ".end" lex
 # test assoc 1|2|3?
 # add some term builder helper, _term("TermTypeArray"; {query: ...}) etc?
+# "a |" parse as "a | .", should be error
 #
 # Notes:
 # AST is more or less identical to the one used by gojq to make it easer to test parser
@@ -907,7 +908,7 @@ def eval_ast($query; $path; $env; undefined_func):
         [$path, .];
 
       # eval a index, is also used by _e_suffix
-      def _e_index($index; $query_input):
+      def _e_index($index; $query_path; $query_input):
         ( . as $input
         | $index as
             { $name
@@ -915,7 +916,7 @@ def eval_ast($query; $path; $env; undefined_func):
             , $start
             , end: $end_
             }
-        | if $name then [($path + [$name]), $input[$name]]
+        | if $name then [($query_path + [$name]), $input[$name]]
           elif $is_slice then
             ( $query_input
             | ( if $start then _e($start; []; $query_env)[1]
@@ -930,7 +931,7 @@ def eval_ast($query; $path; $env; undefined_func):
           elif $start then
             ( $query_input
             | _e($start; []; $query_env) as [$_, $v]
-            | [($path + [$v]), $input[$v]]
+            | [($query_path + [$v]), $input[$v]]
             )
           else . # TODO: error?
           end
@@ -938,7 +939,7 @@ def eval_ast($query; $path; $env; undefined_func):
 
       # .name
       def _index:
-        _e_index($query.term.index; .);
+        _e_index($query.term.index; $path; .);
 
       def _func:
         ( $query.term.func as {$name, $args}
@@ -947,6 +948,7 @@ def eval_ast($query; $path; $env; undefined_func):
           elif $name == "debug/0" then debug as $_ | [$path, .]
           elif $name == "type/0" then [[null], type]
           elif $name == "length/0" then [[null], length]
+          elif $name == "keys/0" then [[null], keys]
           elif $name == "explode/0" then [[null], explode]
           elif $name == "implode/0" then [[null], implode]
           # TODO: implement in jqjq?
@@ -974,7 +976,7 @@ def eval_ast($query; $path; $env; undefined_func):
               ]
             )
           elif $name == "path/1" then
-            ( _e($args[0]; $path; $query_env) as [$p, $_]
+            ( _e($args[0]; []; $query_env) as [$p, $_]
             # TODO: try/catch error
             | if $p == [null] then error("invalid path expression") end
             | [[null], $p]
@@ -1285,14 +1287,10 @@ def eval_ast($query; $path; $env; undefined_func):
           elif $suffix.index then
             # .<index>
             ( $v
-            | _e_index($suffix.index; $input)
-            # TODO: hack
-            | . as [$p, $v]
-            | $p[-1] as $key
-            | [($path + [$key]), $v]
+            | _e_index($suffix.index; $p; $input)
             )
           elif $suffix.iter then
-            # ...[]
+            # .[]
             ( $v
             | keys[] as $key
             | [($path + [$key]), $v[$key]]
@@ -1333,7 +1331,10 @@ def eval_ast($query; $path; $env; undefined_func):
           elif $type == "TermTypeUnary" then _unary
           else error("unsupported term: \($query)")
           end
-        | if $query.term.suffix_list then _e_suffix_list($input; $path)
+        | if $query.term.suffix_list then
+            ( .
+            | _e_suffix_list($input; $path)
+            )
           else .
           end
         )
@@ -1532,6 +1533,19 @@ def while(cond; update):
 def until(cond; next):
   def _f: if cond then . else next | _f end;
   _f;
+
+def to_entries:
+  ( . as $o
+  | keys
+  | map({key: ., value: $o[.]})
+  );
+def from_entries:
+  reduce .[] as $kv (
+    {};
+    .[$kv.key] = $kv.value
+  );
+def with_entries(f): to_entries | map(f) | from_entries;
+
 ";
 
 def builtins_env:

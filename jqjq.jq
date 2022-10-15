@@ -1566,6 +1566,13 @@ def flatten($max):
   end;
 def flatten: _flatten(-1);
 
+def transpose:
+  ( (map(length) | max) as $max
+  | . as $v
+  | [ range($max) as $i
+    | map(.[$i])
+    ]
+  );
 ";
 
 def builtins_env:

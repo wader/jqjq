@@ -676,6 +676,18 @@ flatten(2)
 [[[[2]]]]
 [[2]]
 
+transpose
+[[1],[2,3,4]]
+[[1,2],[null,3],[null,4]]
+
+transpose
+[[1,2],[null,3],[null,4]]
+[[1,null,null],[2,3,4]]
+
+transpose | transpose
+[["a","b","c"],[2,3,4]]
+[["a","b","c"],[2,3,4]]
+
 # suffix input
 "a" | {a:123}[.]
 null

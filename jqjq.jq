@@ -906,34 +906,39 @@ def eval_ast($query; $path; $env; undefined_func):
       def _identity:
         [$path, .];
 
-      # .name
-      # is also used by _suffix
-      def _index:
-        ( $query.term.index as
+      # eval a index, is also used by _e_suffix
+      def _e_index($index; $query_input):
+        ( . as $input
+        | $index as
             { $name
             , $is_slice
             , $start
             , end: $end_
             }
-        | if $name then [($path + [$name]), .[$name]]
+        | if $name then [($path + [$name]), $input[$name]]
           elif $is_slice then
-            ( ($start // {term: {type: "TermTypeNumber", number: "0"}}) as $start
-            # TODO:
-            | ($end_ // {term: {type: "TermTypeFunc", func: {name: "length"}}}) as $end_
-            | _e($start; $path; $query_env) as [$_, $vs]
-            | _e($end_; $path; $query_env) as [$_, $ve]
-            # | debug({dot: ., $vs, $ve})
-            # | debug
-            | [[null], .[$vs:$ve]]
-            # | debug
+            ( $query_input
+            | ( if $start then _e($start; []; $query_env)[1]
+                else 0 end
+              )  as $vs
+            | ( if $end_ then _e($end_; []; $query_env)[1]
+                else $input | length
+                end
+              ) as $ve
+            | [[null], $input[$vs:$ve]]
             )
           elif $start then
-            ( _e($start; $path; $query_env) as [$_, $v]
-            | [($path + [$v]), .[$v]]
+            ( $query_input
+            | _e($start; []; $query_env) as [$_, $v]
+            | [($path + [$v]), $input[$v]]
             )
           else . # TODO: error?
           end
         );
+
+      # .name
+      def _index:
+        _e_index($query.term.index; .);
 
       def _func:
         ( $query.term.func as {$name, $args}
@@ -1280,15 +1285,7 @@ def eval_ast($query; $path; $env; undefined_func):
           elif $suffix.index then
             # .<index>
             ( $v
-            | _e(
-                { term:
-                    { type: "TermTypeIndex"
-                    , index: $suffix.index
-                    }
-                };
-                $path;
-                $query_env
-              )
+            | _e_index($suffix.index; $input)
             # TODO: hack
             | . as [$p, $v]
             | $p[-1] as $key

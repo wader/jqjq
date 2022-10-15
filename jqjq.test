@@ -656,6 +656,11 @@ implode
 [106,113,106,113]
 "jqjq"
 
+# suffix input
+"a" | {a:123}[.]
+null
+123
+
 # SKIP_JQ
 # test below does not work with standard jq because of missing features or bugs
 

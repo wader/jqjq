@@ -96,6 +96,7 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
   - [x] `empty` (passthrough)
   - [x] `error($v)` (passthrough)
   - [x] `explode` (passthrough)
+  - [x] `flatten`, `flatten($depth)`
   - [x] `from_entries`
   - [x] `fromjson` (passthrough)
   - [x] `getpath(path)` (passthrough)
@@ -116,6 +117,7 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
   - [x] `to_entries`
   - [x] `tojson` (passthrough)
   - [x] `tostring` (passthrough)
+  - [x] `transpose`
   - [x] `type` (passthrough)
   - [x] `until(cond; next)`
   - [x] `while(cond; update)`

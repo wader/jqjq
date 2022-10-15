@@ -1551,18 +1551,18 @@ def from_entries:
 def with_entries(f): to_entries | map(f) | from_entries;
 
 # TODO: rewrite this, objects are one level flatten?
-def _flatten($max):
+def _flatten($depth):
   def _f($d):
-    if _is_array and ($max == -1 or $d <= $max) then .[] | _f($d+1)
+    if _is_array and ($depth == -1 or $d <= $depth) then .[] | _f($d+1)
     else .
     end;
-  [ if _is_object then .[] | _f($max)
+  [ if _is_object then .[] | _f($depth)
     else _f(0)
     end
   ];
-def flatten($max):
-  if $max < 0 then error(\"flatten depth must not be negative\")
-  else _flatten($max)
+def flatten($depth):
+  if $depth < 0 then error(\"flatten depth must not be negative\")
+  else _flatten($depth)
   end;
 def flatten: _flatten(-1);
 

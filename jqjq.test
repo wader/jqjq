@@ -653,8 +653,17 @@ null
 123
 123
 
-# binding with same name as keyword
+# binding using a keyword
 . as $if | $if
 123
 123
 
+# object key using a keyword
+{and: 1, as: 2, catch: 3, def: 4, elif: 5, else: 6, end: 7, false: 8, foreach: 9, if: 10, null: 11, or: 12, reduce: 13, then: 14, true: 15, try: 16}
+null
+{"and":1,"as":2,"catch":3,"def":4,"elif":5,"else":6,"end":7,"false":8,"foreach":9,"if":10,"null":11,"or":12,"reduce":13,"then":14,"true":15,"try":16}
+
+# index using a keyword
+[.and, .as, .catch, .def, .elif, .else, .end, .false, .foreach, .if, .null, .or, .reduce, .then, .true, .try]
+{"and":1,"as":2,"catch":3,"def":4,"elif":5,"else":6,"end":7,"false":8,"foreach":9,"if":10,"null":11,"or":12,"reduce":13,"then":14,"true":15,"try":16}
+[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]

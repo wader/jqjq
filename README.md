@@ -136,7 +136,7 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
 
 ```
 $ ./jqjq --run-tests < ../jq/tests/jq.test | grep passed
-147 of 348 tests passed
+148 of 348 tests passed
 ```
 
 ### Design problems, issues and unknowns

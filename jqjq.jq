@@ -30,32 +30,8 @@ def lex:
     else
       (  _re("^\\s+"; {whitespace: .})
       // _re("^#[^\n]*"; {comment: .})
-      // _re("^[_a-zA-Z][_a-zA-Z0-9]*";
-          def _is_keyword:
-            ( . as $s
-            | { "and": true
-              , "as": true
-              , "catch": true
-              , "def": true
-              , "elif": true
-              , "else": true
-              , "end": true
-              , "false": true
-              , "foreach": true
-              , "if": true
-              , "null": true
-              , "or": true
-              , "reduce": true
-              , "then": true
-              , "true": true
-              , "try": true
-              }
-            | has($s)
-            );
-          if _is_keyword then {(.): .}
-          else {ident: .}
-          end
-        )
+      // _re("^\\.[_a-zA-Z][_a-zA-Z0-9]*"; {index: .[1:]})
+      // _re("^[_a-zA-Z][_a-zA-Z0-9]*"; {ident: .})
       // _re("^\\$[_a-zA-Z][_a-zA-Z0-9]*"; {binding: .})
       # 1.23, .123, 123e2, 1.23e2, 123E2 or 123
       // _re("^(?:[0-9]*\\.[0-9]+|[0-9]+)(?:[eE][0-9]+)?"; {number: .})
@@ -145,29 +121,29 @@ def parse:
     def _op_prec_climb($p; filter):
       def _ops:
         if filter then false
-        elif .pipe then          {prec: 0, name: "|",   assoc: "right"}
+        elif .pipe then           {prec: 0, name: "|",   assoc: "right"}
         # TODO: understand why jq has left assoc for "," but right seems to give correct parse tree
-        elif .comma then         {prec: 1, name: ",",   assoc: "right"}
-        elif .equal then         {prec: 2, name: "=",   assoc: "none"}
-        elif .pipe_equal then    {prec: 2, name: "|=",  assoc: "none"}
-        elif .equal_plus then    {prec: 2, name: "+=",  assoc: "none"}
-        elif .equal_dash then    {prec: 2, name: "-=",  assoc: "none"}
-        elif .equal_star then    {prec: 2, name: "*=",  assoc: "none"}
-        elif .equal_slash then   {prec: 2, name: "/=",  assoc: "none"}
-        elif .equal_percent then {prec: 2, name: "%=",  assoc: "none"}
-        elif .or then            {prec: 3, name: "or",  assoc: "left"}
-        elif .and then           {prec: 4, name: "and", assoc: "left"}
-        elif .equal_equal then   {prec: 5, name: "==",  assoc: "none"}
-        elif .not_equal then     {prec: 5, name: "!=",  assoc: "none"}
-        elif .less then          {prec: 5, name: "<",   assoc: "none"}
-        elif .less_equal then    {prec: 5, name: "<=",  assoc: "none"}
-        elif .greater then       {prec: 5, name: ">",   assoc: "none"}
-        elif .greater_equal then {prec: 5, name: ">=",  assoc: "none"}
-        elif .plus then          {prec: 6, name: "+",   assoc: "left"}
-        elif .dash then          {prec: 6, name: "-",   assoc: "left"}
-        elif .star then          {prec: 7, name: "*",   assoc: "left"}
-        elif .slash then         {prec: 7, name: "/",   assoc: "left"}
-        elif .percent then       {prec: 7, name: "%",   assoc: "left"}
+        elif .comma then          {prec: 1, name: ",",   assoc: "right"}
+        elif .equal then          {prec: 2, name: "=",   assoc: "none"}
+        elif .pipe_equal then     {prec: 2, name: "|=",  assoc: "none"}
+        elif .equal_plus then     {prec: 2, name: "+=",  assoc: "none"}
+        elif .equal_dash then     {prec: 2, name: "-=",  assoc: "none"}
+        elif .equal_star then     {prec: 2, name: "*=",  assoc: "none"}
+        elif .equal_slash then    {prec: 2, name: "/=",  assoc: "none"}
+        elif .equal_percent then  {prec: 2, name: "%=",  assoc: "none"}
+        elif .ident == "or" then  {prec: 3, name: "or",  assoc: "left"}
+        elif .ident == "and" then {prec: 4, name: "and", assoc: "left"}
+        elif .equal_equal then    {prec: 5, name: "==",  assoc: "none"}
+        elif .not_equal then      {prec: 5, name: "!=",  assoc: "none"}
+        elif .less then           {prec: 5, name: "<",   assoc: "none"}
+        elif .less_equal then     {prec: 5, name: "<=",  assoc: "none"}
+        elif .greater then        {prec: 5, name: ">",   assoc: "none"}
+        elif .greater_equal then  {prec: 5, name: ">=",  assoc: "none"}
+        elif .plus then           {prec: 6, name: "+",   assoc: "left"}
+        elif .dash then           {prec: 6, name: "-",   assoc: "left"}
+        elif .star then           {prec: 7, name: "*",   assoc: "left"}
+        elif .slash then          {prec: 7, name: "/",   assoc: "left"}
+        elif .percent then        {prec: 7, name: "%",   assoc: "left"}
         else false
         end;
 
@@ -405,10 +381,10 @@ def parse:
 
     # reduce <term> as <binding> (<start-query>;<update-query>)
     def _reduce:
-      ( _consume(.reduce)
+      ( _consume(.ident == "reduce")
       | _p("term") as [$rest, $term]
       | $rest
-      | _consume(.as)
+      | _consume(.ident == "as")
       | .[0] as $binding # TODO: pattern
       | _consume(.binding)
       | _consume(.lparen)
@@ -434,10 +410,10 @@ def parse:
 
     # foreach <term> as <binding> (<start-query>;<update-query>[;<extract-query>])
     def _foreach:
-      ( _consume(.foreach)
+      ( _consume(.ident == "foreach")
       | _p("term") as [$rest, $term]
       | $rest
-      | _consume(.as)
+      | _consume(.ident == "as")
       | .[0] as $binding # TODO: pattern
       | _consume(.binding)
       | _consume(.lparen)
@@ -474,17 +450,17 @@ def parse:
     # [else expr]?
     # end
     def _if:
-      ( _consume(.if)
+      ( _consume(.ident == "if")
       | _p("query") as [$rest, $cond]
       | $rest
-      | _consume(.then)
+      | _consume(.ident == "then")
       | _p("query") as [$rest, $then_]
       | $rest
       | _repeat(
-          ( _consume(.elif)
+          ( _consume(.ident == "elif")
           | _p("query") as [$rest, $cond]
           | $rest
-          | _consume(.then)
+          | _consume(.ident == "then")
           | _p("query") as [$rest, $then_]
           | $rest
           | [., {cond: $cond, then: $then_}]
@@ -492,25 +468,25 @@ def parse:
         ) as [$rest, $elif_]
       | $rest
       | _optional(
-          ( _consume(.else)
+          ( _consume(.ident == "else")
           | _p("query")
           )
         ) as [$rest, $else_]
       | $rest
-      | _consume(.end)
+      | _consume(.ident == "end")
       | [ .
         , { term:
-            { type: "TermTypeIf"
-            , if:
-                ( { cond: $cond
-                  , then: $then_
-                  , else: $else_
-                  }
-                | if ($elif_ | length) > 0 then .elif = $elif_
-                  else .
-                  end
-                )
-            }
+              { type: "TermTypeIf"
+              , if:
+                  ( { cond: $cond
+                    , then: $then_
+                    , else: $else_
+                    }
+                  | if ($elif_ | length) > 0 then .elif = $elif_
+                    else .
+                    end
+                  )
+              }
           }
         ]
       );
@@ -520,7 +496,7 @@ def parse:
     # def a(f; $v) ...;
     def _func_defs:
       _repeat(
-        ( _consume(.def)
+        ( _consume(.ident == "def")
         | . as [{ident: $name}]
         | _consume(.ident)
         | ( ( _consume(.lparen)
@@ -619,12 +595,11 @@ def parse:
         )
       //
         # .name index
-        ( _consume(.dot)
-        | .[0] as $ident
-        | _consume(.ident)
+        ( .[0] as $index
+        | _consume(.index)
         | [ .
           , { index:
-                { name: $ident.ident
+                { name: $index.index
                 }
             }
           ]
@@ -652,7 +627,7 @@ def parse:
           ]
         )
       //
-        ( _consume(.as)
+        ( _consume(.ident == "as")
         | .[0] as $binding
         | _consume(.binding)
         | _consume(.pipe)
@@ -685,57 +660,57 @@ def parse:
     # .[<query>]
     # .name
     def _index:
-      ( _consume(.dot)
-      | ( ( _consume(.lsquare)
-          | _p("query") as [$rest, $query]
-          | $rest
-          | _consume(.rsquare)
-          | [ .
-            , { term:
-                  { type: "TermTypeIndex"
-                  , index:
-                    { start: $query
-                    }
+      ( ( _consume(.dot)
+        | _consume(.lsquare)
+        | _p("query") as [$rest, $query]
+        | $rest
+        | _consume(.rsquare)
+        | [ .
+          , { term:
+                { type: "TermTypeIndex"
+                , index:
+                  { start: $query
+                  }
+              }
+            }
+          ]
+        )
+      //
+        ( _consume(.dot)
+        | _consume(.lsquare)
+        | _optional(_p("query")) as [$rest, $start]
+        | $rest
+        | _consume(.colon)
+        | _optional(_p("query")) as [$rest, $end_]
+        # TODO: share with _suffix?
+        | $rest
+        | _consume(.rsquare)
+        # fail is both missing
+        | if $start == null and $end_ == null then empty else . end
+        | [ .
+          , { term:
+                { type: "TermTypeIndex"
+                , index:
+                    ( {is_slice: true}
+                    | if $start then .start = $start else . end
+                    | if $end_ then .end = $end_ else . end
+                    )
                 }
-              }
-            ]
-          )
-        //
-          ( _consume(.lsquare)
-          | _optional(_p("query")) as [$rest, $start]
-          | $rest
-          | _consume(.colon)
-          | _optional(_p("query")) as [$rest, $end_]
-          # TODO: share with _suffix?
-          | $rest
-          | _consume(.rsquare)
-          # fail is both missing
-          | if $start == null and $end_ == null then empty else . end
-          | [ .
-            , { term:
-                  { type: "TermTypeIndex"
-                  , index:
-                      ( {is_slice: true}
-                      | if $start then .start = $start else . end
-                      | if $end_ then .end = $end_ else . end
-                      )
+            }
+          ]
+        )
+      //
+        ( .[0] as $index
+        | _consume(.index)
+        | [ .
+          , { term:
+                { type: "TermTypeIndex"
+                , index:
+                  { name: $index.index
                   }
-              }
-            ]
-          )
-        //
-          ( .[0] as $ident
-          | _consume(.ident)
-          | [ .
-            , { term:
-                  { type: "TermTypeIndex"
-                  , index:
-                    { name: $ident.ident
-                    }
-                  }
-              }
-            ]
-          )
+                }
+            }
+          ]
         )
       );
 
@@ -743,11 +718,11 @@ def parse:
     # try <query> catch <query>
     # TODO: query should not support |?
     def _try:
-      ( _consume(.try)
+      ( _consume(.ident == "try")
       | _p("query") as [$rest, $body]
       | $rest
       | _optional(
-          ( _consume(.catch)
+          ( _consume(.ident == "catch")
           | _p("query")
           )
         ) as [$rest, $catch_]
@@ -820,22 +795,23 @@ def parse:
         | [$rest, .]
         )
       elif $type == "term" then
+        # "keyword" ident parsing first
         ( ( _p("if")
+          // _p("reduce")
+          // _p("foreach")
+          // _p("try")
           // _p("true")
           // _p("false")
           // _p("null")
+          // _p("func")
           // _p("number")
           // _p("string")
           // _p("array")
           // _p("subquery") # TODO: rename?
           // _p("object")
-          // _p("index")
-          // _p("identity")
-          // _p("func")
+          // _p("index") #.name
+          // _p("identity") # .
           // _p("binding")
-          // _p("reduce")
-          // _p("foreach")
-          // _p("try")
           // _p("unary_plus")
           // _p("unary_minus")
           // _p("recurse") # ".."
@@ -854,9 +830,9 @@ def parse:
       elif $type == "suffix" then _suffix
       elif $type == "if" then _if
       elif $type == "func_defs" then _func_defs
-      elif $type == "true" then _consume(.true) | [., {term: {type: "TermTypeTrue"}}]
-      elif $type == "false" then _consume(.false) | [., {term: {type: "TermTypeFalse"}}]
-      elif $type == "null" then _consume(.null) | [., {term: {type: "TermTypeNull"}}]
+      elif $type == "true" then _consume(.ident == "true") | [., {term: {type: "TermTypeTrue"}}]
+      elif $type == "false" then _consume(.ident == "false") | [., {term: {type: "TermTypeFalse"}}]
+      elif $type == "null" then _consume(.ident == "null") | [., {term: {type: "TermTypeNull"}}]
       elif $type == "number" then
         ( . as [$first]
         | _consume(.number) | [., {term: {type: "TermTypeNumber", number: $first.number}}]
@@ -910,9 +886,9 @@ def func_defs_to_env($env):
     ( . as $func_env
     | .
     + { (func_name($f.name; $f.args)):
-        ( $f
-        | .env = $func_env
-        )
+          ( $f
+          | .env = $func_env
+          )
       }
     )
   );
@@ -1427,7 +1403,6 @@ def eval_ast($query; $path; $env; undefined_func):
 def eval_ast($ast):
   eval_ast($ast; []; {}; undefined_func_error);
 
-
 def _builtins_src: "
 # used to implement lhs = rhs
 def _assign(lhs; $op; rhs):
@@ -1464,9 +1439,12 @@ def _is_scalar:
     . == \"string\"
   );
 
-# is early as they are used by others
+# some are early as they are used by others
+
 def not: if . then false else true end;
+
 def select(f): if f then . else empty end;
+
 def map(f): [.[] | f];
 
 def scalars: select(_is_scalar);

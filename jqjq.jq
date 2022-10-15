@@ -1293,7 +1293,7 @@ def eval_ast($query; $path; $env; undefined_func):
             # .[]
             ( $v
             | keys[] as $key
-            | [($path + [$key]), $v[$key]]
+            | [($p + [$key]), $v[$key]]
             )
           else error("unknown suffix: \($suffix)")
           end

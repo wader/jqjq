@@ -656,16 +656,6 @@ implode
 [106,113,106,113]
 "jqjq"
 
-# suffix input
-"a" | {a:123}[.]
-null
-123
-
-# suffix path
-.[].c = 123
-{"a":{"c":1},"b":{"c":2}}
-{"a":{"c":123},"b":{"c":123}}
-
 to_entries
 {"a":1,"b":2}
 [{"key":"a","value":1},{"key":"b","value":2}]
@@ -677,6 +667,26 @@ from_entries
 with_entries(.key |= "_"+. | .value += 100)
 {"a":1,"b":2}
 {"_a":101,"_b":102}
+
+# suffix input
+"a" | {a:123}[.]
+null
+123
+
+# suffix path
+.[].c = 123
+{"a":{"c":1},"b":{"c":2}}
+{"a":{"c":123},"b":{"c":123}}
+
+# iter
+# TODO: iter order for index query
+# [[.[0,1][0,1]], [.[][]]]
+# [[1,2],[3,4]]
+# [[1,3,2,4],[1,2,3,4]]
+
+.[][] += 1
+[[1,2],[3,4]]
+[[2,3],[4,5]]
 
 # object key using a keyword
 {and: 1, as: 2, catch: 3, def: 4, elif: 5, else: 6, end: 7, false: 8, foreach: 9, if: 10, null: 11, or: 12, reduce: 13, then: 14, true: 15, try: 16}

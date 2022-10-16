@@ -1585,6 +1585,39 @@ def transpose:
     | map(.[$i])
     ]
   );
+
+# TODO: should use label/break instead of special sentinel value
+def limit($n; f):
+  ( \"__jqjq_limit_break\" as $b
+  | if $n == 0 then empty
+    else
+      try
+        foreach f as $v (
+          0;
+          .+1;
+          ( $v
+          , if . == $n then error($b)
+            else empty
+            end
+          )
+        )
+      catch
+        if . == $b then empty
+        else error(.)
+        end
+    end
+  );
+
+def first(f): limit(1; f);
+def first: .[0];
+def last(f): [f][-1];
+def last: .[-1];
+def nth($n; f): [limit($n+1; f)][-1];
+def nth($n): .[$n];
+
+def isempty(f): [limit(1; f)] == [];
+
+
 ";
 
 def builtins_env:

@@ -1450,6 +1450,17 @@ def select(f): if f then . else empty end;
 
 def map(f): [.[] | f];
 
+def arrays: select(_is_array);
+def objects: select(_is_object);
+def iterables: select(_is_array or _is_object);
+def booleans: select(_is_boolean);
+def numbers: select(_is_number);
+# TODO:
+# def normals: select(_is_normal);
+# def finites: select(_is_finite);
+def strings: select(_is_string);
+def nulls: select(_is_null);
+def values: select(_is_null | not);
 def scalars: select(_is_scalar);
 
 def add: reduce .[] as $v (null; . + $v);
@@ -1492,6 +1503,7 @@ def range($from; $to): range($from; $to; 1);
 def range($to): range(0; $to; 1);
 
 def recurse(f): def _f: ., (f | _f); _f;
+def recurse(f; cond): reduce(f | select(cond));
 # TODO: .[]?
 def recurse: recurse(try .[] catch empty);
 def reverse: length as $l | [.[$l-1-range($l)]];

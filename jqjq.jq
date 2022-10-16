@@ -662,7 +662,7 @@ def parse:
     # .[<query>:<query>]
     # .name
     # ."name"
-    # TODO: share with _suffix?
+    # TODO: share with _suffix? tricky because of leading dot
     def _index:
       ( ( _consume(.dot)
         | _consume(.lsquare)

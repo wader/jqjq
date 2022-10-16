@@ -496,6 +496,12 @@ foreach (.,2,3) as $v (.; . + $v; . * 2)
 foreach empty as $v (123; .)
 null
 
+# make sure binding is correct in extract
+foreach ("a","b") as $v (0;0;$v)
+null
+"a"
+"b"
+
 # array slice
 .[0:], .[1:], .[1:-1], .[1:-2], .[-2:], .[-1:]
 [1,2,3,4]

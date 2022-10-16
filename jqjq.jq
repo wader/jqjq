@@ -1230,9 +1230,9 @@ def eval_ast($query; $path; $env; undefined_func):
             | $state
             | _e($update; $p; $query_env + {($name): {value: $v}})
             );
-            ( . as [$p, $v]
-            | $v
-            | _e($extract; $p; $query_env + {($name): {value: $v}})
+            ( . as [$update_p, $update_v]
+            | $update_v
+            | _e($extract; $update_p; $query_env + {($name): {value: $v}})
             )
           )
         );

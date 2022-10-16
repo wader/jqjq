@@ -50,7 +50,7 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
 
 ## Progress
 
-- [x] `123, .123, 1.23, 1.23e2, "abc", true, false, null` Scalar literals
+- [x] `123, .123, 1.23, 1.23e2, 1.23e+2, "abc", true, false, null` Scalar literals
 - [x] `{key: "value"}` Object literal
   - [x] `{key}`
   - [x] `{"key"}`
@@ -95,17 +95,25 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
   - [x] `debug` (passthrough)
   - [x] `empty` (passthrough)
   - [x] `error($v)` (passthrough)
+  - [x] `error` (passthrough)
   - [x] `explode` (passthrough)
+  - [x] `first(f)`
+  - [x] `first`
   - [x] `flatten`, `flatten($depth)`
   - [x] `from_entries`
   - [x] `fromjson` (passthrough)
   - [x] `getpath(path)` (passthrough)
   - [x] `implode` (passthrough)
+  - [x] `isempty`
   - [x] `join($s)`
+  - [x] `last(f)`
+  - [x] `last`
   - [x] `length` (passthrough)
+  - [x] `limit($n; f)`
   - [x] `map(f)`
   - [x] `max`, `max_by(f)`
   - [x] `min`, `min_by(f)`
+  - [x] `nth($n; f); nth($n)`
   - [x] `range($to)`, `range($from; $to)`, `range($from; $to; $by)`
   - [x] `recurse`, `recurse(f)`
   - [x] `repeat`

@@ -614,7 +614,7 @@ def parse:
         | [ .
           , { index:
                 { str:
-                    { str: $string.str
+                    { str: $string.term.str
                     }
                 }
             }
@@ -659,7 +659,10 @@ def parse:
       );
 
     # .[<query>]
+    # .[<query>:<query>]
     # .name
+    # ."name"
+    # TODO: share with _suffix?
     def _index:
       ( ( _consume(.dot)
         | _consume(.lsquare)
@@ -683,7 +686,6 @@ def parse:
         | $rest
         | _consume(.colon)
         | _optional(_p("query")) as [$rest, $end_]
-        # TODO: share with _suffix?
         | $rest
         | _consume(.rsquare)
         # fail is both missing
@@ -709,6 +711,24 @@ def parse:
                 , index:
                   { name: $index.index
                   }
+                }
+            }
+          ]
+        )
+      //
+        # ."name" index
+        # TODO: ."string" for TermTypeIndex?
+        ( _consume(.dot)
+        | _p("string") as [$rest, $string]
+        | $rest
+        | [ .
+          , { term:
+                { type: "TermTypeIndex"
+                , index:
+                    { str:
+                        { str: $string.term.str
+                        }
+                    }
                 }
             }
           ]
@@ -912,11 +932,13 @@ def eval_ast($query; $path; $env; undefined_func):
         ( . as $input
         | $index as
             { $name
+            , $str
             , $is_slice
             , $start
             , end: $end_
             }
         | if $name then [($query_path + [$name]), $input[$name]]
+          elif $str then [($query_path + [$str.str]), $input[$str.str]]
           elif $is_slice then
             ( $query_input
             | ( if $start then _e($start; []; $query_env)[1]

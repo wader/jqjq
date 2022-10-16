@@ -700,6 +700,13 @@ transpose | transpose
 null
 123
 
+."a".b, .a."b", ."a"."b", . "a" . "b"
+{"a":{"b":123}}
+123
+123
+123
+123
+
 # literal with suffix
 {a:{a:123}}.a.a
 null

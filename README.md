@@ -193,8 +193,7 @@ Not that expected test values are based on stedolan jq. If they are run with a d
 
 - [stedolan](https://github.com/stedolan) for jq and got me interesting in generator/backtracking based languages.
 - [pkoppstein](https://github.com/pkoppstein) for writing about [jq and PEG parsing](https://github.com/stedolan/jq/wiki/Parsing-Expression-Grammars).
-- [itchyny](https://github.com/itchyny) for [gojq](https://github.com/itchyny/gojq) where most of jqjq's AST design comes from which made it easier to compare parser output (ex via [fq's `_query_from
-- string`](https://github.com/wader/fq)). It also fixes some confusing jq bugs and has better error messages which saves a lot of time.
+- [itchyny](https://github.com/itchyny) for [gojq](https://github.com/itchyny/gojq) where most of jqjq's AST design comes from which made it easier to compare parser output (ex via [fq's `_query_fromstring`](https://github.com/wader/fq)). It also fixes some confusing jq bugs and has better error messages which saves a lot of time.
 - Michael Färber [@01mf02](https://github.com/01m) for [jaq](https://github.com/01mf02/jaq) and where I also learned about precedence climbing.
 
 ## License

@@ -1653,6 +1653,9 @@ def nth($n): .[$n];
 
 def isempty(f): [limit(1; f)] == [];
 
+def startswith($s): .[0:$s | length] == $s;
+def endswith($s): .[$s | -length:] == $s;
+
 
 ";
 

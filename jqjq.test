@@ -689,7 +689,12 @@ transpose | transpose
 [["a","b","c"],[2,3,4]]
 
 # suffix input
-"a" | {a:123}[.]
+"a" | {a:{a:123}}[.][.]
+null
+123
+
+# literal with suffix
+{a:{a:123}}.a.a
 null
 123
 

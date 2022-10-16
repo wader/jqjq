@@ -1579,9 +1579,22 @@ def to_entries:
   | map({key: ., value: $o[.]})
   );
 def from_entries:
+  # TODO: use // once supported
+  def _key:
+    if .key then .key
+    elif .Key then .Key
+    elif .name then .name
+    elif .Name then .Name
+    else null
+    end;
+  def _value:
+    if .value then .value
+    elif .Value then .Value
+    else null
+    end;
   reduce .[] as $kv (
     {};
-    .[$kv.key] = $kv.value
+    .[$kv | _key] = ($kv | _value)
   );
 def with_entries(f): to_entries | map(f) | from_entries;
 

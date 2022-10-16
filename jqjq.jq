@@ -973,6 +973,7 @@ def eval_ast($query; $path; $env; undefined_func):
           elif $name == "keys/0" then [[null], keys]
           elif $name == "explode/0" then [[null], explode]
           elif $name == "implode/0" then [[null], implode]
+          elif $name == "tonumber/0" then [[null], tonumber]
           # TODO: implement in jqjq?
           elif $name == "tostring/0" then [[null], tostring]
           elif $name == "tojson/0" then [[null], tojson]

@@ -144,7 +144,8 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
 - [x] `try f`, `try f catch .` Catch error
 - [ ] `f?` Empty shorthand catch
 - [x] `..` Recurse input
-- [ ] `//`, `?//` Alternative operator
+- [x] `//` Alternative operator
+- [ ] `?//` Alternative pattern operator
 - [ ] `$ENV`
 - [ ] `"\(f)"` String interpolation
 - [ ] `@format "string"` Format string
@@ -157,7 +158,7 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
 
 ```
 $ ./jqjq --run-tests < ../jq/tests/jq.test | grep passed
-196 of 348 tests passed
+197 of 348 tests passed
 ```
 
 Not that expected test values are based on stedolan jq. If they are run with a different jq implementation like gojq some might fail because of different error messages, support for arbitrary precision integers etc.

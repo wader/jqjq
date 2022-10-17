@@ -72,6 +72,7 @@ def lex:
       // _re("^\\+";    {plus: .})
       // _re("^-";      {dash: .})
       // _re("^\\*";    {star: .})
+      // _re("^//";     {slash_slash: .})
       // _re("^/";      {slash: .})
       // _re("^%";      {percent: .})
       // _re("^\\(";    {lparen: .})
@@ -125,26 +126,27 @@ def parse:
         elif .pipe then           {prec: 0, name: "|",   assoc: "right"}
         # TODO: understand why jq has left assoc for "," but right seems to give correct parse tree
         elif .comma then          {prec: 1, name: ",",   assoc: "right"}
-        elif .equal then          {prec: 2, name: "=",   assoc: "none"}
-        elif .pipe_equal then     {prec: 2, name: "|=",  assoc: "none"}
-        elif .equal_plus then     {prec: 2, name: "+=",  assoc: "none"}
-        elif .equal_dash then     {prec: 2, name: "-=",  assoc: "none"}
-        elif .equal_star then     {prec: 2, name: "*=",  assoc: "none"}
-        elif .equal_slash then    {prec: 2, name: "/=",  assoc: "none"}
-        elif .equal_percent then  {prec: 2, name: "%=",  assoc: "none"}
-        elif .ident == "or" then  {prec: 3, name: "or",  assoc: "left"}
-        elif .ident == "and" then {prec: 4, name: "and", assoc: "left"}
-        elif .equal_equal then    {prec: 5, name: "==",  assoc: "none"}
-        elif .not_equal then      {prec: 5, name: "!=",  assoc: "none"}
-        elif .less then           {prec: 5, name: "<",   assoc: "none"}
-        elif .less_equal then     {prec: 5, name: "<=",  assoc: "none"}
-        elif .greater then        {prec: 5, name: ">",   assoc: "none"}
-        elif .greater_equal then  {prec: 5, name: ">=",  assoc: "none"}
-        elif .plus then           {prec: 6, name: "+",   assoc: "left"}
-        elif .dash then           {prec: 6, name: "-",   assoc: "left"}
-        elif .star then           {prec: 7, name: "*",   assoc: "left"}
-        elif .slash then          {prec: 7, name: "/",   assoc: "left"}
-        elif .percent then        {prec: 7, name: "%",   assoc: "left"}
+        elif .slash_slash then    {prec: 2, name: "//",  assoc: "right"}
+        elif .equal then          {prec: 3, name: "=",   assoc: "none"}
+        elif .pipe_equal then     {prec: 3, name: "|=",  assoc: "none"}
+        elif .equal_plus then     {prec: 3, name: "+=",  assoc: "none"}
+        elif .equal_dash then     {prec: 3, name: "-=",  assoc: "none"}
+        elif .equal_star then     {prec: 3, name: "*=",  assoc: "none"}
+        elif .equal_slash then    {prec: 3, name: "/=",  assoc: "none"}
+        elif .equal_percent then  {prec: 3, name: "%=",  assoc: "none"}
+        elif .ident == "or" then  {prec: 4, name: "or",  assoc: "left"}
+        elif .ident == "and" then {prec: 5, name: "and", assoc: "left"}
+        elif .equal_equal then    {prec: 6, name: "==",  assoc: "none"}
+        elif .not_equal then      {prec: 6, name: "!=",  assoc: "none"}
+        elif .less then           {prec: 6, name: "<",   assoc: "none"}
+        elif .less_equal then     {prec: 6, name: "<=",  assoc: "none"}
+        elif .greater then        {prec: 6, name: ">",   assoc: "none"}
+        elif .greater_equal then  {prec: 6, name: ">=",  assoc: "none"}
+        elif .plus then           {prec: 7, name: "+",   assoc: "left"}
+        elif .dash then           {prec: 7, name: "-",   assoc: "left"}
+        elif .star then           {prec: 8, name: "*",   assoc: "left"}
+        elif .slash then          {prec: 8, name: "/",   assoc: "left"}
+        elif .percent then        {prec: 8, name: "%",   assoc: "left"}
         else false
         end;
 
@@ -1391,14 +1393,24 @@ def eval_ast($query; $path; $env; undefined_func):
               . == "-=" or
               . == "*=" or
               . == "/=" or
-              . == "%=" then
+              . == "%=" or
+              . == "//" then
             # transform <lhr> <op> <rhs> to _assign/_update(lhr; "<op>"; rhs)
             _e(
               { term:
                   { type: "TermTypeFunc",
                     func:
-                      { name: (if $op == "=" then "_assign" else "_update" end),
-                        args:
+                      { name:
+                          { "=": "_assign"
+                          , "|=": "_update"
+                          , "+=": "_update"
+                          , "-=": "_update"
+                          , "*=": "_update"
+                          , "/=": "_update"
+                          , "%=": "_update"
+                          , "//": "_alt"
+                          }[$op]
+                      , args:
                           [ $left
                           , { term:
                                 { type: "TermTypeString"
@@ -1451,6 +1463,33 @@ def _update(lhs; $op; rhs):
       .;
       setpath($p; getpath($p) | _f)
     )
+  );
+
+# used to implement lhs // rhs
+# TODO: rewrite mess, use label/break once added?
+def _alt(lhs; $op; rhs):
+  ( \"__jqjq_alt_break\" as $b
+  | try
+      ( foreach (
+            ( (lhs | [\"lhs\",.])
+            , [\"end\",null] )
+            , (rhs | [\"rhs\",.])
+          ) as $v (
+          0;
+          if $v[0] == \"lhs\" then
+            if $v[1] then .+1 else empty end
+          elif $v[0] == \"end\" then
+            if . > 0 then error($b) else empty end
+          else .
+          end;
+          $v
+        )
+      | .[1]
+      )
+    catch
+      if . == $b then empty
+      else error
+      end
   );
 
 def _is_array: type == \"array\";

@@ -123,6 +123,8 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
   - [x] `select(f)`
   - [x] `setpath` (passthrough)
   - [x] `sort`, `sort_by(f)`
+  - [x] `unique`, `unique_by(f)`
+  - [x] `group`, `group_by(f)`
   - [x] `startswith($s)`
   - [x] `to_entries`
   - [x] `tojson` (passthrough)
@@ -158,7 +160,7 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
 
 ```
 $ ./jqjq --run-tests < ../jq/tests/jq.test | grep passed
-197 of 348 tests passed
+199 of 348 tests passed
 ```
 
 Not that expected test values are based on stedolan jq. If they are run with a different jq implementation like gojq some might fail because of different error messages, support for arbitrary precision integers etc.

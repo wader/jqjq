@@ -1570,6 +1570,7 @@ def recurse(f; cond): reduce(f | select(cond));
 def recurse: recurse(try .[] catch empty);
 def reverse: length as $l | [.[$l-1-range($l)]];
 
+# TODO: not use if stable and if it should be stable?
 def _quicksort(f):
   def _partition($pivot):
     def _f($smaller; $larger):
@@ -1597,8 +1598,25 @@ def _quicksort(f):
     )
   end;
 # [f] to support multiple outputs
-def sort_by(f): _quicksort((.[0] | [f]) < (.[1] | [f]));
+def sort_by(f): _quicksort((.[0] | [f]) <= (.[1] | [f]));
 def sort: sort_by(.);
+
+def group_by(f):
+  if length == 0 then []
+  else
+    ( sort_by(f)
+    | reduce .[1:][] as $v (
+        [[.[0]]];
+        if [$v | f] == [.[-1][0] | f] then .[-1] += [$v]
+        else . + [[$v]]
+        end
+      )
+    )
+  end;
+def group: group_by(.);
+
+def unique_by(f): group_by(f) | map(.[0]);
+def unique: unique_by(.);
 
 def repeat(f):
   def _f: f, _f;

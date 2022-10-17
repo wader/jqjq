@@ -22,6 +22,12 @@ $ ./jqjq --repl
 "JQJQ"
 > ^D
 
+# 01mf02 adaptation of itchyny's bf.jq running fib.bf
+# from https://github.com/01mf02/jaq
+# takes about 2 minutes my computer
+$ ./jqjq -n "\"$(cat fib.bf)\" | $(cat bf.jq)"
+"1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233"
+
 $ ./jqjq -h
 jqjq - jq implementation of jq
 Usage: jqjq [OPTIONS] [--] [EXPR]

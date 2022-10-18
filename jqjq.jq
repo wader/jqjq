@@ -179,6 +179,7 @@ def parse:
                     }
                   | if $func_defs then
                       .func_defs = $func_defs
+                    else .
                     end
                   )
                 )
@@ -814,6 +815,7 @@ def parse:
         | $query
         | if ($func_defs | length) > 0 then
             .func_defs = $func_defs
+          else .
           end
         | [$rest, .]
         )
@@ -846,6 +848,7 @@ def parse:
           , ( $term
             | if ($suffix_list | length) > 0 then
                 .term.suffix_list = $suffix_list
+              else .
               end
             )
           ]
@@ -881,7 +884,7 @@ def parse:
       end
     );
   ( ( _p("query")
-    | if .[0] != [] then error("tokens left: \(.)") end
+    | if .[0] != [] then error("tokens left: \(.)") else . end
     | .[1]
     )
   // error("parse error: \(.)")
@@ -1003,7 +1006,7 @@ def eval_ast($query; $path; $env; undefined_func):
           elif $name == "path/1" then
             ( _e($args[0]; []; $query_env) as [$p, $_]
             # TODO: try/catch error
-            | if $p == [null] then error("invalid path expression") end
+            | if $p == [null] then error("invalid path expression") else . end
             | [[null], $p]
             )
           else
@@ -1017,7 +1020,7 @@ def eval_ast($query; $path; $env; undefined_func):
                   | with_entries(
                       ( ( .value
                         # when using a $<name> binding arg <name> is also available as a lambda
-                        | if startswith("$") then .[1:] end
+                        | if startswith("$") then .[1:] else . end
                         ) as $name
                       | { key: "\($name)/0"
                         , value:
@@ -1092,7 +1095,7 @@ def eval_ast($query; $path; $env; undefined_func):
               . as $kv
             | ( if $kv.key then
                   [ ( $kv.key
-                    | if startswith("$") then .[1:] end
+                    | if startswith("$") then .[1:] else . end
                     | _term_str
                     )
                   , ( $kv.val.queries[0]
@@ -1768,6 +1771,7 @@ def fromjqtest:
           | .output = []
           | .emit = null
           )
+        else .
         end
       | if $l | test("^\\s*#") then .
         elif $l | test("^\\s*$") then
@@ -1781,6 +1785,7 @@ def fromjqtest:
                 }
             | .nr += 1
             )
+          else .
           end
         else
           if .expr == null then

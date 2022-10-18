@@ -6,7 +6,7 @@ jq implementation of [jq](https://github.com/stedolan/jq)
 
 ### Use via `jqjq` wrapper
 
-```
+```sh
 $ ./jqjq -n 'def f: 1,8; [f,f] | map(.+105) | implode'
 "jqjq"
 
@@ -33,7 +33,7 @@ jqjq - jq implementation of jq
 Usage: jqjq [OPTIONS] [--] [EXPR]
   --jq PATH        jq implementation to run with
   --lex            Lex EXPR
-  --no-builtins    Don't include builtins
+  --no-builtins    Dont include builtins
   --null-input,-n  Null input
   --parse          Lex then parse EXPR
   --repl           REPL
@@ -42,7 +42,7 @@ Usage: jqjq [OPTIONS] [--] [EXPR]
 
 ### Use with `jq`
 
-```
+```sh
 $ jq -n -L . 'include "jqjq"; eval("def f: 1,8; [f,f] | map(.+105) | implode")'
 "jqjq"
 
@@ -208,6 +208,10 @@ Not that expected test values are based on stedolan jq. If they are run with a d
 - `GOJQ_DEBUG=1 go run -tags gojq_debug cmd/gojq/main.go -n '...'` run gojq in debug mode
 - `fq -n '".a.b" | _query_fromstring'` gojq parse tree for string
 - `fq -n '{...} | _query_tostring'` jq expression string for gojq parse tree
+- For a convenient jq development experience:
+  - [jq-dash-docset](https://github.com/wader/jq-dash-docset)
+  - [vscode-jq](https://github.com/wader/vscode-jq)
+  - [jq-lsp](https://github.com/wader/jq-lsp)
 
 ## Thanks to
 

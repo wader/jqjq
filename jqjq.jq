@@ -1756,7 +1756,7 @@ def eval($expr):
 # ...
 # <next test>
 def fromjqtest:
-  [ foreach (splits("\n"), "") as $l (
+  [ foreach (split("\n")[], "") as $l (
       { current_line: 0
       , nr: 1
       , emit: true

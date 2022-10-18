@@ -1475,14 +1475,19 @@ def _alt(lhs; $op; rhs):
   | try
       ( foreach (
             ( (lhs | [\"lhs\",.])
-            , [\"end\",null] )
+            , [\"end\",null]
             , (rhs | [\"rhs\",.])
+            )
           ) as $v (
           0;
           if $v[0] == \"lhs\" then
-            if $v[1] then .+1 else empty end
+            if $v[1] then . + 1
+            else empty
+            end
           elif $v[0] == \"end\" then
-            if . > 0 then error($b) else empty end
+            if . > 0 then error($b)
+            else empty
+            end
           else .
           end;
           $v

@@ -794,6 +794,11 @@ null
 1
 "a"
 
+# from https://github.com/MiSawa/xq/issues/156
+(.foo,.foo,.foo) |= .+1
+{"foo":0}
+{"foo":3}
+
 # SKIP_JQ
 # test below does not work with standard jq because of missing features or bugs
 

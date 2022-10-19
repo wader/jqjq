@@ -378,6 +378,18 @@ def f: if . >= 0 then ., (.-1 | f) else empty end; f
 
 # builtins
 
+map(keys)
+[{},{"a":1},{"a":1,"b":2},[],[1],[1,2]]
+[[],["a"],["a","b"],[],[0],[0,1]]
+
+map(has("a"))
+[{},{"a":1}]
+[false,true]
+
+map(has(1))
+[[],["a"],["a","b"]]
+[false,false,true]
+
 [], [1,2,3] | map(.*2)
 null
 []
@@ -714,6 +726,19 @@ transpose
 transpose | transpose
 [["a","b","c"],[2,3,4]]
 [["a","b","c"],[2,3,4]]
+
+# math functions
+[acos,acosh,asin,asinh,atan,atanh,cbrt,ceil,cos,cosh,erf,erfc,exp,exp10,exp2,expm1,fabs,floor,gamma,j0,j1,lgamma,log,log10,log1p,log2,logb,nearbyint,rint,round,significand,sin,sinh,sqrt,tan,tanh,tgamma,trunc,y0,y1] | map(type)
+0
+["number","number","number","number","number","number","number","number","number","number","number","number","number","number","number","number","number","number","number","number","number","number","number","number","number","number","number","number","number","number","number","number","number","number","number","number","number","number","number","number"]
+
+[atan2(0;0),copysign(0;0),drem(0;0),fdim(0;0),fmax(0;0),fmin(0;0),fmod(0;0),hypot(0;0),jn(0;0),ldexp(0;0),nextafter(0;0),nexttoward(0;0),pow(0;0),remainder(0;0),scalb(0;0),scalbln(0;0),yn(0;0)] | map(type)
+null
+["number","number","number","number","number","number","number","number","number","number","number","number","number","number","number","number","number"]
+
+fma(0;0;0) | type
+null
+"number"
 
 # suffix input
 "a" | {a:{a:123}}[.][.]

@@ -112,6 +112,8 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
   - [x] `from_entries`
   - [x] `fromjson` (passthrough)
   - [x] `getpath(path)` (passthrough)
+  - [x] `group`, `group_by(f)`
+  - [x] `has($key)`
   - [x] `implode` (passthrough)
   - [x] `isempty`
   - [x] `join($s)`
@@ -131,8 +133,6 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
   - [x] `select(f)`
   - [x] `setpath` (passthrough)
   - [x] `sort`, `sort_by(f)`
-  - [x] `unique`, `unique_by(f)`
-  - [x] `group`, `group_by(f)`
   - [x] `startswith($s)`
   - [x] `to_entries`
   - [x] `tojson` (passthrough)
@@ -140,9 +140,11 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
   - [x] `tostring` (passthrough)
   - [x] `transpose`
   - [x] `type` (passthrough)
+  - [x] `unique`, `unique_by(f)`
   - [x] `until(cond; next)`
   - [x] `while(cond; update)`
   - [x] `with_entries`
+  - [x] Math functions, `sin/0`, ... `atan/2`, ...
   - [ ] More...
 - [x] `def f: .` Function declaration
   - [x] `def f(lambda): lambda` Lambda argument
@@ -168,7 +170,7 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
 
 ```
 $ ./jqjq --run-tests < ../jq/tests/jq.test | grep passed
-199 of 348 tests passed
+210 of 348 tests passed
 ```
 
 Note that expected test values are based on stedolan's jq. If you run with a different jq implementation like gojq some tests might fail because of different error messages, support for arbitrary precision integers etc.

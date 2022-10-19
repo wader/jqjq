@@ -4,6 +4,10 @@ jq implementation of [jq](https://github.com/stedolan/jq)
 
 > **Warning** this project is mostly for learning, experimenting and fun.
 
+Why? It started when I was researching how to write decoders directly in jq for [fq](https://github.com/wader/fq) which ended up involving some syntax tree rewriting and walking and then it grow from there.
+
+But it's also a great way to promote and show that jq is a very expressive, capable and nice langauge! :)
+
 ### Use via `jqjq` wrapper
 
 ```sh
@@ -65,13 +69,13 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
   - [x] `{key: 1 | .}` Multi value queries
 - [x] `[1,2,3]` Array literal, collect
 - [x] `1, 2` Comma operator
-- [x] `1 | .` Pipe operator
+- [x] `1 | 2` Pipe operator
 - [x] `+`, `-`, `*`, `/`, `%` Arithmetic operators
 - [x] `+123`, `-1` Unary operators
 - [x] `==`, `!=`, `<`, `<=`, `>`, `>=` Comparison operators
 - [x] `123 as $a | ...` Binding
   - [x] `(1,2,3) as $a | ...` Binding per output
-  - [ ] `{a: [123]} as {a: [$v]}` Pattern binding
+  - [ ] `{a: [123]} as {a: [$v]}` Destructuring binding
 - [x] `.` Identity
 - [ ] `.key[123]."key"[f]` Index
   - [x] `.a`, `.["a"]` Simple index
@@ -151,7 +155,7 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
 - [ ] `f?` Empty shorthand catch
 - [x] `..` Recurse input
 - [x] `//` Alternative operator
-- [ ] `?//` Alternative pattern operator
+- [ ] `?//` Alternative destructuring operator
 - [ ] `$ENV`
 - [ ] `"\(f)"` String interpolation
 - [ ] `@format "string"` Format string
@@ -167,7 +171,7 @@ $ ./jqjq --run-tests < ../jq/tests/jq.test | grep passed
 199 of 348 tests passed
 ```
 
-Not that expected test values are based on stedolan jq. If they are run with a different jq implementation like gojq some might fail because of different error messages, support for arbitrary precision integers etc.
+Note that expected test values are based on stedolan's jq. If you run with a different jq implementation like gojq some tests might fail because of different error messages, support for arbitrary precision integers etc.
 
 ### Design problems, issues and unknowns
 

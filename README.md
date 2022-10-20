@@ -6,7 +6,7 @@ jq implementation of [jq](https://github.com/stedolan/jq)
 
 Why? It started when I was researching how to write decoders directly in jq for [fq](https://github.com/wader/fq) which ended up involving some syntax tree rewriting and walking and then it grow from there.
 
-But it's also a great way to promote and show that jq is a very expressive, capable and nice langauge! :)
+But it's also a great way to promote and show that jq is a very expressive, capable and nice language! :)
 
 ### Use via `jqjq` wrapper
 
@@ -199,7 +199,7 @@ Note that expected test values are based on stedolan's jq. If you run with a dif
 - [jq Language Description](https://github.com/stedolan/jq/wiki/jq-Language-Description)
 - [jq simplified grammar](https://github.com/fadado/JBOL/blob/master/doc/JQ-language-grammar.md)
 - [gojq - Pure Go implementation of jq](https://github.com/itchyny/gojq)
-- [jaq - A jq clone focussed on correctness, speed, and simplicity](https://github.com/01mf02/jaq)
+- [jaq - A jq clone focused on correctness, speed, and simplicity](https://github.com/01mf02/jaq)
 - [xq - Pure rust implementation of jq](https://github.com/MiSawa/xq)
 - [jq wiki: jq as a PEG engine by pkoppstein](https://github.com/stedolan/jq/wiki/Parsing-Expression-Grammars)
 - [Precedence climbing](https://www.engr.mun.ca/~theo/Misc/exp_parsing.htm#climbing)

@@ -10,7 +10,7 @@
 # "a |" parse as "a | .", should be error
 #
 # Notes:
-# AST is more or less identical to the one used by gojq to make it easer to test parser
+# AST is more or less identical to the one used by gojq to make it easier to test parser
 # jq bindings $<name>_ is used if <name> is a keyword as jq (not gojq) does not allow it
 #
 

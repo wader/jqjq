@@ -1263,15 +1263,12 @@ def eval_ast($query; $path; $env; undefined_func):
               | [.cond, .then]
               )
             , if $if_.else then
-                # else <then> end
-                # set <cond> to true
+                # else true then . end
                 [ {term: {type: "TermTypeTrue"}}
                 , $if_.else
                 ]
               else
-                # end
-                # set <cond> to true
-                # set <then> to .
+                # else true then . end
                 [ {term: {type: "TermTypeTrue"}}
                 , {term: {type: "TermTypeIdentity"}}
                 ]
@@ -1640,7 +1637,7 @@ def max: max_by(.);
 def range($from; $to; $by):
   def _f(stop):
     if stop then empty
-    else ., (.+$by | _f(stop))
+    else ., (. + $by | _f(stop))
     end;
   if $by == 0 then empty
   elif $by > 0 then $from | _f(. >= $to)
@@ -1721,22 +1718,10 @@ def to_entries:
   | map({key: ., value: $o[.]})
   );
 def from_entries:
-  # TODO: use // once supported
-  def _key:
-    if .key then .key
-    elif .Key then .Key
-    elif .name then .name
-    elif .Name then .Name
-    else null
-    end;
-  def _value:
-    if .value then .value
-    elif .Value then .Value
-    else null
-    end;
   reduce .[] as $kv (
     {};
-    .[$kv | _key] = ($kv | _value)
+    .[$kv | .key // .Key // .name // .Name] =
+      ($kv | .value // .Value)
   );
 def with_entries(f): to_entries | map(f) | from_entries;
 
@@ -1797,8 +1782,6 @@ def isempty(f): [limit(1; f)] == [];
 
 def startswith($s): .[0:$s | length] == $s;
 def endswith($s): .[$s | -length:] == $s;
-
-
 ";
 
 def builtins_env:
@@ -2039,12 +2022,12 @@ def jqjq($args; $env):
         else builtins_env
         end
       ) as $builtins_env
+    | { "$ENV": $env
+      } as $globals
     | ( if $null_input then null
         else inputs
         end
       )
-    | { "$ENV": $env
-      } as $globals
     | eval_ast(
         $ast;
         [];

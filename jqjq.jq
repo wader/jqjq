@@ -796,6 +796,19 @@ def parse:
         ]
       );
 
+    def _scalar($type; c; f):
+      ( . as [$first]
+      | _consume(c)
+      | [ .
+        , { term:
+              ( $first
+              | f
+              | .type = $type
+              )
+          }
+        ]
+      );
+
     ( .# debug({_p: $type})
     | if $type == "query" then
         # query1, used by _op_prec_climb, exist to fix infinite recursion
@@ -856,17 +869,11 @@ def parse:
       elif $type == "suffix" then _suffix
       elif $type == "if" then _if
       elif $type == "func_defs" then _func_defs
-      elif $type == "true" then _consume(.ident == "true") | [., {term: {type: "TermTypeTrue"}}]
-      elif $type == "false" then _consume(.ident == "false") | [., {term: {type: "TermTypeFalse"}}]
-      elif $type == "null" then _consume(.ident == "null") | [., {term: {type: "TermTypeNull"}}]
-      elif $type == "number" then
-        ( . as [$first]
-        | _consume(.number) | [., {term: {type: "TermTypeNumber", number: $first.number}}]
-        )
-      elif $type == "string" then
-        ( . as [$first]
-        | _consume(.string) | [., {term: {type: "TermTypeString", str: $first.string}}]
-        )
+      elif $type == "true" then _scalar("TermTypeTrue"; .ident == "true"; .)
+      elif $type == "false" then _scalar("TermTypeFalse"; .ident == "false"; .)
+      elif $type == "null" then _scalar("TermTypeNull"; .ident == "null"; .)
+      elif $type == "number" then _scalar("TermTypeNumber"; .number; {number: .number})
+      elif $type == "string" then _scalar("TermTypeString"; .string; {str: .string})
       elif $type == "index" then _index
       elif $type == "identity" then _identity
       elif $type == "array" then _array

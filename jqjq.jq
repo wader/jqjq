@@ -1782,6 +1782,14 @@ def isempty(f): [limit(1; f)] == [];
 
 def startswith($s): .[0:$s | length] == $s;
 def endswith($s): .[$s | -length:] == $s;
+
+def all(gen; cond): first((gen | select(cond | not) | false), true);
+def all(cond): all(.[]; cond);
+def all: all(.);
+
+def any(gen; cond): first((gen | select(cond) | true), false);
+def any(cond): any(.[]; cond);
+def any: any(.);
 ";
 
 def builtins_env:

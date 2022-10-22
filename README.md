@@ -100,6 +100,8 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
 - [x] `+=`, `-=`, `*=`, `/=`, `%=` Arithmetic update assignment
 - [ ] Builtins / standard library
   - [x] `add`
+  - [x] `all`, `all(cond)`, `all(gen; cond)`
+  - [x] `any`, `any(cond)`, `any(gen; cond)`
   - [x] `debug` (passthrough)
   - [x] `empty` (passthrough)
   - [x] `endswith($s)`
@@ -113,7 +115,7 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
   - [x] `fromjson` (passthrough)
   - [x] `getpath(path)` (passthrough)
   - [x] `group`, `group_by(f)`
-  - [x] `has($key)`
+  - [x] `has($key)` (passthrough)
   - [x] `implode` (passthrough)
   - [x] `isempty`
   - [x] `join($s)`
@@ -170,7 +172,7 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
 
 ```
 $ ./jqjq --run-tests < ../jq/tests/jq.test | grep passed
-210 of 348 tests passed
+225 of 362 tests passed
 ```
 
 Note that expected test values are based on stedolan's jq. If you run with a different jq implementation like gojq some tests might fail because of different error messages, support for arbitrary precision integers etc.

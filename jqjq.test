@@ -727,6 +727,30 @@ transpose | transpose
 [["a","b","c"],[2,3,4]]
 [["a","b","c"],[2,3,4]]
 
+map(all)
+[[],[true],[true,true],[false,true],[false,false]]
+[true,true,true,false,false]
+
+all(. == 2)
+[2,2]
+true
+
+all(2,2;. == 2)
+null
+true
+
+map(any)
+[[],[true],[true,true],[false,true],[false,false]]
+[false,true,true,true,false]
+
+any(. == 2)
+[1,2]
+true
+
+any(1,2;. == 2)
+null
+true
+
 # math functions
 [acos,acosh,asin,asinh,atan,atanh,cbrt,ceil,cos,cosh,erf,erfc,exp,exp10,exp2,expm1,fabs,floor,gamma,j0,j1,lgamma,log,log10,log1p,log2,logb,nearbyint,rint,round,significand,sin,sinh,sqrt,tan,tanh,tgamma,trunc,y0,y1] | map(type)
 0

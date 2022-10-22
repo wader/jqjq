@@ -1834,29 +1834,36 @@ def fromjqtest:
           ( .expr = null
           | .input = null
           | .output = []
+          | .fail = null
           | .emit = null
+          | .error = null
           )
         else .
         end
       | if $l | test("^\\s*#") then .
         elif $l | test("^\\s*$") then
-          if .input then
+          if .expr then
             ( .emit =
                 { line
                 , nr
                 , expr
                 , input
                 , output
+                , fail
+                , error
                 }
             | .nr += 1
             )
           else .
           end
+        elif $l | test("^\\s*%%FAIL") then
+          .fail = $l
         else
           if .expr == null then
             ( .line = .current_line
             | .expr = $l
             )
+          elif .fail and .error == null then .error = $l
           elif .input == null then .input = $l
           else .output += [$l]
           end
@@ -1946,16 +1953,19 @@ def jqjq($args; $env):
       | fromjqtest[]
       | . as $c
       | try
-          ( ( .input
-            , .output[]
-            ) |= fromjson
-          )
+          if .error | not then
+            ( ( .input
+              , .output[]
+              ) |= fromjson
+            )
+          else .
+          end
         catch
           ( . as $err
           | $c
-          | .error = $err
+          | .fromjson_error = $err
           )
-      | select(.error | not)
+      | select(.fromjson_error | not)
       | "\(.nr) (line \(.line)): [\(.input | tojson) | \(.expr)] -> \(.output | tojson)" as $test_name
       | . as $test
       | try
@@ -1981,10 +1991,24 @@ def jqjq($args; $env):
             end
           )
         catch
-          ( "ERROR: \($test_name)"
-          , "  \(.)"
-          , {error: true}
-          )
+          if $test.fail then
+            if . == $test.error then
+              ( "OK: \($test_name)"
+              , {ok: true}
+              )
+            else
+              ( "FAIL DIFF: \($test_name)"
+              , "  Expected: \($test.error)"
+              , "    Actual: \(.)"
+              , {error: true}
+              )
+            end
+          else
+            ( "ERROR: \($test_name)"
+            , "  \(.)"
+            , {error: true}
+            )
+          end
       );
     # this mess make it possible to run all tests and exit with non-zero if any test failed
     ( foreach (_f, {end: true}) as $l (

@@ -115,6 +115,7 @@ def parse:
       else [$c, []]
       end
     );
+  def _keyword($name): _consume(.ident == $name);
 
   def _p($type):
     # based on:
@@ -385,10 +386,10 @@ def parse:
 
     # reduce <term> as <binding> (<start-query>;<update-query>)
     def _reduce:
-      ( _consume(.ident == "reduce")
+      ( _keyword("reduce")
       | _p("term") as [$rest, $term]
       | $rest
-      | _consume(.ident == "as")
+      | _keyword("as")
       | .[0] as $binding # TODO: pattern
       | _consume(.binding)
       | _consume(.lparen)
@@ -414,10 +415,10 @@ def parse:
 
     # foreach <term> as <binding> (<start-query>;<update-query>[;<extract-query>])
     def _foreach:
-      ( _consume(.ident == "foreach")
+      ( _keyword("foreach")
       | _p("term") as [$rest, $term]
       | $rest
-      | _consume(.ident == "as")
+      | _keyword("as")
       | .[0] as $binding # TODO: pattern
       | _consume(.binding)
       | _consume(.lparen)
@@ -454,17 +455,17 @@ def parse:
     # [else expr]?
     # end
     def _if:
-      ( _consume(.ident == "if")
+      ( _keyword("if")
       | _p("query") as [$rest, $cond]
       | $rest
-      | _consume(.ident == "then")
+      | _keyword("then")
       | _p("query") as [$rest, $then_]
       | $rest
       | _repeat(
-          ( _consume(.ident == "elif")
+          ( _keyword("elif")
           | _p("query") as [$rest, $cond]
           | $rest
-          | _consume(.ident == "then")
+          | _keyword("then")
           | _p("query") as [$rest, $then_]
           | $rest
           | [., {cond: $cond, then: $then_}]
@@ -472,12 +473,12 @@ def parse:
         ) as [$rest, $elif_]
       | $rest
       | _optional(
-          ( _consume(.ident == "else")
+          ( _keyword("else")
           | _p("query")
           )
         ) as [$rest, $else_]
       | $rest
-      | _consume(.ident == "end")
+      | _keyword("end")
       | [ .
         , { term:
               { type: "TermTypeIf"
@@ -500,7 +501,7 @@ def parse:
     # def a(f; $v) ...;
     def _func_defs:
       _repeat(
-        ( _consume(.ident == "def")
+        ( _keyword("def")
         | . as [{ident: $name}]
         | _consume(.ident)
         | ( ( _consume(.lparen)
@@ -631,7 +632,7 @@ def parse:
           ]
         )
       //
-        ( _consume(.ident == "as")
+        ( _keyword("as")
         | .[0] as $binding
         | _consume(.binding)
         | _consume(.pipe)
@@ -742,11 +743,11 @@ def parse:
     # try <query> catch <query>
     # TODO: query should not support |?
     def _try:
-      ( _consume(.ident == "try")
+      ( _keyword("try")
       | _p("query") as [$rest, $body]
       | $rest
       | _optional(
-          ( _consume(.ident == "catch")
+          ( _keyword("catch")
           | _p("query")
           )
         ) as [$rest, $catch_]

@@ -1804,11 +1804,8 @@ def builtins_env:
   catch
     error("builtins: \(.)");
 
-def eval($expr; $globals):
-  eval_ast(
-    $expr | lex | parse;
-    [];
-    builtins_env;
+def eval($expr; $globals; $builtins_env):
+  def _undefined_func:
     ( . as $f
     | if $f.name | startswith("$") then
         if $globals | has($f.name) then
@@ -1816,13 +1813,39 @@ def eval($expr; $globals):
         else
           undefined_func_error
         end
+      elif $f.name == "input/0" then
+        [[null], input]
+      elif $f.name == "inputs/0" then
+        inputs | [[null], .]
+      elif $f.name == "eval/1" then
+        # behaves as eval($expr)
+        ( eval_ast(
+            $f.args[0];
+            [];
+            $builtins_env;
+            undefined_func_error
+          ) as $expr
+        | $f.input
+        | eval_ast(
+            $expr | lex | parse;
+            [];
+            $builtins_env;
+            undefined_func_error
+          )
+        | [[null], .]
+        )
       else
         undefined_func_error
       end
-    )
+    );
+  eval_ast(
+    $expr | lex | parse;
+    [];
+    $builtins_env;
+    _undefined_func
   );
 def eval($expr):
-  eval($expr; {});
+  eval($expr; {}; builtins_env);
 
 # read jq test format:
 # # comment
@@ -1937,14 +1960,15 @@ def jqjq($args; $env):
         if . == "break" then empty
         else error
         end;
-    ( _repeat_break(
+    ( builtins_env as $builtins_env
+    | _repeat_break(
         ( "> "
         , ( try input
             catch error("break")
           | . as $expr
           | null
           | try
-              ( eval($expr)
+              ( eval($expr; {"$ENV": $env}; $builtins_env)
               | tojson
               , "\n"
               )
@@ -2050,53 +2074,14 @@ def jqjq($args; $env):
   # TODO: refactor env undefined_func_error code
   # TODO: indented json output?
   def _filter($filter; $null_input; $no_builtins):
-    ( ($filter| lex | parse) as $ast
-    | ( if $no_builtins then {}
-        else builtins_env
-        end
-      ) as $builtins_env
-    | { "$ENV": $env
-      } as $globals
-    | ( if $null_input then null
+    ( ( if $null_input then null
         else inputs
         end
       )
-    | eval_ast(
-        $ast;
-        [];
-        $builtins_env;
-        ( . as $f
-        | if $f.name | startswith("$") then
-            if $globals | has($f.name) then
-              [[null], $globals[$f.name]]
-            else
-              undefined_func_error
-            end
-          elif $f.name == "input/0" then
-            [[null], input]
-          elif $f.name == "inputs/0" then
-            inputs | [[null], .]
-          elif $f.name == "eval/1" then
-            # behaves as eval($expr)
-            ( eval_ast(
-                $f.args[0];
-                [];
-                $builtins_env;
-                undefined_func_error
-              ) as $expr
-            | $f.input
-            | eval_ast(
-                $expr | lex | parse;
-                [];
-                $builtins_env;
-                undefined_func_error
-              )
-            | [[null], .]
-            )
-          else
-            undefined_func_error
-          end
-        )
+    | eval(
+        $filter;
+        {"$ENV": $env};
+        if $no_builtins then {} else builtins_env end
       )
     | tojson
     );

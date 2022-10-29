@@ -24,6 +24,8 @@ $ ./jqjq --repl
 6
 > "jqjq" | explode | map(.-32) | implode
 "JQJQ"
+> "jqjq" | [eval("explode[] | .-32")] | implode
+"JQJQ"
 > ^D
 
 # 01mf02 adaptation of itchyny's bf.jq running fib.bf
@@ -98,6 +100,8 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
 - [x] `f = v` Assignment
 - [x] `f |= v`, `f +=` Update assignment
 - [x] `+=`, `-=`, `*=`, `/=`, `%=` Arithmetic update assignment
+- [x] `eval($expr)`
+- [x] `input`, `inputs`
 - [ ] Builtins / standard library
   - [x] `add`
   - [x] `all`, `all(cond)`, `all(gen; cond)`

@@ -2074,14 +2074,16 @@ def jqjq($args; $env):
   # TODO: refactor env undefined_func_error code
   # TODO: indented json output?
   def _filter($filter; $null_input; $no_builtins):
-    ( ( if $null_input then null
+    ( def _inputs:
+        if $null_input then null
         else inputs
-        end
-      )
+        end;
+      builtins_env as $builtins_env
+    | _inputs
     | eval(
         $filter;
         {"$ENV": $env};
-        if $no_builtins then {} else builtins_env end
+        if $no_builtins then {} else $builtins_env end
       )
     | tojson
     );

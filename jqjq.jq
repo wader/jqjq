@@ -2072,7 +2072,6 @@ def jqjq($args; $env):
       end
     );
 
-  # TODO: slurp
   # TODO: raw output
   # TODO: refactor env undefined_func_error code
   # TODO: indented json output?
@@ -2092,19 +2091,18 @@ def jqjq($args; $env):
     | tojson
     );
 
-  ( ( $args
-    | { filter: "."
+  ( ( { filter: "."
       , null_input: false
       , no_builtins: false
       }
-      + _parse_args
-    ) as $p
-  | if $p.help then _help
-    elif $p.lex then $p.filter | lex
-    elif $p.parse then $p.filter | lex | parse
-    elif $p.repl then _repl
-    elif $p.run_tests then input | _run_tests
+    + ($args | _parse_args)
+    ) as $opts
+  | if $opts.help then _help
+    elif $opts.lex then $opts.filter | lex
+    elif $opts.parse then $opts.filter | lex | parse
+    elif $opts.repl then _repl
+    elif $opts.run_tests then input | _run_tests
     else
-      _filter($p)
+      _filter($opts)
     end
   );

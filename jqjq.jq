@@ -1930,6 +1930,8 @@ def jqjq($args; $env):
         {repl: true}, (.[1:] | _f)
       elif .[0] == "--run-tests" then
         {run_tests: true}, (.[1:] | _f)
+      elif .[0] == "-s" or .[0] == "--slurp" then
+        {slurp: true}, (.[1:] | _f)
       elif .[0] == "--" then
         {filter: .[1]}, (.[2:] | _f)
       elif .[0] | startswith("-") then
@@ -1951,6 +1953,7 @@ def jqjq($args; $env):
     , "  --parse          Lex then parse EXPR"
     , "  --repl           REPL"
     , "  --run-tests      Run jq tests from stdin"
+    , "  --slurp,-s       Slurp inputs into an array"
     );
 
   def _repl:
@@ -2073,17 +2076,18 @@ def jqjq($args; $env):
   # TODO: raw output
   # TODO: refactor env undefined_func_error code
   # TODO: indented json output?
-  def _filter($filter; $null_input; $no_builtins):
+  def _filter($opts):
     ( def _inputs:
-        if $null_input then null
+        if $opts.null_input then null
+        elif $opts.slurp then [inputs]
         else inputs
         end;
       builtins_env as $builtins_env
     | _inputs
     | eval(
-        $filter;
+        $opts.filter;
         {"$ENV": $env};
-        if $no_builtins then {} else $builtins_env end
+        if $opts.no_builtins then {} else $builtins_env end
       )
     | tojson
     );
@@ -2101,10 +2105,6 @@ def jqjq($args; $env):
     elif $p.repl then _repl
     elif $p.run_tests then input | _run_tests
     else
-      _filter(
-        $p.filter;
-        $p.null_input;
-        $p.no_builtins
-      )
+      _filter($p)
     end
   );

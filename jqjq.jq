@@ -1648,7 +1648,7 @@ def range($from; $to): range($from; $to; 1);
 def range($to): range(0; $to; 1);
 
 def recurse(f): def _f: ., (f | _f); _f;
-def recurse(f; cond): reduce(f | select(cond));
+def recurse(f; cond): recurse(f | select(cond));
 # TODO: .[]?
 def recurse: recurse(try .[] catch empty);
 def reverse: length as $l | [.[$l-1-range($l)]];

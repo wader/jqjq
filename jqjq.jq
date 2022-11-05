@@ -1653,35 +1653,28 @@ def recurse(f; cond): reduce(f | select(cond));
 def recurse: recurse(try .[] catch empty);
 def reverse: length as $l | [.[$l-1-range($l)]];
 
-# TODO: not use if stable and if it should be stable?
-def _quicksort(f):
-  def _partition($pivot):
-    def _f($smaller; $larger):
-      if length == 0 then [$smaller, $larger]
-      else
-        ( .[0] as $head
-        | .[1:] # tail
-        | if [$head, $pivot] | f then _f([$head] + $smaller; $larger)
-          else _f($smaller; [$head] + $larger)
-          end
-        )
-      end;
-    _f([]; []);
-  if length < 2 then .
-  else
-    ( .[0] as $pivot
-    | .[1:] # tail
-    | _partition($pivot)
-    | .[0] as $smaller
-    | .[1] as $larger
-    | ( ($smaller | _quicksort(f))
-      + [$pivot]
-      + ($larger | _quicksort(f))
+def sort_by(f):
+  def _merge($xs; $ys):
+    if $xs == [] then $ys[]
+    elif $ys == [] then $xs[]
+    else
+      ( $xs[0] as $x
+      | $ys[0] as $y
+      | if [$x | f] <= [$y | f] then
+          $x, _merge($xs[1:]; $ys)
+        else
+          $y, _merge($xs; $ys[1:])
+        end
       )
-    )
-  end;
-# [f] to support multiple outputs
-def sort_by(f): _quicksort((.[0] | [f]) <= (.[1] | [f]));
+    end;
+  def _sort:
+    if length < 2 then .
+    else
+      ( (length / 2 | floor) as $l
+      | [_merge(.[:$l] | _sort; .[$l:] | _sort)]
+      )
+    end;
+  _sort;
 def sort: sort_by(.);
 
 def group_by(f):

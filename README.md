@@ -88,6 +88,8 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
 - [x] `.[]` Iterate
 - [ ] `.[]?` Try iterate
 - [x] `.[start:stop]`, `.[:stop]`, `.[start:]` Array slicing
+  - [ ] `.[{start: 123, stop: 123}]` Slice using objec
+  - [ ] Slice and path tracking `path(.[1:2]) -> [{"start":1,"end":2}]`
 - [x] `and`, `or` operators
 - [x]  `not` operator
 - [x] `if f then 2 else 3 end` Conditional

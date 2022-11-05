@@ -3,11 +3,11 @@
 # MIT License
 #
 # TODO:
-# jq bug with error undefined function
-# ".end" lex
-# test assoc 1|2|3?
+# jq bug with error undefined function (possibly https://github.com/stedolan/jq/issues/2485?)
+# ".end" lex, require whitespace/end around ident?
+# how test associativity 1|2|3?
 # add some term builder helper, _term("TermTypeArray"; {query: ...}) etc?
-# "a |" parse as "a | .", should be error
+# "a |" parses as "a | .", should be error, make empty eval special case?
 #
 # Notes:
 # AST is more or less identical to the one used by gojq to make it easier to test parser
@@ -125,7 +125,7 @@ def parse:
       def _ops:
         if filter then false
         elif .pipe then           {prec: 0, name: "|",   assoc: "right"}
-        # TODO: understand why jq has left assoc for "," but right seems to give correct parse tree
+        # TODO: understand why jq has left associativity for "," but right seems to give correct parse tree
         elif .comma then          {prec: 1, name: ",",   assoc: "right"}
         elif .slash_slash then    {prec: 2, name: "//",  assoc: "right"}
         elif .equal then          {prec: 3, name: "=",   assoc: "none"}
@@ -163,7 +163,7 @@ def parse:
                   elif $next_op.assoc == "left" then
                     _op_prec_climb($next_op.prec+1; filter)
                   else
-                    # TODO: none assoc, 1 == 2 == 3 etc
+                    # TODO: none associativity, 1 == 2 == 3 etc, should be error
                     _op_prec_climb($next_op.prec+1; filter)
                   end
                 ) as [$rest, $t1]
@@ -199,7 +199,6 @@ def parse:
     # name: <term>
     # "name": <term>
     # <subquery>: <term>
-    # TODO: val should be query but don't allow comma
     def _object:
       ( _consume(.lcurly)
       | _repeat(
@@ -355,7 +354,6 @@ def parse:
     def _binding:
       ( . as [$first]
       | _consume(.binding)
-      # TODO: args
       | [ .
         , { term:
               { type: "TermTypeFunc"
@@ -556,7 +554,6 @@ def parse:
     # ."name"
     # ?
     # as $v | <query>
-    # TODO: [start:stop]
     def _suffix:
       (
         # [] iter
@@ -611,7 +608,6 @@ def parse:
         )
       //
         # ."name" index
-        # TODO: ."string" for TermTypeIndex?
         ( _consume(.dot)
         | _p("string") as [$rest, $string]
         | $rest
@@ -721,7 +717,6 @@ def parse:
         )
       //
         # ."name" index
-        # TODO: ."string" for TermTypeIndex?
         ( _consume(.dot)
         | _p("string") as [$rest, $string]
         | $rest
@@ -741,7 +736,7 @@ def parse:
 
     # try <query>
     # try <query> catch <query>
-    # TODO: query should not support |?
+    # TODO: query should not allow |?
     def _try:
       ( _keyword("try")
       | _p("query") as [$rest, $body]
@@ -1649,7 +1644,7 @@ def range($to): range(0; $to; 1);
 
 def recurse(f): def _f: ., (f | _f); _f;
 def recurse(f; cond): recurse(f | select(cond));
-# TODO: .[]?
+# TODO: use .[]? once supported
 def recurse: recurse(try .[] catch empty);
 def reverse: length as $l | [.[$l-1-range($l)]];
 
@@ -1719,7 +1714,7 @@ def from_entries:
   );
 def with_entries(f): to_entries | map(f) | from_entries;
 
-# TODO: rewrite this, objects are one level flatten?
+# TODO: rewrite this, seems objects are one level flatten?
 def _flatten($depth):
   def _f($d):
     if _is_array and ($depth == -1 or $d <= $depth) then .[] | _f($d+1)
@@ -1743,7 +1738,7 @@ def transpose:
     ]
   );
 
-# TODO: should use label/break instead of special sentinel value
+# TODO: should use label/break when supported instead of special sentinel value
 def limit($n; f):
   ( \"__jqjq_limit_break\" as $b
   | if $n == 0 then empty

@@ -714,8 +714,8 @@ to_entries
 [{"key":"a","value":1},{"key":"b","value":2}]
 
 from_entries
-[{"key":"a","value":1},{"key":"b","value":2}]
-{"a":1,"b":2}
+[{"key":"a","value":1},{"Key":"b","Value":2},{"Name":"c","value":false}]
+{"a":1,"b":2,"c":false}
 
 with_entries(.key |= "_"+. | .value += 100)
 {"a":1,"b":2}

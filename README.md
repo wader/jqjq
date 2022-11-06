@@ -37,9 +37,9 @@ jqjq - jq implementation of jq
 Usage: jqjq [OPTIONS] [--] [EXPR]
   --jq PATH        jq implementation to run with
   --lex            Lex EXPR
-  --no-builtins    Dont include builtins
+  --no-builtins    No builtins
   --null-input,-n  Null input
-  --parse          Lex then parse EXPR
+  --parse          Lex and parse EXPR
   --repl           REPL
   --run-tests      Run jq tests from stdin
 ```

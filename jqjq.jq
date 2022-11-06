@@ -1710,7 +1710,7 @@ def from_entries:
   reduce .[] as $kv (
     {};
     .[$kv | .key // .Key // .name // .Name] =
-      ($kv | .value // .Value)
+      ($kv | if has(\"value\") then .value else .Value end)
   );
 def with_entries(f): to_entries | map(f) | from_entries;
 

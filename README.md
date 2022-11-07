@@ -148,6 +148,10 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
   - [x] `tojson` (passthrough)
   - [x] `tonumber` (passthrough)
   - [x] `tostring` (passthrough)
+  - [x] `match($regex; $flags)` (passthrough)
+  - [ ] `match($val)
+  - [x] `gsub($regex; f)` (passthrough)
+  - [ ] `gsub($regex; f; $flags)`
   - [x] `transpose`
   - [x] `type` (passthrough)
   - [x] `unique`, `unique_by(f)`

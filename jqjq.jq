@@ -1143,6 +1143,10 @@ def eval_ast($query; $path; $env; undefined_func):
             ( a0 as $a0
             | [[null], has($a0)]
             )
+          elif $name == "delpaths/1" then
+            ( a0 as $a0
+            | [[null], delpaths($a0)]
+            )
           elif $name == "explode/0" then [[null], explode]
           elif $name == "implode/0" then [[null], implode]
           elif $name == "tonumber/0" then [[null], tonumber]
@@ -1937,6 +1941,8 @@ def all: all(.);
 def any(gen; cond): first((gen | select(cond) | true), false);
 def any(cond): any(.[]; cond);
 def any: any(.);
+
+def del(p): delpaths([path(p)]);
 ";
 
 def builtins_env:

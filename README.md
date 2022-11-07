@@ -105,10 +105,12 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
 - [x] `eval($expr)`
 - [x] `input`, `inputs`
 - [ ] Builtins / standard library
+  - [ ] `del(f)`
   - [x] `add`
   - [x] `all`, `all(cond)`, `all(gen; cond)`
   - [x] `any`, `any(cond)`, `any(gen; cond)`
   - [x] `debug` (passthrough)
+  - [x] `delpaths($paths)` (passthrough)
   - [x] `empty` (passthrough)
   - [x] `endswith($s)`
   - [x] `error($v)` (passthrough)

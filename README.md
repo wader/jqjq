@@ -181,7 +181,7 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
 - [ ] `@format "string"` Format string
 - [ ] `label $out | break $out` Break out
 - [ ] `include "f"`, `import "f"` Include
-- [ ] Run jqjq with jqjq
+- [x] Run jqjq with jqjq
 - [x] Bugs
 
 ### jq's jq.test test suite

@@ -292,6 +292,121 @@ def parse:
         ]
       );
 
+    # destructing pattern:
+    # pattern is:
+    # $name
+    # name: pattern
+    # "name": pattern
+    # "\(...)": pattern
+    # (query): pattern
+    # [pattern, ...]
+    def _pattern:
+      ( ( _consume(.lcurly)
+        | _repeat(
+            ( ( def _colon_pattern:
+                  ( _consume(.colon)
+                  | _p("pattern") as [$rest, $pattern]
+                  | $rest
+                  | [ .
+                    , $pattern
+                    ]
+                  );
+                (
+                  # {a} -> {a: .a}
+                  # {a: ...} -> {a: ...}
+                  ( .[0] as $ident
+                  | _consume(.ident)
+                  | _optional(_colon_pattern) as [$rest, $val]
+                  | $rest
+                  | [ .
+                    , { key: $ident.ident
+                      , val: $val
+                      }
+                    ]
+                  )
+                //
+                  # {"a"} -> {a: .a}
+                  # {"a": ...} -> {a: ...}
+                  ( _p("string") as [$rest, $string]
+                  | $rest
+                  | _optional(_colon_pattern) as [$rest, $val]
+                  | $rest
+                  | [ .
+                    , { key_string:
+                          { str: $string.term.str
+                          }
+                      , val: $val
+                      }
+                    ]
+                  )
+                //
+                  # {$a} -> {a: $a}
+                  ( .[0] as $binding
+                  | _consume(.binding)
+                  | [ .
+                    , { key: $binding.binding
+                      }
+                    ]
+                  )
+                //
+                  # {(...): ...} -> {...: ...}
+                  ( _p("subquery") as [$rest, $query]
+                  | $rest
+                  | _colon_pattern as [$rest, $val]
+                  | $rest
+                  | [ .
+                    , { key_query: $query
+                      , val: $val
+                      }
+                    ]
+                  )
+                )
+              ) as [$rest, $key_patterns]
+            | $rest
+            | _optional(
+                # TODO: _one() etc?
+                ( _consume(.comma)
+                | [., null]
+                )
+              ) as [$rest, $_]
+            | [$rest, $key_patterns]
+            )
+          ) as [$rest, $key_patterns]
+        | $rest
+        | _consume(.rcurly)
+        | [ .
+          , {object: $key_patterns}
+          ]
+        )
+      //
+        ( _consume(.lsquare)
+        | _repeat(
+            ( _p("pattern") as [$rest, $pattern]
+            | $rest
+            | _optional(
+                # TODO: _one() etc?
+                ( _consume(.comma)
+                | [., null]
+                )
+              ) as [$rest, $_]
+            | [$rest, $pattern]
+            ) 
+          ) as [$rest, $pattern]
+        | $rest
+        | _consume(.rsquare)
+        | [ .
+          , {array: $pattern}
+          ]
+        )
+      //
+        ( .[0] as $binding
+        | _consume(.binding)
+        | [ .
+          , {name: $binding.binding}
+          ]
+        )
+      );
+
     # (<query>)
     def _subquery:
       ( _consume(.lparen)
@@ -388,8 +503,8 @@ def parse:
       | _p("term") as [$rest, $term]
       | $rest
       | _keyword("as")
-      | .[0] as $binding # TODO: pattern
-      | _consume(.binding)
+      | _p("pattern") as [$rest, $pattern]
+      | $rest
       | _consume(.lparen)
       | _p("query") as [$rest, $start]
       | $rest
@@ -402,7 +517,7 @@ def parse:
             { type: "TermTypeReduce"
             , reduce:
               { term: $term.term
-              , pattern: {name: $binding.binding}
+              , pattern: $pattern
               , start: $start
               , update: $update
               }
@@ -417,8 +532,8 @@ def parse:
       | _p("term") as [$rest, $term]
       | $rest
       | _keyword("as")
-      | .[0] as $binding # TODO: pattern
-      | _consume(.binding)
+      | _p("pattern") as [$rest, $pattern]
+      | $rest
       | _consume(.lparen)
       | _p("query") as [$rest, $start]
       | $rest
@@ -437,7 +552,7 @@ def parse:
             { type: "TermTypeForeach"
             , foreach:
                 ( { term: $term.term
-                  , pattern: {name: $binding.binding}
+                  , pattern: $pattern
                   , start: $start
                   , update: $update
                   }
@@ -629,18 +744,15 @@ def parse:
         )
       //
         ( _keyword("as")
-        | .[0] as $binding
-        | _consume(.binding)
+        | _p("pattern") as [$rest, $pattern]
+        | $rest
         | _consume(.pipe)
         | _p("query") as [$rest, $body]
         | $rest
         | [ .
           , { bind:
                 { body: $body
-                , patterns:
-                    [ { name: $binding.binding
-                      }
-                    ]
+                , patterns: [$pattern]
                 }
               }
           ]
@@ -883,6 +995,7 @@ def parse:
       elif $type == "unary_plus" then _unary_op(.plus; "+")
       elif $type == "unary_minus" then _unary_op(.dash; "-")
       elif $type == "recurse" then _recurse
+      elif $type == "pattern" then _pattern
       else error("unknown type \($type)")
       end
     );
@@ -965,6 +1078,50 @@ def eval_ast($query; $path; $env; undefined_func):
             )
           else . # TODO: error?
           end
+        );
+
+      # destructing pattern to env
+      def _e_pattern($input):
+        ( def _f($input; $env):
+            if length == 0 then $env
+            else
+              ( if .name then
+                  ( . as {$name}
+                  | $env
+                  | .[$name] = {value: $input}
+                  )
+                elif .array then
+                  reduce (.array | to_entries)[] as $kv (
+                    $env;
+                    ( . as $env
+                    | $kv.value
+                    | _f($input[$kv.key]; $env)
+                    )
+                  )
+                elif .object then
+                  reduce .object[] as $kv (
+                    $env;
+                    ( . as $env
+                    | ( if $kv.key and ($kv.val | not) then [$kv.key[1:], {name: $kv.key}]
+                        elif $kv.key then [$kv.key, $kv.val]
+                        elif $kv.key_string then [$kv.key_string.str, $kv.val]
+                        elif $kv.key_query then
+                          # TODO: {a: 1, b: 2} as {("a","b"): $a} | $a -> 1, 2, probably can't use reduce
+                          ( _e($kv.key_query; $path; $query_env)[1]
+                          | [., $kv.val]
+                          )
+                        else error("unreachable")
+                        end
+                      ) as [$key, $val]
+                    | $val
+                    | _f($input[$key]; $env)
+                    )
+                  )
+                else error("unreachable")
+                end
+              )
+            end;
+          _f($input; {})
         );
 
       # .name
@@ -1375,11 +1532,12 @@ def eval_ast($query; $path; $env; undefined_func):
         | $input
         | if $suffix.bind then
             # as $name | <body>
-            ( $suffix.bind as {$body, patterns: [{$name}]} # TODO: patterns array)
+            ( $suffix.bind as {$body, patterns: [$pattern]}
+            | ($pattern | _e_pattern($v)) as $pattern_env
             | _e(
                 $suffix.bind.body;
                 $path;
-                $query_env + {($name): {value: $v}}
+                $query_env + $pattern_env
               )
             )
           elif $suffix.index then

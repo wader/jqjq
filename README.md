@@ -77,7 +77,7 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
 - [x] `==`, `!=`, `<`, `<=`, `>`, `>=` Comparison operators
 - [x] `123 as $a | ...` Binding
   - [x] `(1,2,3) as $a | ...` Binding per output
-  - [ ] `{a: [123]} as {a: [$v]}` Destructuring binding
+  - [x] `{a: [123]} as {a: [$v]}` Destructuring binding
 - [x] `.` Identity
 - [ ] `.key[123]."key"[f]` Index
   - [x] `.a`, `.["a"]` Simple index

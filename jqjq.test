@@ -123,6 +123,28 @@ null
 123
 246
 
+# destructing
+. as [$a,$b,$c] | [$c,$b,$a]
+[1,2,3]
+[3,2,1]
+
+. as {$a, b: $b, "c": $c} | [$c,$b,$a]
+{"a":1, "b": 2, "c": 3}
+[3,2,1]
+
+. as {a: $a, b: [[$b]]} | [$a,$b]
+{"a":1, "b": [[2]]}
+[1,2]
+
+# TODO: object same binding
+#. as {a: $a, b: $a} | $a
+#{"a":1, "b": [2]}
+#1
+
+. as [$a,$a] | $a
+[1,2]
+2
+
 # valid names
 1 as $_ | $_ | 2 as $__ | 3 as $_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_ | $_, $__, $_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_
 null

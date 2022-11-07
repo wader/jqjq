@@ -45,6 +45,7 @@ def lex:
                 , "r": "\r"
                 , "\"": "\""
                 , "\\": "\\"
+                , "(": "\\(" # TODO: fix string interpolation
                 }[$c]
               | if not then error("unknown escape: \\" + $c) else . end
               )

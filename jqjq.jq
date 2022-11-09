@@ -2132,7 +2132,7 @@ def jqjq($args; $env):
               , "\n"
               )
             catch
-              "error: " + tostring + "\n"
+              ("error: " + tostring + "\n")
           )
         )
       )

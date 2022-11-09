@@ -18,7 +18,8 @@ $ ./jqjq '.+. | map(.+105) | implode' <<< '[1,8]'
 "jqjq"
 
 # jqjq using jqjq to run above example
-$ ./jqjq -n "$(cat jqjq.jq) [1,8] | eval(\".+. | map(.+105) | implode\")"
+# eval concatenation of jqjq.jq as a string and example
+$ ./jqjq "eval($(jq -Rs . jqjq.jq)+.)" <<< '"eval(\"def f: 1,8; [f,f] | map(.+105) | implode\")"'
 "jqjq"
 
 $ ./jqjq --repl

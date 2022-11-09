@@ -1974,7 +1974,8 @@ def eval($expr; $globals; $builtins_env):
         inputs | [[null], .]
       elif $f.name == "eval/1" then
         # behaves as eval($expr)
-        ( eval_ast(
+        ( $f.input
+        | eval_ast(
             $f.args[0];
             [];
             $builtins_env;

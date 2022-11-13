@@ -28,9 +28,9 @@ null
 null
 "abc"
 
-"escape \"\n\r\\ literal"
+"escape \"\n\r\t\f\b\\\/ literal"
 null
-"escape \"\n\r\\ literal"
+"escape \"\n\r\t\f\b\\\/ literal"
 # TODO: invalid escape
 
 # array literal

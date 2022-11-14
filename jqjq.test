@@ -28,6 +28,11 @@ null
 null
 "abc"
 
+# unicode codepoint escape
+.
+"\u006a\u0071\u1234\uFFff\u0000"
+"jq\u1234\uffff\u0000"
+
 "escape \"\n\r\t\f\b\\\/ literal"
 null
 "escape \"\n\r\t\f\b\\\/ literal"

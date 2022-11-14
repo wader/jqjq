@@ -16,6 +16,29 @@
 
 def debug(f): . as $c | f | debug | $c;
 
+def _fromradix($base; tonum):
+  ( split("")
+  | reverse
+  | map(tonum)
+  # state: [power, ans]
+  | reduce .[] as $c ([1,0];
+      ( (.[0] * $base) as $b
+      | [$b, .[1] + (.[0] * $c)]
+      )
+    )
+  | .[1]
+  );
+def _fromhex:
+  _fromradix(
+    16;
+    ( explode[0]
+    | if . >= 48 and . <= 57 then .-48 # 0-9
+      elif . >= 97 and . <= 102 then .-97+10 # a-f
+      else .-65+10 # A-F
+      end
+    )
+  );
+
 # TODO: keep track of position?
 def lex:
   def _token:
@@ -39,6 +62,12 @@ def lex:
       # match " <any non-"-or-\> or <\ + any> "
       // _re("^\"(?:[^\"\\\\]|\\\\.)*?\"";
           ( .[1:-1]
+          | gsub("\\\\u(?<c>[0-9a-fA-F]{4})";
+              ( .c
+              | [_fromhex]
+              | implode
+              )
+            )
           | gsub("\\\\(?<c>.)";
               ( . as {$c}
               | { "n": "\n"
@@ -53,7 +82,7 @@ def lex:
                 }[$c]
               | if not then error("unknown escape: \\" + $c) else . end
               )
-          )
+            )
           | {string: .}
           )
         )

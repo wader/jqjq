@@ -189,7 +189,7 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
 
 ```
 $ ./jqjq --run-tests < ../jq/tests/jq.test | grep passed
-239 of 362 tests passed
+241 of 362 tests passed
 ```
 
 Note that expected test values are based on stedolan's jq. If you run with a different jq implementation like gojq some tests might fail because of different error messages, support for arbitrary precision integers etc.

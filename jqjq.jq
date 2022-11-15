@@ -17,26 +17,17 @@
 def debug(f): . as $c | f | debug | $c;
 
 def _fromradix($base; tonum):
-  ( split("")
-  | reverse
-  | map(tonum)
-  # state: [power, ans]
-  | reduce .[] as $c ([1,0];
-      ( (.[0] * $base) as $b
-      | [$b, .[1] + (.[0] * $c)]
-      )
-    )
-  | .[1]
+  reduce explode[] as $c (
+    0;
+    . * $base + ($c | tonum)
   );
 def _fromhex:
   _fromradix(
     16;
-    ( explode[0]
-    | if . >= 48 and . <= 57 then .-48 # 0-9
-      elif . >= 97 and . <= 102 then .-97+10 # a-f
-      else .-65+10 # A-F
-      end
-    )
+    if . >= 48 and . <= 57 then .-48 # 0-9
+    elif . >= 97 and . <= 102 then .-97+10 # a-f
+    else .-65+10 # A-F
+    end
   );
 
 # TODO: keep track of position?

@@ -88,7 +88,7 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
   - [x] `.a`, `.["a"]` Simple index
   - [x] `."key"`
   - [x] `.a.b` Multi index
-  - [ ] `.a?` Optional index
+  - [x] `.a?` Optional index
   - [x] `.a[]` Iterate index
 - [x] `.[]` Iterate
 - [ ] `.[]?` Try iterate
@@ -185,11 +185,11 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
 - [x] Run jqjq with jqjq
 - [x] Bugs
 
-### jq's jq.test test suite
+### jq's test suite
 
 ```
 $ ./jqjq --run-tests < ../jq/tests/jq.test | grep passed
-241 of 362 tests passed
+245 of 362 tests passed
 ```
 
 Note that expected test values are based on stedolan's jq. If you run with a different jq implementation like gojq some tests might fail because of different error messages, support for arbitrary precision integers etc.

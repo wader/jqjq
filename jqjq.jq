@@ -1074,36 +1074,45 @@ def eval_ast($query; $path; $env; undefined_func):
         [$path, .];
 
       # eval a index, is also used by _e_suffix
-      def _e_index($index; $query_path; $query_input):
-        ( . as $input
-        | $index as
-            { $name
-            , $str
-            , $is_slice
-            , $start
-            , end: $end_
-            }
-        | if $name then [($query_path + [$name]), $input[$name]]
-          elif $str then [($query_path + [$str.str]), $input[$str.str]]
-          elif $is_slice then
-            ( $query_input
-            | ( if $start then _e($start; []; $query_env)[1]
-                else 0 end
-              )  as $vs
-            | ( if $end_ then _e($end_; []; $query_env)[1]
-                else $input | length
-                end
-              ) as $ve
-            | [[null], $input[$vs:$ve]]
-            )
-          elif $start then
-            ( $query_input
-            | _e($start; []; $query_env) as [$_, $v]
-            | [($query_path + [$v]), $input[$v]]
-            )
-          else . # TODO: error?
-          end
-        );
+      def _e_index($index; $query_path; $query_input; $opt):
+        try
+          ( . as $input
+          | $index as
+              { $name
+              , $str
+              , $is_slice
+              , $start
+              , end: $end_
+              }
+          | if $name then [($query_path + [$name]), $input[$name]]
+            elif $str then [($query_path + [$str.str]), $input[$str.str]]
+            elif $is_slice then
+              ( $query_input
+              | ( if $start then _e($start; []; $query_env)[1]
+                  else 0 end
+                )  as $vs
+              | ( if $end_ then _e($end_; []; $query_env)[1]
+                  else $input | length
+                  end
+                ) as $ve
+              | [ [null]
+                , $input[$vs:$ve]
+                ]
+              )
+            elif $start then
+              ( $query_input
+              | _e($start; []; $query_env) as [$_, $v]
+              | [ ($query_path + [$v])
+                , $input[$v]
+                ]
+              )
+            else . # TODO: error?
+            end
+          )
+        catch
+          if $opt then empty
+          else error
+          end;
 
       # destructing pattern to env
       def _e_pattern($input):
@@ -1151,7 +1160,7 @@ def eval_ast($query; $path; $env; undefined_func):
 
       # .name
       def _index:
-        _e_index($query.term.index; $path; .);
+        _e_index($query.term.index; $path; .; $query.term.suffix_list[0].optional);
 
       def _func:
         ( $query.term.func as {$name, $args}
@@ -1554,11 +1563,10 @@ def eval_ast($query; $path; $env; undefined_func):
           end
         );
 
-      # TODO: optional
       # TODO: [["a","b"],["c","d"]][0,1][0,1] -> "a","c","b","d"
       # TODO: each suffix gets the term input as input
       # TODO: rewrite this
-      def _e_suffix($suffix; $path; $input):
+      def _e_suffix($suffix; $path; $input; $opt):
         ( . as [$p, $v]
         | $input
         | if $suffix.bind then
@@ -1573,15 +1581,26 @@ def eval_ast($query; $path; $env; undefined_func):
             )
           elif $suffix.index then
             # .<index>
-            ( $v
-            | _e_index($suffix.index; $p; $input)
-            )
+            try
+              ( $v
+              | _e_index($suffix.index; $p; $input; $opt)
+              )
+            catch
+              # TODO: share optional code somehow below and in _e_index
+              if $opt then empty
+              else error
+              end
           elif $suffix.iter then
             # .[]
-            ( $v
-            | keys[] as $key
-            | [($p + [$key]), $v[$key]]
-            )
+            try
+              ( $v
+              | keys[] as $key
+              | [($p + [$key]), $v[$key]]
+              )
+            catch
+              if $opt then empty
+              else error
+              end
           else error("unknown suffix: " + ($suffix | tojson))
           end
         );
@@ -1590,9 +1609,13 @@ def eval_ast($query; $path; $env; undefined_func):
         ( $query as {term: {$suffix_list}}
         | def _f($suffix_list):
             if ($suffix_list | length) == 0 then .
+            # .a.b?? case, just skip extra optional "?"
+            elif $suffix_list[0].optional then _f($suffix_list[1:])
             else
-              ( _e_suffix($suffix_list[0]; $path; $input)
-              | _f($suffix_list[1:])
+              ( $suffix_list[1].optional as $opt
+              | $suffix_list[if $opt then 2 else 1 end:] as $n
+              | _e_suffix($suffix_list[0]; $path; $input; $opt)
+              | _f($n)
               )
             end;
           _f($suffix_list)

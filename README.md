@@ -66,6 +66,8 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
 ## Progress
 
 - [x] `123, .123, 1.23, 1.23e2, 1.23e+2, "abc", true, false, null` Scalar literals
+  - [x] Unicode codepoint escape `"\ud83d\ude03"`
+  - [x] Control code and quote escape `"\"\n\r\t\f\b\\\/"`
 - [x] `{key: "value"}` Object literal
   - [x] `{key}`
   - [x] `{"key"}`
@@ -84,14 +86,14 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
   - [x] `(1,2,3) as $a | ...` Binding per output
   - [x] `{a: [123]} as {a: [$v]}` Destructuring binding
 - [x] `.` Identity
-- [ ] `.key[123]."key"[f]` Index
+- [x] `.key[123]."key"[f]` Index
   - [x] `.a`, `.["a"]` Simple index
   - [x] `."key"`
   - [x] `.a.b` Multi index
   - [x] `.a?` Optional index
   - [x] `.a[]` Iterate index
 - [x] `.[]` Iterate
-- [ ] `.[]?` Try iterate
+- [x] `.[]?` Try iterate
 - [x] `.[start:stop]`, `.[:stop]`, `.[start:]` Array slicing
   - [ ] `.[{start: 123, stop: 123}]` Slice using objec
   - [ ] Slice and path tracking `path(.[1:2]) -> [{"start":1,"end":2}]`
@@ -110,7 +112,7 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
 - [x] `eval($expr)`
 - [x] `input`, `inputs`
 - [ ] Builtins / standard library
-  - [ ] `del(f)`
+  - [x] `del(f)`
   - [x] `add`
   - [x] `all`, `all(cond)`, `all(gen; cond)`
   - [x] `any`, `any(cond)`, `any(gen; cond)`

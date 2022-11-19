@@ -596,6 +596,11 @@ try error(.) catch .
 123
 123
 
+# null error same as empty
+[error, error(null)]
+null
+[]
+
 try (1+"a") catch .
 null
 "number (1) and string (\"a\") cannot be added"

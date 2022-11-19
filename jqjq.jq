@@ -1189,7 +1189,8 @@ def eval_ast($query; $path; $env; undefined_func):
           elif $name == "tojson/0" then [[null], tojson]
           elif $name == "fromjson/0" then [[null], fromjson]
           # TODO: make args general
-          elif $name == "error/0" then [[null], error]
+          # note "null | error" is same as empty
+          elif $name == "error/0" then error
           elif $name == "error/1" then
             # TODO: see comment in _try
             ( a0 as $a0

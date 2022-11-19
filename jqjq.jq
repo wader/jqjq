@@ -1857,8 +1857,7 @@ def range($to): range(0; $to; 1);
 
 def recurse(f): def _f: ., (f | _f); _f;
 def recurse(f; cond): recurse(f | select(cond));
-# TODO: use .[]? once supported
-def recurse: recurse(try .[] catch empty);
+def recurse: recurse(.[]?);
 def reverse: length as $l | [.[$l-1-range($l)]];
 
 def sort_by(f):

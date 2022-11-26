@@ -97,7 +97,7 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
 - [x] `.[]` Iterate
 - [x] `.[]?` Try iterate
 - [x] `.[start:stop]`, `.[:stop]`, `.[start:]` Array slicing
-  - [ ] `.[{start: 123, stop: 123}]` Slice using objec
+  - [ ] `.[{start: 123, stop: 123}]` Slice using object
   - [ ] Slice and path tracking `path(.[1:2]) -> [{"start":1,"end":2}]`
 - [x] `and`, `or` operators
 - [x]  `not` operator
@@ -198,9 +198,35 @@ $ ./jqjq --run-tests < ../jq/tests/jq.test | grep passed
 
 Note that expected test values are based on stedolan's jq. If you run with a different jq implementation like gojq some tests might fail because of different error messages, support for arbitrary precision integers etc.
 
-### Design problems, issues and unknowns
+### Design overview
 
-- Better parser errors.
+jqjq has the common lex, parse, eval design.
+
+#### lex
+
+Lexer gets a string and chew of parts from left to right producing an array of tokens `[{<name>: ...}, ...]`. Each chew is done my testing regex:s in a priority order that makes sure to match loner prefix first, ex: `+=` is matched before `+`. For a match a lambda is evaluated, usually just `.` (identity), but in some cases like for quoted string it is a bit more complicated.
+
+You can use `./jqjq --lex '...'` to lex and see the tokens.
+
+#### Parse
+
+Parser takes a array of tokens and uses a left-to-right (LR) parser with backtracking in combination with precedence climbing for infix operators to not end up in an infinite loop (ex parser rule `E -> E + E`). Backtracking is done by outputting empty for non-matching rule and `//` to do try next rule, ex: `a // b // error` where `a` and `b` and functions that try to match a rule. When a rule is matched it returns an array with the pair `[<tokens left>, <ast>]`. `<ast>` uses the same design as gojq.
+
+You can use `./jqjq --parse '...'` to lex and parse and see AST tree.
+
+#### Eval
+
+Eval is done by traversing the AST tree and evaluates each AST node and also keep track of current path and environment.
+
+Path is used in jq to keep track of current path to where you are in the input, this only works for simple indexing (ex: `path(.a[1]), .b` outputs `["a",1]` and `["b"]`). This is also used to implement assignment and some other operators.
+
+Environment is an object with current functions and bindings. Functions have the key name `<name>/<arity>` and the value is an AST. Bindings use the key name `$<name>/0` and the value is `{value: <value>}`.
+
+When evaluating the eval function get the current AST node, path and environment and will output zero, one or more arrays with the pair `[<path>, <value>]`. Path can be `[null]` if the evaluation produced a "new" value so that path tracking is not possible.
+
+### Problems, issues and unknowns
+
+- Better error messages.
 - The "environment" pass around is not very efficient and also it make support recursion a bit awkward (called function is injected in the env at call time).
 - "," operator in jq (and gojq) is left associate but for the way jqjq parses it creates the correct parse tree when it's right associate. Don't know why.
 - Suffix with multiple `[]` outputs values in wrong order.

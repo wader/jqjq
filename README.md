@@ -8,6 +8,8 @@ Why? It started when I was researching how to write decoders directly in jq for 
 
 But it's also a great way to promote and show that jq is a very expressive, capable and nice language! :)
 
+You can try and play around with it at [jqplay.org](https://jqplay.org/s/nQQg2jV7vH5).
+
 ### Use via `jqjq` wrapper
 
 ```sh

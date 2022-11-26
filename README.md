@@ -202,15 +202,15 @@ Note that expected test values are based on stedolan's jq. If you run with a dif
 
 jqjq has the common lex, parse, eval design.
 
-#### lex
+#### Lex
 
-Lexer gets a string and chew of parts from left to right producing an array of tokens `[{<name>: ...}, ...]`. Each chew is done my testing regex:s in a priority order that makes sure to match loner prefix first, ex: `+=` is matched before `+`. For a match a lambda is evaluated, usually just `.` (identity), but in some cases like for quoted string it is a bit more complicated.
+Lexer gets a string and chew of parts from left to right producing an array of tokens `[{<name>: ...}, ...]`. Each chew is done my testing regex:s in a priority order to makes sure to match longer prefixes first, ex: `+=` is matched before `+`. For a match a lambda is evaluated, usually just `.` (identity), but in some cases like for quoted string it is a bit more complicated.
 
 You can use `./jqjq --lex '...'` to lex and see the tokens.
 
 #### Parse
 
-Parser takes a array of tokens and uses a left-to-right (LR) parser with backtracking in combination with precedence climbing for infix operators to not end up in an infinite loop (ex parser rule `E -> E + E`). Backtracking is done by outputting empty for non-matching rule and `//` to do try next rule, ex: `a // b // error` where `a` and `b` and functions that try to match a rule. When a rule is matched it returns an array with the pair `[<tokens left>, <ast>]`. `<ast>` uses the same design as gojq.
+Parser takes an array of tokens and uses a left-to-right (LR) parser with backtracking in combination with precedence climbing for infix operators to not end up in an infinite loop (ex parser rule `E -> E + E`). Backtracking is done by outputting empty for non-match and `//` to try next rule, ex: `a // b // ... // error` where `a` and `b` are functions that try to match a rule. When a rule has matched it returns an array with the pair `[<tokens left>, <ast>]`. `<ast>` uses the same AST design as gojq.
 
 You can use `./jqjq --parse '...'` to lex and parse and see AST tree.
 
@@ -220,9 +220,9 @@ Eval is done by traversing the AST tree and evaluates each AST node and also kee
 
 Path is used in jq to keep track of current path to where you are in the input, this only works for simple indexing (ex: `path(.a[1]), .b` outputs `["a",1]` and `["b"]`). This is also used to implement assignment and some other operators.
 
-Environment is an object with current functions and bindings. Functions have the key name `<name>/<arity>` and the value is an AST. Bindings use the key name `$<name>/0` and the value is `{value: <value>}`.
+Environment is an object with current functions and bindings. Functions have the key name `<name>/<arity>` and the value is an function AST. Bindings use the key name `$<name>/0` and the value is `{value: <value>}` where value is normal jq value.
 
-When evaluating the eval function get the current AST node, path and environment and will output zero, one or more arrays with the pair `[<path>, <value>]`. Path can be `[null]` if the evaluation produced a "new" value so that path tracking is not possible.
+When evaluating the eval function get the current AST node, path and environment and will output zero, one or more arrays with the pair `[<path>, <value>]`. Path can be `[null]` if the evaluation produced a "new" value etc so that path tracking is not possible.
 
 ### Problems, issues and unknowns
 

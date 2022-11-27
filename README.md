@@ -4,7 +4,7 @@ jq implementation of [jq](https://github.com/stedolan/jq)
 
 > **Warning** this project is mostly for learning, experimenting and fun.
 
-Why? It started when I was researching how to write decoders directly in jq for [fq](https://github.com/wader/fq) which ended up involving some syntax tree rewriting and walking and then it grow from there.
+Why? It started when I was researching how to write decoders directly in jq for [fq](https://github.com/wader/fq) which ended up involving some syntax tree rewriting and walking and then it grew from there.
 
 But it's also a great way to promote and show that jq is a very expressive, capable and nice language! :)
 
@@ -74,9 +74,9 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
   - [x] `{key}`
   - [x] `{"key"}`
   - [x] `{$key}`
-  - [x] `{(...): ...}`
+  - [x] `{(f): f}`
   - [x] `{("a","b"): (1,2), c: 2}` Multiple key/value outputs
-  - [ ] `{"\()"}`
+  - [ ] `{"\(f)"}` String interpolation
   - [x] `{key: 1 | .}` Multi value queries
 - [x] `[1,2,3]` Array literal, collect
 - [x] `1, 2` Comma operator
@@ -88,30 +88,32 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
   - [x] `(1,2,3) as $a | ...` Binding per output
   - [x] `{a: [123]} as {a: [$v]}` Destructuring binding
 - [x] `.` Identity
-- [x] `.key[123]."key"[f]` Index
-  - [x] `.a`, `.["a"]` Simple index
-  - [x] `."key"`
+- [x] `.a`, `."a"`, `.[1]`, `.[f]` Index
+- [x] `.key[123]."key"[f]` Suffix expressions
   - [x] `.a.b` Multi index
-  - [x] `.a?` Optional index
+  - [x] `.a.b?` Optional index
   - [x] `.a[]` Iterate index
+  - [x] `.[]?` Try iterate
 - [x] `.[]` Iterate
-- [x] `.[]?` Try iterate
 - [x] `.[start:stop]`, `.[:stop]`, `.[start:]` Array slicing
   - [ ] `.[{start: 123, stop: 123}]` Slice using object
   - [ ] Slice and path tracking `path(.[1:2]) -> [{"start":1,"end":2}]`
+- [x] `try f`, Shorthand for `try f catch empty`
+- [ ] `f?` Shorthand for `try f catch empty`
 - [x] `and`, `or` operators
-- [x]  `not` operator
+- [x] `not` operator
 - [x] `if f then 2 else 3 end` Conditional
   - [x] `if f then 2 end` Optional else
   - [x] `if f then 2 elif f then 3 end` Else if clauses
   - [x] `if true,false then "a" else "b" end` Multiple condition outputs
-- [x] `reduce f as $a (init; update)` Reduce output
-- [x] `foreach f as $a (init; update; extract)` Foreach output, update state and output extracted value
+- [x] `reduce f as $a (init; update)` Reduce outputs from `f` into one output
+- [x] `foreach f as $a (init; update; extract)` Foreach outputs of `f` update state and output extracted value
   - [x] Optional extract
 - [x] `f = v` Assignment
 - [x] `f |= v`, `f +=` Update assignment
 - [x] `+=`, `-=`, `*=`, `/=`, `%=` Arithmetic update assignment
-- [x] `eval($expr)`
+- [x] `eval($expr)` (jqjq specific)
+- [x] `path(f)` Output paths for `f`
 - [x] `input`, `inputs`
 - [ ] Builtins / standard library
   - [x] `del(f)`
@@ -175,14 +177,10 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
   - [x] `def f: def _f: 123; _f; f` Local function
   - [x] `def f($binding): $binding` Binding arguments
   - [x] `def f: f;` Recursion
-- [x] `path(f)` Output paths for `f` for input
-- [x] `try f`, `try f catch .` Catch error
-- [ ] `f?` Empty shorthand catch
-- [x] `..` Recurse input
+- [x] `..` Recurse input, same as `recurse`
 - [x] `//` Alternative operator
 - [ ] `?//` Alternative destructuring operator
 - [ ] `$ENV`
-- [ ] `"\(f)"` String interpolation
 - [ ] `@format "string"` Format string
 - [ ] `label $out | break $out` Break out
 - [ ] `include "f"`, `import "f"` Include
@@ -204,30 +202,30 @@ jqjq has the common lex, parse, eval design.
 
 #### Lex
 
-Lexer gets a string and chew of parts from left to right producing an array of tokens `[{<name>: ...}, ...]`. Each chew is done my testing regex:s in a priority order to makes sure to match longer prefixes first, ex: `+=` is matched before `+`. For a match a lambda is evaluated, usually just `.` (identity), but in some cases like for quoted string it is a bit more complicated.
+Lexer gets a string and chews off parts from left to right producing an array of tokens `[{<name>: ...}, ...]`. Each chew is done by testing regex:s in a priority order to make sure to match longer prefixes first, ex: `+=` is matched before `+`. For a match a lambda is evaluated, usually just `.` (identity), but in some cases like for quoted strings it is a bit more complicated.
 
 You can use `./jqjq --lex '...'` to lex and see the tokens.
 
 #### Parse
 
-Parser takes an array of tokens and uses a left-to-right (LR) parser with backtracking in combination with precedence climbing for infix operators to not end up in an infinite loop (ex parser rule `E -> E + E`). Backtracking is done by outputting empty for non-match and `//` to try next rule, ex: `a // b // ... // error` where `a` and `b` are functions that try to match a rule. When a rule has matched it returns an array with the pair `[<tokens left>, <ast>]`. `<ast>` uses the same AST design as gojq.
+Parser takes an array of tokens and uses a left-to-right (LR) parser with backtracking in combination with precedence climbing for infix operators to not end up in an infinite loop (ex parser rule `E -> E + E`). Backtracking is done by outputting empty for non-match and `//` to try the next rule, ex: `a // b // ... // error` where `a` and `b` are functions that try to match a rule. When a rule has matched it returns an array with the pair `[<tokens left>, <ast>]`. `<ast>` uses the same AST design as gojq.
 
-You can use `./jqjq --parse '...'` to lex and parse and see AST tree.
+You can use `./jqjq --parse '...'` to lex and parse and see the AST tree.
 
 #### Eval
 
-Eval is done by traversing the AST tree and evaluates each AST node and also keep track of current path and environment.
+Eval is done by traversing the AST tree and evaluates each AST node and also keeps track of the current path and environment.
 
 Path is used in jq to keep track of current path to where you are in the input, this only works for simple indexing (ex: `path(.a[1]), .b` outputs `["a",1]` and `["b"]`). This is also used to implement assignment and some other operators.
 
-Environment is an object with current functions and bindings. Functions have the key name `<name>/<arity>` and the value is an function AST. Bindings use the key name `$<name>/0` and the value is `{value: <value>}` where value is normal jq value.
+Environment is an object with current functions and bindings. Functions have the key name `<name>/<arity>` and the value is a function AST. Bindings use the key name `$<name>/0` and the value is `{value: <value>}` where value is normal jq value.
 
 When evaluating the eval function get the current AST node, path and environment and will output zero, one or more arrays with the pair `[<path>, <value>]`. Path can be `[null]` if the evaluation produced a "new" value etc so that path tracking is not possible.
 
 ### Problems, issues and unknowns
 
 - Better error messages.
-- The "environment" pass around is not very efficient and also it make support recursion a bit awkward (called function is injected in the env at call time).
+- The "environment" pass around is not very efficient and also it makes support recursion a bit awkward (called function is injected in the env at call time).
 - "," operator in jq (and gojq) is left associate but for the way jqjq parses it creates the correct parse tree when it's right associate. Don't know why.
 - Suffix with multiple `[]` outputs values in wrong order.
 - Non-associate operators like `==` should fail, ex: `1 == 2 == 3`.
@@ -236,10 +234,10 @@ When evaluating the eval function get the current AST node, path and environment
   - `reduce/foreach` via recursive function? similar to `if` or `{}`-literal?
   - `try/catch` via some backtrack return value? change `[path, value]` to include an error somehow?
 - How to support `label/break`?
-- How to support `delpaths` (usd by `del` etc). Have to keep paths same while deleting a group of paths? use sentinel value? work with paths instead?
-- Rewrite AST before eval, currently `if` and some other do rewrite (optional parts etc) while evaluating.
+- How to support `delpaths` (usd by `del` etc). Have to keep paths the same while deleting a group of paths? use sentinel value? work with paths instead?
+- Rewrite AST before eval, currently `if` and some others do rewrite (optional parts etc) while evaluating.
 - Rethink invalid path handling, current `[null]` is used as sentinel value.
-- `{a:123} | .a |= empty` should remove key.
+- `{a:123} | .a |= empty` should remove the key.
 
 ### Useful references
 
@@ -268,7 +266,7 @@ When evaluating the eval function get the current AST node, path and environment
 
 ## Thanks to
 
-- [stedolan](https://github.com/stedolan) for jq and got me interesting in generator/backtracking based languages.
+- [stedolan](https://github.com/stedolan) for jq and got me interested in generator/backtracking based languages.
 - [pkoppstein](https://github.com/pkoppstein) for writing about [jq and PEG parsing](https://github.com/stedolan/jq/wiki/Parsing-Expression-Grammars).
 - [itchyny](https://github.com/itchyny) for jqjq fixes and [gojq](https://github.com/itchyny/gojq) from which is learned a lot and is also from where most of jqjq's AST design comes from. Sharing AST design made it easier to compare parser output (ex via [fq's `_query_fromstring`](https://github.com/wader/fq)). gojq also fixes some confusing jq bugs and has better error messages which saves a lot of time.
 - Michael Färber [@01mf02](https://github.com/01m) for [jaq](https://github.com/01mf02/jaq) and where I also learned about precedence climbing.

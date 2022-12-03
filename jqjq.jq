@@ -265,8 +265,7 @@ def parse:
                 | $rest
                 | [ .
                   , { key_string:
-                        { str: $string.term.str
-                        }
+                        {str: $string.term.str}
                     , val: $val
                     }
                   ]
@@ -276,8 +275,7 @@ def parse:
                 ( .[0] as $binding
                 | _consume(.binding)
                 | [ .
-                  , { key: $binding.binding
-                    }
+                  , {key: $binding.binding}
                   ]
                 )
               //
@@ -310,8 +308,7 @@ def parse:
         , { term:
               { type: "TermTypeObject"
               , object:
-                  { key_vals: $key_vals
-                  }
+                  {key_vals: $key_vals}
               }
           }
         ]
@@ -358,8 +355,7 @@ def parse:
                   | $rest
                   | [ .
                     , { key_string:
-                          { str: $string.term.str
-                          }
+                          {str: $string.term.str}
                       , val: $val
                       }
                     ]
@@ -369,8 +365,7 @@ def parse:
                   ( .[0] as $binding
                   | _consume(.binding)
                   | [ .
-                    , { key: $binding.binding
-                      }
+                    , {key: $binding.binding}
                     ]
                   )
                 //
@@ -483,8 +478,7 @@ def parse:
           , { term:
                 { type: "TermTypeFunc"
                 , func:
-                    { name: $first.ident
-                    }
+                    {name: $first.ident}
                 }
             }
           ]
@@ -498,8 +492,7 @@ def parse:
         , { term:
               { type: "TermTypeFunc"
               , func:
-                  { name: $first.binding
-                  }
+                  {name: $first.binding}
               }
           }
         ]
@@ -515,8 +508,7 @@ def parse:
         , { term:
               { type: "TermTypeArray",
                 array:
-                  { query: $query
-                  }
+                  {query: $query}
               }
           }
         ]
@@ -541,11 +533,11 @@ def parse:
         , { term:
             { type: "TermTypeReduce"
             , reduce:
-              { term: $term.term
-              , pattern: $pattern
-              , start: $start
-              , update: $update
-              }
+                { term: $term.term
+                , pattern: $pattern
+                , start: $start
+                , update: $update
+                }
             }
           }
         ]
@@ -606,7 +598,11 @@ def parse:
           | _keyword("then")
           | _p("query") as [$rest, $then_]
           | $rest
-          | [., {cond: $cond, then: $then_}]
+          | [ .
+            , { cond: $cond
+              , then: $then_
+              }
+            ]
           )
         ) as [$rest, $elif_]
       | $rest
@@ -741,8 +737,7 @@ def parse:
         | _consume(.index)
         | [ .
           , { index:
-                { name: $index.index
-                }
+                {name: $index.index}
             }
           ]
         )
@@ -754,8 +749,7 @@ def parse:
         | [ .
           , { index:
                 { str:
-                    { str: $string.term.str
-                    }
+                    {str: $string.term.str}
                 }
             }
           ]
@@ -789,8 +783,7 @@ def parse:
       ( _consume(.dot)
       | [ .
         , { term:
-              { type: "TermTypeIdentity"
-              }
+              {type: "TermTypeIdentity"}
           }
         ]
       );
@@ -810,8 +803,7 @@ def parse:
           , { term:
                 { type: "TermTypeIndex"
                 , index:
-                  { start: $query
-                  }
+                    {start: $query}
               }
             }
           ]
@@ -846,8 +838,7 @@ def parse:
           , { term:
                 { type: "TermTypeIndex"
                 , index:
-                  { name: $index.index
-                  }
+                    {name: $index.index}
                 }
             }
           ]
@@ -862,8 +853,7 @@ def parse:
                 { type: "TermTypeIndex"
                 , index:
                     { str:
-                        { str: $string.term.str
-                        }
+                        {str: $string.term.str}
                     }
                 }
             }
@@ -888,8 +878,7 @@ def parse:
         , { term:
             { type: "TermTypeTry"
             , try:
-                ( { body: $body
-                  }
+                ( {body: $body}
                 | if $catch_ then .catch = $catch_ else . end
                 )
             }
@@ -906,9 +895,9 @@ def parse:
         , { term:
               { type: "TermTypeUnary"
               , unary:
-                 { op: $op
-                 , term: $term.term
-                 }
+                  { op: $op
+                  , term: $term.term
+                  }
               }
           }
         ]
@@ -922,8 +911,7 @@ def parse:
         , { term:
               { type: "TermTypeFunc"
               , func:
-                 { name: "recurse"
-                 }
+                  {name: "recurse"}
               }
           }
         ]
@@ -953,7 +941,11 @@ def parse:
         ( _p("func_defs") as [$rest, $func_defs]
         | $rest
         | ( if length == 0 then
-              [., {term: {type: "TermTypeIdentity"}}]
+              [ .
+              , { term:
+                    {type: "TermTypeIdentity"}
+                }
+              ]
             else
               _p("term")
             end

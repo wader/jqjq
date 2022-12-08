@@ -1082,7 +1082,7 @@ def eval_ast($query; $path; $env; undefined_func):
               ( $query_input
               | ( if $start then _e($start; []; $query_env)[1]
                   else 0 end
-                )  as $vs
+                ) as $vs
               | ( if $end_ then _e($end_; []; $query_env)[1]
                   else $input | length
                   end
@@ -1111,41 +1111,40 @@ def eval_ast($query; $path; $env; undefined_func):
         ( def _f($input; $env):
             if length == 0 then $env
             else
-              ( if .name then
-                  ( . as {$name}
-                  | $env
-                  | .[$name] = {value: $input}
+              if .name then
+                ( . as {$name}
+                | $env
+                | .[$name] = {value: $input}
+                )
+              elif .array then
+                reduce (.array | to_entries)[] as $kv (
+                  $env;
+                  ( . as $env
+                  | $kv.value
+                  | _f($input[$kv.key]; $env)
                   )
-                elif .array then
-                  reduce (.array | to_entries)[] as $kv (
-                    $env;
-                    ( . as $env
-                    | $kv.value
-                    | _f($input[$kv.key]; $env)
-                    )
+                )
+              elif .object then
+                reduce .object[] as $kv (
+                  $env;
+                  ( . as $env
+                  | ( if $kv.key and ($kv.val | not) then [$kv.key[1:], {name: $kv.key}]
+                      elif $kv.key then [$kv.key, $kv.val]
+                      elif $kv.key_string then [$kv.key_string.str, $kv.val]
+                      elif $kv.key_query then
+                        # TODO: {a: 1, b: 2} as {("a","b"): $a} | $a -> 1, 2, probably can't use reduce
+                        ( _e($kv.key_query; $path; $query_env)[1]
+                        | [., $kv.val]
+                        )
+                      else error("unreachable")
+                      end
+                    ) as [$key, $val]
+                  | $val
+                  | _f($input[$key]; $env)
                   )
-                elif .object then
-                  reduce .object[] as $kv (
-                    $env;
-                    ( . as $env
-                    | ( if $kv.key and ($kv.val | not) then [$kv.key[1:], {name: $kv.key}]
-                        elif $kv.key then [$kv.key, $kv.val]
-                        elif $kv.key_string then [$kv.key_string.str, $kv.val]
-                        elif $kv.key_query then
-                          # TODO: {a: 1, b: 2} as {("a","b"): $a} | $a -> 1, 2, probably can't use reduce
-                          ( _e($kv.key_query; $path; $query_env)[1]
-                          | [., $kv.val]
-                          )
-                        else error("unreachable")
-                        end
-                      ) as [$key, $val]
-                    | $val
-                    | _f($input[$key]; $env)
-                    )
-                  )
-                else error("unreachable")
-                end
-              )
+                )
+              else error("unreachable")
+              end
             end;
           _f($input; {})
         );
@@ -1356,57 +1355,56 @@ def eval_ast($query; $path; $env; undefined_func):
                     }
                 };
               . as $kv
-            | ( if $kv.key then
-                  [ ( $kv.key
-                    | if startswith("$") then .[1:] else . end
+            | if $kv.key then
+                [ ( $kv.key
+                  | if startswith("$") then .[1:] else . end
+                  | _term_str
+                  )
+                , ( $kv.val.queries[0]
+                  //
+                    ( $kv.key
+                    | if startswith("$") then
+                        { term:
+                            { type: "TermTypeFunc",
+                              func:
+                                { name: .
+                                }
+                            }
+                        }
+                      else
+                        { term:
+                            { type: "TermTypeIndex",
+                              index:
+                                { name: .
+                                }
+                            }
+                        }
+                      end
+                    )
+                  )
+                ]
+              elif $kv.key_string then
+                ( [ ( $kv.key_string.str
                     | _term_str
                     )
                   , ( $kv.val.queries[0]
                     //
-                      ( $kv.key
-                      | if startswith("$") then
-                          { term:
-                              { type: "TermTypeFunc",
-                                func:
-                                  { name: .
-                                  }
+                      { term:
+                          { type: "TermTypeIndex",
+                            index:
+                              { name: $kv.key_string.str
                               }
                           }
-                        else
-                          { term:
-                              { type: "TermTypeIndex",
-                                index:
-                                  { name: .
-                                  }
-                              }
-                          }
-                        end
-                      )
+                      }
                     )
                   ]
-                elif $kv.key_string then
-                  ( [ ( $kv.key_string.str
-                      | _term_str
-                      )
-                    , ( $kv.val.queries[0]
-                      //
-                        { term:
-                            { type: "TermTypeIndex",
-                              index:
-                                { name: $kv.key_string.str
-                                }
-                            }
-                        }
-                      )
-                    ]
-                  )
-                elif $kv.key_query then
-                  [ $kv.key_query
-                  , $kv.val.queries[0]
-                  ]
-                else error("unknown object key")
-                end
-              )
+                )
+              elif $kv.key_query then
+                [ $kv.key_query
+                , $kv.val.queries[0]
+                ]
+              else error("unknown object key")
+              end
             )
           )
         | def _f($obj):
@@ -1634,10 +1632,7 @@ def eval_ast($query; $path; $env; undefined_func):
           elif $type == "TermTypeUnary" then _unary
           else error("unsupported term: " + ($query | tojson))
           end
-        | if $query.term.suffix_list then
-            ( .
-            | _e_suffix_list($input; $path)
-            )
+        | if $query.term.suffix_list then _e_suffix_list($input; $path)
           else .
           end
         )

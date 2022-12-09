@@ -2271,13 +2271,12 @@ def jqjq($args; $env):
         elif $opts.slurp then [inputs]
         else inputs
         end;
-      builtins_env as $builtins_env
+      ( if $opts.no_builtins then {}
+        else builtins_env
+        end
+      ) as $builtins_env
     | _inputs
-    | eval(
-        $opts.filter;
-        {"$ENV": $env};
-        if $opts.no_builtins then {} else $builtins_env end
-      )
+    | eval($opts.filter; {"$ENV": $env}; $builtins_env)
     | tojson
     );
 

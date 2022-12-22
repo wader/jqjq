@@ -685,7 +685,9 @@ def parse:
       );
 
     # []
+    # .[]
     # [<query>]
+    # .[<query>]
     # .name
     # ."name"
     # ?
@@ -693,13 +695,27 @@ def parse:
     def _suffix:
       (
         # [] iter
-        ( _consume(.lsquare)
+        ( _optional(
+            # TODO: _one() etc?
+            ( _consume(.dot)
+            | [., null]
+            )
+          ) as [$rest, $_]
+        | $rest
+        | _consume(.lsquare)
         | _consume(.rsquare)
         | [., {iter: true}]
         )
       //
         # [...] query
-        ( _consume(.lsquare)
+        ( _optional(
+            # TODO: _one() etc?
+            ( _consume(.dot)
+            | [., null]
+            )
+          ) as [$rest, $_]
+        | $rest
+        | _consume(.lsquare)
         | _p("query") as [$rest, $start]
         | $rest
         | _consume(.rsquare)

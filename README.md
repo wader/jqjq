@@ -49,6 +49,7 @@ Usage: jqjq [OPTIONS] [--] [EXPR]
   --parse          Lex and parse EXPR
   --repl           REPL
   --run-tests      Run jq tests from stdin
+  --slurp,-s       Slurp inputs into an array
 ```
 
 ### Use with `jq`
@@ -69,6 +70,7 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
 
 - [x] `123, .123, 1.23, 1.23e2, 1.23e+2, "abc", true, false, null` Scalar literals
   - [x] Unicode codepoint escape `"\ud83d\ude03"`
+  - [ ] Handle surrogate pairs `\ud800`-`\udfff`, should translate to codepoint.
   - [x] Control code and quote escape `"\"\n\r\t\f\b\\\/"`
 - [x] `{key: "value"}` Object literal
   - [x] `{key}`
@@ -220,7 +222,7 @@ Path is used in jq to keep track of current path to where you are in the input, 
 
 Environment is an object with current functions and bindings. Functions have the key name `<name>/<arity>` and the value is a function AST. Bindings use the key name `$<name>/0` and the value is `{value: <value>}` where value is normal jq value.
 
-When evaluating the eval function get the current AST node, path and environment and will output zero, one or more arrays with the pair `[<path>, <value>]`. Path can be `[null]` if the evaluation produced a "new" value etc so that path tracking is not possible.
+When evaluating the AST eval function get the current AST node, path and environment and will output zero, one or more arrays with the pair `[<path>, <value>]`. Path can be `[null]` if the evaluation produced a "new" value etc so that path tracking is not possible.
 
 ### Problems, issues and unknowns
 

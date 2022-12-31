@@ -53,8 +53,17 @@ def lex:
       # match " <any non-"-or-\> or <\ + any> "
       // _re("^\"(?:[^\"\\\\]|\\\\.)*?\"";
           ( .[1:-1]
-          # TODO: this incorrect for surrogate pairs (\ud800 to \udfff)
-          # should be translate into codepoint
+          # match surrogate pairs
+          # TODO: handle unpaired
+          | gsub("(?<c>(\\\\u[dD][89a-fA-F][0-9a-fA-F]{2}){2})";
+              ( .c
+              | ([.[2:6], .[8:] | _fromhex]) as [$hi,$lo]
+              # translate surrogate hi/lo pair values into codepoint
+              # (hi-0xd800<<10) + (lo-0xdc00) + 0x10000
+              | [($hi-55296)*1024 + ($lo-56320) + 65536]
+              | implode
+              )
+            )
           | gsub("\\\\u(?<c>[0-9a-fA-F]{4})";
               ( .c
               | [_fromhex]

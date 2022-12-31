@@ -70,7 +70,7 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
 
 - [x] `123, .123, 1.23, 1.23e2, 1.23e+2, "abc", true, false, null` Scalar literals
   - [x] Unicode codepoint escape `"\ud83d\ude03"`
-  - [ ] Handle surrogate pairs `\ud800`-`\udfff`, should translate to codepoint.
+  - [x] Handle surrogate pairs `\ud800`-`\udfff`, should translate to codepoint.
   - [x] Control code and quote escape `"\"\n\r\t\f\b\\\/"`
 - [x] `{key: "value"}` Object literal
   - [x] `{key}`

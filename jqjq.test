@@ -29,9 +29,15 @@ null
 "abc"
 
 # unicode codepoint escape
-.
 "\u006a\u0071\u1234\uFFff\u0000"
+null
 "jq\u1234\uffff\u0000"
+
+# surrogate pairs
+"\ud83d\udca9", "\uD83D\uDCA9"
+null
+"💩"
+"💩"
 
 "escape \"\n\r\t\f\b\\\/ literal"
 null

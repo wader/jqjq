@@ -133,7 +133,7 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
   - [x] `first`
   - [x] `flatten`, `flatten($depth)`
   - [x] `from_entries`
-  - [x] `fromjson` (passthrough)
+  - [x] `fromjson`
   - [x] `getpath(path)` (passthrough)
   - [x] `group`, `group_by(f)`
   - [x] `has($key)` (passthrough)
@@ -158,7 +158,7 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
   - [x] `sort`, `sort_by(f)`
   - [x] `startswith($s)`
   - [x] `to_entries`
-  - [x] `tojson` (passthrough)
+  - [x] `tojson`
   - [x] `tonumber` (passthrough)
   - [x] `tostring` (passthrough)
   - [x] `match($regex; $flags)` (passthrough)

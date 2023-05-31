@@ -1181,6 +1181,96 @@ def eval_ast($query; $path; $env; undefined_func):
         _e_index($query.term.index; $path; .; $query.term.suffix_list[0].optional);
 
       def _func:
+        def _fromjson:
+          def _f:
+            ( . as $v
+            | .term.type
+            | if . == "TermTypeNull" then null
+              elif . == "TermTypeTrue" then true
+              elif . == "TermTypeFalse" then false
+              elif . == "TermTypeString" then $v.term.str
+              elif . == "TermTypeNumber" then $v.term.number | tonumber
+              elif . == "TermTypeObject" then
+                ( $v.term.object.key_vals // []
+                | map(
+                    { key: .key_string.str,
+                      value: (.val.queries[0] | _f)
+                    }
+                  )
+                | from_entries
+                )
+              elif . == "TermTypeArray" then
+                ( def _a: if .op then .left, .right | _a end;
+                  [$v.term.array.query // empty | _a | _f]
+                )
+              else error("unknown term")
+              end
+            );
+          try
+            (lex | parse | _f)
+          catch
+            error("fromjson only supports constant literals");
+
+        def _tojson($opts):
+          def _f($opts; $indent):
+            def _r($prefix):
+              ( type as $t
+              | if $t == "null" then tojson
+                elif $t == "string" then tojson
+                elif $t == "number" then tojson
+                elif $t == "boolean" then tojson
+                elif $t == "array" then
+                  if length == 0 then "[]"
+                  else
+                    [ "[", $opts.compound_newline
+                    , ( [ .[]
+                        | $prefix, $indent
+                        , _r($prefix+$indent), $opts.array_sep
+                        ]
+                      | .[0:-1]
+                      )
+                    , $opts.compound_newline
+                    , $prefix, "]"
+                    ]
+                  end
+                elif $t == "object" then
+                  if length == 0 then "{}"
+                  else
+                    [ "{", $opts.compound_newline
+                    , ( [ to_entries[]
+                        | $prefix, $indent
+                        , (.key | tojson), $opts.key_sep
+                        , (.value | _r($prefix+$indent)), $opts.object_sep
+                        ]
+                      | .[0:-1]
+                      )
+                    , $opts.compound_newline
+                    , $prefix, "}"
+                    ]
+                  end
+                else error("unknown type \($t)")
+                end
+              );
+            _r("");
+          ( ( { indent: 0,
+                key_sep: ":",
+                object_sep: ",",
+                array_sep: ",",
+                compound_newline: "",
+              } + $opts
+            | if .indent > 0  then
+                ( .key_sep = ": "
+                | .object_sep = ",\n"
+                | .array_sep = ",\n"
+                | .compound_newline = "\n"
+                )
+              end
+            ) as $o
+          | _f($o; $o.indent * " ")
+          | if type == "array" then flatten | join("") end
+          );
+        def _tojson: _tojson({});
+
         ( $query.term.func as {$name, $args}
         | def a0: _e($args[0]; $path; $query_env)[1];
           def a1: _e($args[1]; $path; $query_env)[1];
@@ -1204,8 +1294,9 @@ def eval_ast($query; $path; $env; undefined_func):
           elif $name == "tonumber/0" then [[null], tonumber]
           # TODO: implement in jqjq?
           elif $name == "tostring/0" then [[null], tostring]
-          elif $name == "tojson/0"   then [[null], tojson]
-          elif $name == "fromjson/0" then [[null], fromjson]
+          elif $name == "tojson/0"   then [[null], _tojson]
+          elif $name == "tojson/1"   then [[null], _tojson(a0)]
+          elif $name == "fromjson/0" then [[null], _fromjson]
           # TODO: make args general
           # note "null | error" is same as empty
           elif $name == "error/0"    then error

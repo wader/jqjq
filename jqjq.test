@@ -449,6 +449,11 @@ null
 null
 2
 
+# fromjson, tojson
+map(tojson | [., (fromjson | ., tojson)])
+[null,1,"str",true,[],{},[1,2,3],{"a":123}]
+[["null",null,"null"],["1",1,"1"],["\"str\"","str","\"str\""],["true",true,"true"],["[]",[],"[]"],["{}",{},"{}"],["[1,2,3]",[1,2,3],"[1,2,3]"],["{\"a\":123}",{"a":123},"{\"a\":123}"]]
+
 # precedence
 # TODO: add more
 1+2+3*4*5-6-7/8/9,.|.

@@ -3,7 +3,7 @@
 # shellcheck disable=SC2016
 
 JQ="jq"
-JQJQ_PATH="$(dirname "$0")"
+JQJQ_PATH="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 ARGS=("$@")
 
 JQ_ARGS=("--raw-output" "--null-input")

@@ -123,6 +123,7 @@ Note that the tests are meant to be used with jq 1.7.
   - [x] `add`
   - [x] `all`, `all(cond)`, `all(gen; cond)`
   - [x] `any`, `any(cond)`, `any(gen; cond)`
+  - [x] `capture($val)`, `capture(re; mods)`
   - [x] `debug` (passthrough)
   - [x] `del(f)`
   - [x] `delpaths($paths)` (passthrough)
@@ -151,7 +152,7 @@ Note that the tests are meant to be used with jq 1.7.
   - [x] `length` (passthrough)
   - [x] `limit($n; f)`
   - [x] `map(f)`
-  - [ ] `match($val)`
+  - [x] `match($val)`
   - [x] `match($regex; $flags)` (passthrough)
   - [x] `max`, `max_by(f)`
   - [x] `min`, `min_by(f)`
@@ -166,6 +167,8 @@ Note that the tests are meant to be used with jq 1.7.
   - [x] `setpath` (passthrough)
   - [x] `sort`, `sort_by(f)`
   - [x] `startswith($s)`
+  - [x] `test($val)`
+  - [x] `test($regex; $flags)` (passthrough)
   - [x] `to_entries`
   - [x] `tojson`
   - [x] `tonumber` (passthrough)

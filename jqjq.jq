@@ -1366,6 +1366,7 @@ def eval_ast($query; $path; $env; undefined_func):
           elif $name == "y0/0"          then [[null], y0]
           elif $name == "y1/0"          then [[null], y1]
           elif $name == "match/2"       then match(a0; a1) | [[null], .]
+          elif $name == "test/2"        then test(a0; a1) | [[null], .]
           elif $name == "gsub/2"        then gsub(a0; a1) | [[null], .]
           elif $name == "atan2/2"       then [[null], atan2(a0; a1)]
           elif $name == "copysign/2"    then [[null], copysign(a0; a1)]
@@ -2097,6 +2098,20 @@ def indices($i): if type == \"array\" and ($i|type) == \"array\" then .[$i]
   else .[$i] end;
 def index($i):  indices($i) | .[0];
 def rindex($i): indices($i) | .[-1:][0];
+
+def match($val): ($val|type) as $vt | if $vt == \"string\" then match($val; null)
+   elif $vt == \"array\" and ($val | length) > 1 then match($val[0]; $val[1])
+   elif $vt == \"array\" and ($val | length) > 0 then match($val[0]; null)
+   else error( $vt + \" not a string or array\") end;
+def test($val): ($val|type) as $vt | if $vt == \"string\" then test($val; null)
+   elif $vt == \"array\" and ($val | length) > 1 then test($val[0]; $val[1])
+   elif $vt == \"array\" and ($val | length) > 0 then test($val[0]; null)
+   else error( $vt + \" not a string or array\") end;
+def capture(re; mods): match(re; mods) | reduce ( .captures | .[] | select(.name != null) | { (.name) : .string } ) as $pair ({}; . + $pair);
+def capture($val): ($val|type) as $vt | if $vt == \"string\" then capture($val; null)
+   elif $vt == \"array\" and ($val | length) > 1 then capture($val[0]; $val[1])
+   elif $vt == \"array\" and ($val | length) > 0 then capture($val[0]; null)
+   else error( $vt + \" not a string or array\") end;
 
 def all(gen; cond): first((gen | select(cond | not) | false), true);
 def all(cond): all(.[]; cond);

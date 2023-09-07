@@ -66,6 +66,8 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
 
 `make test`
 
+Note that the tests are meant to be used with jq 1.7.
+
 ## Progress
 
 - [x] `123, .123, 1.23, 1.23e2, 1.23e+2, "abc", true, false, null` Scalar literals

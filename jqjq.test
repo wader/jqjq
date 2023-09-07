@@ -331,8 +331,8 @@ false
 30
 
 . / 3
-10
-3.3333333333333335
+9
+3
 
 . % 3
 10
@@ -608,9 +608,13 @@ try error(.) catch .
 123
 
 # null error same as empty
-[error, error(null)]
+try error catch .
 null
-[]
+null
+
+try error(null) catch .
+123
+null
 
 try (1+"a") catch .
 null
@@ -944,9 +948,6 @@ null
 {"foo":0}
 {"foo":3}
 
-# SKIP_JQ
-# test below does not work with standard jq because of missing features or bugs
-
 # elif mixed with optional else
 # if
 .[] | if . == 1 then "a" elif . == 2 then "b" end
@@ -961,6 +962,9 @@ null
 "b"
 "c"
 4
+
+# SKIP_JQ
+# test below does not work with standard jq because of missing features or bugs
 
 # unary plus operator
 +123

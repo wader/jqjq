@@ -2089,6 +2089,15 @@ def isempty(f): [limit(1; f)] == [];
 def startswith($s): .[0:$s | length] == $s;
 def endswith($s): .[$s | -length:] == $s;
 
+def _strindices($i):
+  . as $s | [range(length) | select($s[.:] | startswith($i))];
+def indices($i): if type == \"array\" and ($i|type) == \"array\" then .[$i]
+  elif type == \"array\" then .[[$i]]
+  elif type == \"string\" and ($i|type) == \"string\" then _strindices($i)
+  else .[$i] end;
+def index($i):  indices($i) | .[0];
+def rindex($i): indices($i) | .[-1:][0];
+
 def all(gen; cond): first((gen | select(cond | not) | false), true);
 def all(cond): all(.[]; cond);
 def all: all(.);

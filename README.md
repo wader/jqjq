@@ -120,11 +120,11 @@ Note that the tests are meant to be used with jq 1.7.
 - [x] `path(f)` Output paths for `f`
 - [x] `input`, `inputs`
 - [ ] Builtins / standard library
-  - [x] `del(f)`
   - [x] `add`
   - [x] `all`, `all(cond)`, `all(gen; cond)`
   - [x] `any`, `any(cond)`, `any(gen; cond)`
   - [x] `debug` (passthrough)
+  - [x] `del(f)`
   - [x] `delpaths($paths)` (passthrough)
   - [x] `empty` (passthrough)
   - [x] `endswith($s)`
@@ -138,8 +138,12 @@ Note that the tests are meant to be used with jq 1.7.
   - [x] `fromjson`
   - [x] `getpath(path)` (passthrough)
   - [x] `group`, `group_by(f)`
+  - [x] `gsub($regex; f)` (passthrough)
+  - [ ] `gsub($regex; f; $flags)`
   - [x] `has($key)` (passthrough)
   - [x] `implode` (passthrough)
+  - [x] `index($i)`
+  - [x] `indices($i)`
   - [x] `isempty`
   - [x] `join($s)`
   - [x] `last(f)`
@@ -147,6 +151,8 @@ Note that the tests are meant to be used with jq 1.7.
   - [x] `length` (passthrough)
   - [x] `limit($n; f)`
   - [x] `map(f)`
+  - [ ] `match($val)`
+  - [x] `match($regex; $flags)` (passthrough)
   - [x] `max`, `max_by(f)`
   - [x] `min`, `min_by(f)`
   - [x] `nth($n; f); nth($n)`
@@ -154,6 +160,7 @@ Note that the tests are meant to be used with jq 1.7.
   - [x] `recurse`, `recurse(f)`
   - [x] `repeat`
   - [x] `reverse`
+  - [x] `rindex($i)`
   - [x] `scalars`
   - [x] `select(f)`
   - [x] `setpath` (passthrough)
@@ -163,10 +170,6 @@ Note that the tests are meant to be used with jq 1.7.
   - [x] `tojson`
   - [x] `tonumber` (passthrough)
   - [x] `tostring` (passthrough)
-  - [x] `match($regex; $flags)` (passthrough)
-  - [ ] `match($val)`
-  - [x] `gsub($regex; f)` (passthrough)
-  - [ ] `gsub($regex; f; $flags)`
   - [x] `transpose`
   - [x] `type` (passthrough)
   - [x] `unique`, `unique_by(f)`

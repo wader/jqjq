@@ -1924,6 +1924,9 @@ def scalars: select(_is_scalar);
 
 def add: reduce .[] as $v (null; . + $v);
 
+def startswith($s): .[0:$s | length] == $s;
+def endswith($s): .[$s | -length:] == $s;
+
 def _nwise($n):
   def n:
     if length <= $n then .
@@ -1939,6 +1942,22 @@ def splits($re; flags):
   );
 def splits($re): splits($re; null);
 def split($re; flags): [splits($re; flags)];
+
+def _strsplit($delim; $acc):
+  if . == \"\" then $acc
+  elif startswith($delim) then
+    $acc, (.[$delim | length:] | _strsplit($delim; \"\"))
+  else .[:1] as $c | .[1:] | _strsplit($delim; $acc + $c)
+  end;
+def _strsplit0:
+  if . == \"\" then empty else .[:1], (.[1:] | _strsplit0) end;
+def split($s):
+  if type != \"string\" or ($s | type != \"string\") then
+    error(\"split input and separator must be strings\")
+  elif . == \"\" then []
+  elif $s == \"\" then [_strsplit0]
+  else [_strsplit($s; \"\")]
+  end;
 
 def join($s):
   if length == 0 then \"\"
@@ -2102,9 +2121,6 @@ def nth($n; f): [limit($n+1; f)][-1];
 def nth($n): .[$n];
 
 def isempty(f): [limit(1; f)] == [];
-
-def startswith($s): .[0:$s | length] == $s;
-def endswith($s): .[$s | -length:] == $s;
 
 def _strindices($i):
   . as $s | [range(length) | select($s[.:] | startswith($i))];

@@ -123,6 +123,7 @@ Note that the tests are meant to be used with jq 1.7.
   - [x] `add`
   - [x] `all`, `all(cond)`, `all(gen; cond)`
   - [x] `any`, `any(cond)`, `any(gen; cond)`
+  - [x] `bsearch($target)`
   - [x] `capture($val)`, `capture(re; mods)`
   - [x] `debug` (passthrough)
   - [x] `del(f)`

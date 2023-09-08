@@ -987,6 +987,12 @@ null
 ["", "abc"]
 [[],["a","b","c"]]
 
+bsearch(0,2,4)
+[1,2,3]
+-1
+1
+-4
+
 # SKIP_JQ
 # test below does not work with standard jq because of missing features or bugs
 

@@ -120,11 +120,13 @@ Note that the tests are meant to be used with jq 1.7.
 - [x] `path(f)` Output paths for `f`
 - [x] `input`, `inputs`
 - [ ] Builtins / standard library
-  - [x] `del(f)`
   - [x] `add`
   - [x] `all`, `all(cond)`, `all(gen; cond)`
   - [x] `any`, `any(cond)`, `any(gen; cond)`
+  - [x] `bsearch($target)`
+  - [x] `capture($val)`, `capture(re; mods)`
   - [x] `debug` (passthrough)
+  - [x] `del(f)`
   - [x] `delpaths($paths)` (passthrough)
   - [x] `empty` (passthrough)
   - [x] `endswith($s)`
@@ -138,8 +140,14 @@ Note that the tests are meant to be used with jq 1.7.
   - [x] `fromjson`
   - [x] `getpath(path)` (passthrough)
   - [x] `group`, `group_by(f)`
+  - [x] `gsub($regex; f)` (passthrough)
+  - [ ] `gsub($regex; f; $flags)`
+  - [x] `halt_error`, `halt_error($exit_code)`
   - [x] `has($key)` (passthrough)
   - [x] `implode` (passthrough)
+  - [x] `in(xs)`
+  - [x] `index($i)`
+  - [x] `indices($i)`
   - [x] `isempty`
   - [x] `join($s)`
   - [x] `last(f)`
@@ -147,6 +155,8 @@ Note that the tests are meant to be used with jq 1.7.
   - [x] `length` (passthrough)
   - [x] `limit($n; f)`
   - [x] `map(f)`
+  - [x] `match($val)`
+  - [x] `match($regex; $flags)` (passthrough)
   - [x] `max`, `max_by(f)`
   - [x] `min`, `min_by(f)`
   - [x] `nth($n; f); nth($n)`
@@ -154,19 +164,21 @@ Note that the tests are meant to be used with jq 1.7.
   - [x] `recurse`, `recurse(f)`
   - [x] `repeat`
   - [x] `reverse`
+  - [x] `rindex($i)`
   - [x] `scalars`
   - [x] `select(f)`
   - [x] `setpath` (passthrough)
   - [x] `sort`, `sort_by(f)`
+  - [x] `split($s)`
+  - [x] `split($re; flags)`
+  - [x] `splits($re)`, `splits($re; flags)`
   - [x] `startswith($s)`
+  - [x] `test($val)`
+  - [x] `test($regex; $flags)` (passthrough)
   - [x] `to_entries`
   - [x] `tojson`
   - [x] `tonumber` (passthrough)
   - [x] `tostring` (passthrough)
-  - [x] `match($regex; $flags)` (passthrough)
-  - [ ] `match($val)`
-  - [x] `gsub($regex; f)` (passthrough)
-  - [ ] `gsub($regex; f; $flags)`
   - [x] `transpose`
   - [x] `type` (passthrough)
   - [x] `unique`, `unique_by(f)`
@@ -252,6 +264,7 @@ When evaluating the AST eval function get the current AST node, path and environ
 - [gojq - Pure Go implementation of jq](https://github.com/itchyny/gojq)
 - [jaq - A jq clone focused on correctness, speed, and simplicity](https://github.com/01mf02/jaq)
 - [xq - Pure rust implementation of jq](https://github.com/MiSawa/xq)
+- [wsjq - Whitespace interpreter in jq, which can run with jqjq](https://github.com/thaliaarchi/wsjq/tree/jqjq-compat)
 - [jq wiki: jq as a PEG engine by pkoppstein](https://github.com/stedolan/jq/wiki/Parsing-Expression-Grammars)
 - [Precedence climbing](https://www.engr.mun.ca/~theo/Misc/exp_parsing.htm#climbing)
 

@@ -1305,6 +1305,7 @@ def eval_ast($query; $path; $env; undefined_func):
             ( a0 as $a0
             | error($a0)
             )
+          elif $name == "halt_error/1" then [[null], halt_error(a0)]
           elif $name == "getpath/1" then
             ( a0 as $a0
             | [ $path+$a0
@@ -1366,6 +1367,7 @@ def eval_ast($query; $path; $env; undefined_func):
           elif $name == "y0/0"          then [[null], y0]
           elif $name == "y1/0"          then [[null], y1]
           elif $name == "match/2"       then match(a0; a1) | [[null], .]
+          elif $name == "test/2"        then test(a0; a1) | [[null], .]
           elif $name == "gsub/2"        then gsub(a0; a1) | [[null], .]
           elif $name == "atan2/2"       then [[null], atan2(a0; a1)]
           elif $name == "copysign/2"    then [[null], copysign(a0; a1)]
@@ -1829,6 +1831,8 @@ def eval_ast($ast):
   eval_ast($ast; []; {}; undefined_func_error);
 
 def _builtins_src: "
+def halt_error: halt_error(5);
+
 # used to implement lhs = rhs
 def _assign(lhs; $op; rhs):
   ( rhs as $v
@@ -1922,6 +1926,41 @@ def values: select(_is_null | not);
 def scalars: select(_is_scalar);
 
 def add: reduce .[] as $v (null; . + $v);
+
+def startswith($s): .[0:$s | length] == $s;
+def endswith($s): .[$s | -length:] == $s;
+
+def _nwise($n):
+  def n:
+    if length <= $n then .
+    else .[0:$n], (.[$n:] | n)
+    end;
+  n;
+def splits($re; flags):
+  ( . as $s
+  | [match($re; \"g\" + flags) | (.offset, .offset + .length)]
+  | [0] + . + [$s | length]
+  | _nwise(2)
+  | $s[.[0]:.[1]]
+  );
+def splits($re): splits($re; null);
+def split($re; flags): [splits($re; flags)];
+
+def _strsplit($delim; $acc):
+  if . == \"\" then $acc
+  elif startswith($delim) then
+    $acc, (.[$delim | length:] | _strsplit($delim; \"\"))
+  else .[:1] as $c | .[1:] | _strsplit($delim; $acc + $c)
+  end;
+def _strsplit0:
+  if . == \"\" then empty else .[:1], (.[1:] | _strsplit0) end;
+def split($s):
+  if type != \"string\" or ($s | type != \"string\") then
+    error(\"split input and separator must be strings\")
+  elif . == \"\" then []
+  elif $s == \"\" then [_strsplit0]
+  else [_strsplit($s; \"\")]
+  end;
 
 def join($s):
   if length == 0 then \"\"
@@ -2083,11 +2122,92 @@ def last(f): [f][-1];
 def last: .[-1];
 def nth($n; f): [limit($n+1; f)][-1];
 def nth($n): .[$n];
+def in(xs): . as $x | xs | has($x);
 
 def isempty(f): [limit(1; f)] == [];
 
-def startswith($s): .[0:$s | length] == $s;
-def endswith($s): .[$s | -length:] == $s;
+# Assuming the input array is sorted, bsearch/1 returns
+# the index of the target if the target is in the input array; and otherwise
+#  (-1 - ix), where ix is the insertion point that would leave the array sorted.
+# If the input is not sorted, bsearch will terminate but with irrelevant results.
+def bsearch($target):
+  if length == 0 then -1
+  elif length == 1 then
+    if $target == .[0] then 0 elif $target < .[0] then -1 else -2 end
+  else
+    . as $in
+    # State variable: [start, end, answer]
+    # where start and end are the upper and lower offsets to use.
+    | [0, length - 1, null]
+    | until(
+        .[0] > .[1];
+        ( if .[2] != null then .[1] = -1  # break
+          else
+            ( (.[1] + .[0]) / 2 | floor) as $mid
+            | $in[$mid] as $middle
+            | if $middle == $target  then .[2] = $mid  # success
+              elif .[0] == .[1]      then .[1] = -1    # failure
+              elif $middle < $target then .[0] = $mid + 1
+              else .[1] = $mid - 1
+              end
+          end
+        )
+      )
+    | if .[2] == null then  # compute the insertion point
+        if $in[.[0]] < $target then -2 - .[0]
+        else -1 - .[0]
+        end
+      else .[2]
+      end
+  end;
+
+def _strindices($i):
+  . as $s | [range(length) | select($s[.:] | startswith($i))];
+def indices($i):
+  if type == \"array\" and ($i|type) == \"array\" then .[$i]
+  elif type == \"array\" then .[[$i]]
+  elif type == \"string\" and ($i | type) == \"string\" then _strindices($i)
+  else .[$i]
+  end;
+def index($i):  indices($i) | .[0];
+def rindex($i): indices($i) | .[-1:][0];
+
+def match($val):
+  ( ($val | type) as $vt
+  | if $vt == \"string\" then match($val; null)
+    elif $vt == \"array\" and ($val | length) > 1 then match($val[0]; $val[1])
+    elif $vt == \"array\" and ($val | length) > 0 then match($val[0]; null)
+    else error($vt + \" not a string or array\")
+    end
+  );
+def test($val):
+  ( ($val | type) as $vt |
+    if $vt == \"string\" then test($val; null)
+    elif $vt == \"array\" and ($val | length) > 1 then test($val[0]; $val[1])
+    elif $vt == \"array\" and ($val | length) > 0 then test($val[0]; null)
+    else error($vt + \" not a string or array\")
+    end
+  );
+def capture(re; mods):
+  ( match(re; mods) |
+    reduce (
+      ( .captures[]
+      | select(.name != null)
+      | {(.name): .string}
+      )
+    ) as $pair (
+      {};
+      . + $pair
+    )
+  );
+def capture($val):
+  ( ($val | type) as $vt |
+    if $vt == \"string\" then capture($val; null)
+    elif $vt == \"array\" and ($val | length) > 1 then capture($val[0]; $val[1])
+    elif $vt == \"array\" and ($val | length) > 0 then capture($val[0]; null)
+    else error($vt + \" not a string or array\")
+    end
+  );
 
 def all(gen; cond): first((gen | select(cond | not) | false), true);
 def all(cond): all(.[]; cond);

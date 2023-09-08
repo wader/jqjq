@@ -2122,6 +2122,7 @@ def last(f): [f][-1];
 def last: .[-1];
 def nth($n; f): [limit($n+1; f)][-1];
 def nth($n): .[$n];
+def in(xs): . as $x | xs | has($x);
 
 def isempty(f): [limit(1; f)] == [];
 

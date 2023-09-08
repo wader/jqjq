@@ -145,6 +145,7 @@ Note that the tests are meant to be used with jq 1.7.
   - [x] `halt_error`, `halt_error($exit_code)`
   - [x] `has($key)` (passthrough)
   - [x] `implode` (passthrough)
+  - [x] `in(xs)`
   - [x] `index($i)`
   - [x] `indices($i)`
   - [x] `isempty`

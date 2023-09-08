@@ -2092,26 +2092,51 @@ def endswith($s): .[$s | -length:] == $s;
 
 def _strindices($i):
   . as $s | [range(length) | select($s[.:] | startswith($i))];
-def indices($i): if type == \"array\" and ($i|type) == \"array\" then .[$i]
+def indices($i):
+  if type == \"array\" and ($i|type) == \"array\" then .[$i]
   elif type == \"array\" then .[[$i]]
-  elif type == \"string\" and ($i|type) == \"string\" then _strindices($i)
-  else .[$i] end;
+  elif type == \"string\" and ($i | type) == \"string\" then _strindices($i)
+  else .[$i]
+  end;
 def index($i):  indices($i) | .[0];
 def rindex($i): indices($i) | .[-1:][0];
 
-def match($val): ($val|type) as $vt | if $vt == \"string\" then match($val; null)
-   elif $vt == \"array\" and ($val | length) > 1 then match($val[0]; $val[1])
-   elif $vt == \"array\" and ($val | length) > 0 then match($val[0]; null)
-   else error( $vt + \" not a string or array\") end;
-def test($val): ($val|type) as $vt | if $vt == \"string\" then test($val; null)
-   elif $vt == \"array\" and ($val | length) > 1 then test($val[0]; $val[1])
-   elif $vt == \"array\" and ($val | length) > 0 then test($val[0]; null)
-   else error( $vt + \" not a string or array\") end;
-def capture(re; mods): match(re; mods) | reduce ( .captures | .[] | select(.name != null) | { (.name) : .string } ) as $pair ({}; . + $pair);
-def capture($val): ($val|type) as $vt | if $vt == \"string\" then capture($val; null)
-   elif $vt == \"array\" and ($val | length) > 1 then capture($val[0]; $val[1])
-   elif $vt == \"array\" and ($val | length) > 0 then capture($val[0]; null)
-   else error( $vt + \" not a string or array\") end;
+def match($val):
+  ( ($val | type) as $vt
+  | if $vt == \"string\" then match($val; null)
+    elif $vt == \"array\" and ($val | length) > 1 then match($val[0]; $val[1])
+    elif $vt == \"array\" and ($val | length) > 0 then match($val[0]; null)
+    else error($vt + \" not a string or array\")
+    end
+  );
+def test($val):
+  ( ($val | type) as $vt |
+    if $vt == \"string\" then test($val; null)
+    elif $vt == \"array\" and ($val | length) > 1 then test($val[0]; $val[1])
+    elif $vt == \"array\" and ($val | length) > 0 then test($val[0]; null)
+    else error($vt + \" not a string or array\")
+    end
+  );
+def capture(re; mods):
+  ( match(re; mods) |
+    reduce (
+      ( .captures[]
+      | select(.name != null)
+      | {(.name): .string}
+      )
+    ) as $pair (
+      {};
+      . + $pair
+    )
+  );
+def capture($val):
+  ( ($val | type) as $vt |
+    if $vt == \"string\" then capture($val; null)
+    elif $vt == \"array\" and ($val | length) > 1 then capture($val[0]; $val[1])
+    elif $vt == \"array\" and ($val | length) > 0 then capture($val[0]; null)
+    else error($vt + \" not a string or array\")
+    end
+  );
 
 def all(gen; cond): first((gen | select(cond | not) | false), true);
 def all(cond): all(.[]; cond);

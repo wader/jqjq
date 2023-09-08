@@ -264,6 +264,7 @@ When evaluating the AST eval function get the current AST node, path and environ
 - [gojq - Pure Go implementation of jq](https://github.com/itchyny/gojq)
 - [jaq - A jq clone focused on correctness, speed, and simplicity](https://github.com/01mf02/jaq)
 - [xq - Pure rust implementation of jq](https://github.com/MiSawa/xq)
+- [wsjq - Whitespace interpreter in jq, which can run with jqjq](https://github.com/thaliaarchi/wsjq/tree/jqjq-compat)
 - [jq wiki: jq as a PEG engine by pkoppstein](https://github.com/stedolan/jq/wiki/Parsing-Expression-Grammars)
 - [Precedence climbing](https://www.engr.mun.ca/~theo/Misc/exp_parsing.htm#climbing)
 

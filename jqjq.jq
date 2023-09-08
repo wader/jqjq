@@ -2135,23 +2135,23 @@ def bsearch($target):
   elif length == 1 then
     if $target == .[0] then 0 elif $target < .[0] then -1 else -2 end
   else
-    . as $in
+    ( . as $in
     # State variable: [start, end, answer]
     # where start and end are the upper and lower offsets to use.
     | [0, length - 1, null]
     | until(
         .[0] > .[1];
-        ( if .[2] != null then .[1] = -1  # break
-          else
-            ( (.[1] + .[0]) / 2 | floor) as $mid
-            | $in[$mid] as $middle
-            | if $middle == $target  then .[2] = $mid  # success
-              elif .[0] == .[1]      then .[1] = -1    # failure
-              elif $middle < $target then .[0] = $mid + 1
-              else .[1] = $mid - 1
-              end
-          end
-        )
+        if .[2] != null then .[1] = -1  # break
+        else
+          ( ((.[1] + .[0]) / 2 | floor) as $mid
+          | $in[$mid] as $middle
+          | if $middle == $target  then .[2] = $mid  # success
+            elif .[0] == .[1]      then .[1] = -1    # failure
+            elif $middle < $target then .[0] = $mid + 1
+            else .[1] = $mid - 1
+            end
+          )
+        end
       )
     | if .[2] == null then  # compute the insertion point
         if $in[.[0]] < $target then -2 - .[0]
@@ -2159,10 +2159,13 @@ def bsearch($target):
         end
       else .[2]
       end
+    )
   end;
 
 def _strindices($i):
-  . as $s | [range(length) | select($s[.:] | startswith($i))];
+  ( . as $s
+  | [range(length) | select($s[.:] | startswith($i))]
+  );
 def indices($i):
   if type == \"array\" and ($i|type) == \"array\" then .[$i]
   elif type == \"array\" then .[[$i]]
@@ -2181,16 +2184,16 @@ def match($val):
     end
   );
 def test($val):
-  ( ($val | type) as $vt |
-    if $vt == \"string\" then test($val; null)
+  ( ($val | type) as $vt
+  | if $vt == \"string\" then test($val; null)
     elif $vt == \"array\" and ($val | length) > 1 then test($val[0]; $val[1])
     elif $vt == \"array\" and ($val | length) > 0 then test($val[0]; null)
     else error($vt + \" not a string or array\")
     end
   );
 def capture(re; mods):
-  ( match(re; mods) |
-    reduce (
+  ( match(re; mods)
+  | reduce (
       ( .captures[]
       | select(.name != null)
       | {(.name): .string}
@@ -2201,8 +2204,8 @@ def capture(re; mods):
     )
   );
 def capture($val):
-  ( ($val | type) as $vt |
-    if $vt == \"string\" then capture($val; null)
+  ( ($val | type) as $vt
+  | if $vt == \"string\" then capture($val; null)
     elif $vt == \"array\" and ($val | length) > 1 then capture($val[0]; $val[1])
     elif $vt == \"array\" and ($val | length) > 0 then capture($val[0]; null)
     else error($vt + \" not a string or array\")

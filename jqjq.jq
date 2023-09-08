@@ -1305,6 +1305,7 @@ def eval_ast($query; $path; $env; undefined_func):
             ( a0 as $a0
             | error($a0)
             )
+          elif $name == "halt_error/1" then [[null], halt_error(a0)]
           elif $name == "getpath/1" then
             ( a0 as $a0
             | [ $path+$a0
@@ -1830,6 +1831,8 @@ def eval_ast($ast):
   eval_ast($ast; []; {}; undefined_func_error);
 
 def _builtins_src: "
+def halt_error: halt_error(5);
+
 # used to implement lhs = rhs
 def _assign(lhs; $op; rhs):
   ( rhs as $v

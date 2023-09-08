@@ -141,6 +141,7 @@ Note that the tests are meant to be used with jq 1.7.
   - [x] `group`, `group_by(f)`
   - [x] `gsub($regex; f)` (passthrough)
   - [ ] `gsub($regex; f; $flags)`
+  - [x] `halt_error`, `halt_error($exit_code)`
   - [x] `has($key)` (passthrough)
   - [x] `implode` (passthrough)
   - [x] `index($i)`

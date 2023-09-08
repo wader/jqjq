@@ -166,6 +166,9 @@ Note that the tests are meant to be used with jq 1.7.
   - [x] `select(f)`
   - [x] `setpath` (passthrough)
   - [x] `sort`, `sort_by(f)`
+  - [ ] `split($s)`
+  - [x] `split($re; flags)`
+  - [x] `splits($re)`, `splits($re; flags)`
   - [x] `startswith($s)`
   - [x] `test($val)`
   - [x] `test($regex; $flags)` (passthrough)

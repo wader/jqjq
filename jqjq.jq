@@ -1924,6 +1924,22 @@ def scalars: select(_is_scalar);
 
 def add: reduce .[] as $v (null; . + $v);
 
+def _nwise($n):
+  def n:
+    if length <= $n then .
+    else .[0:$n], (.[$n:] | n)
+    end;
+  n;
+def splits($re; flags):
+  ( . as $s
+  | [match($re; \"g\" + flags) | (.offset, .offset + .length)]
+  | [0] + . + [$s | length]
+  | _nwise(2)
+  | $s[.[0]:.[1]]
+  );
+def splits($re): splits($re; null);
+def split($re; flags): [splits($re; flags)];
+
 def join($s):
   if length == 0 then \"\"
   else

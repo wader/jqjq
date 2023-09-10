@@ -14,8 +14,6 @@
 # jq bindings $<name>_ is used if <name> is a keyword as jq (not gojq) does not allow it
 #
 
-def debug(f): . as $c | f | debug | $c;
-
 def _fromradix($base; tonum):
   reduce explode[] as $c (
     0;
@@ -1831,6 +1829,7 @@ def eval_ast($ast):
   eval_ast($ast; []; {}; undefined_func_error);
 
 def _builtins_src: "
+def debug(msgs): (msgs | debug | empty), .;
 def halt_error: halt_error(5);
 
 # used to implement lhs = rhs

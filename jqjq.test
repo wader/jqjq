@@ -993,6 +993,16 @@ bsearch(0,2,4)
 1
 -4
 
+# shadowing a passed-through intrinsic
+def type: 42; type
+null
+42
+
+# shadowing a builtin
+def first: 42; first
+null
+42
+
 # SKIP_JQ
 # test below does not work with standard jq because of missing features or bugs
 

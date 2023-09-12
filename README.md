@@ -126,6 +126,7 @@ Note that the tests are meant to be used with jq 1.7.
   - [x] `bsearch($target)`
   - [x] `capture($val)`, `capture(re; mods)`
   - [x] `debug` (passthrough)
+  - [x] `debug(msgs)`
   - [x] `del(f)`
   - [x] `delpaths($paths)` (passthrough)
   - [x] `empty` (passthrough)

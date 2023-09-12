@@ -14,8 +14,6 @@
 # jq bindings $<name>_ is used if <name> is a keyword as jq (not gojq) does not allow it
 #
 
-def debug(f): . as $c | f | debug | $c;
-
 def _fromradix($base; tonum):
   reduce explode[] as $c (
     0;
@@ -1271,181 +1269,181 @@ def eval_ast($query; $path; $env; undefined_func):
           );
         def _tojson: _tojson({});
 
-        ( $query.term.func as {$name, $args}
-        | def a0: _e($args[0]; $path; $query_env)[1];
-          def a1: _e($args[1]; $path; $query_env)[1];
-          def a2: _e($args[2]; $path; $query_env)[1];
-          func_name($name; $args) as $name
-        | if $name == "empty/0"    then empty
-          elif $name == "debug/0"  then debug as $_ | [$path, .]
-          elif $name == "type/0"   then [[null], type]
-          elif $name == "length/0" then [[null], length]
-          elif $name == "keys/0"   then [[null], keys]
-          elif $name == "has/1"    then
-            ( a0 as $a0
-            | [[null], has($a0)]
-            )
-          elif $name == "delpaths/1" then
-            ( a0 as $a0
-            | [[null], delpaths($a0)]
-            )
-          elif $name == "explode/0"  then [[null], explode]
-          elif $name == "implode/0"  then [[null], implode]
-          elif $name == "tonumber/0" then [[null], tonumber]
-          # TODO: implement in jqjq?
-          elif $name == "tostring/0" then [[null], tostring]
-          elif $name == "tojson/0"   then [[null], _tojson]
-          elif $name == "tojson/1"   then [[null], _tojson(a0)]
-          elif $name == "fromjson/0" then [[null], _fromjson]
-          # TODO: make args general
-          # note "null | error" is same as empty
-          elif $name == "error/0"    then error
-          elif $name == "error/1"    then
-            # TODO: see comment in _try
-            ( a0 as $a0
-            | error($a0)
-            )
-          elif $name == "halt_error/1" then [[null], halt_error(a0)]
-          elif $name == "getpath/1" then
-            ( a0 as $a0
-            | [ $path+$a0
-              , getpath($a0)
-              ]
-            )
-          elif $name == "setpath/2" then
-            ( a0 as $a0
-            | a1 as $a1
-            | [ []
-              , setpath($a0; $a1)
-              ]
-            )
-          elif $name == "path/1" then
-            ( _e($args[0]; []; $query_env) as [$p, $_]
-            # TODO: try/catch error
-            | if $p == [null] then error("invalid path expression") else . end
-            | [[null], $p]
-            )
-          elif $name == "acos/0"        then [[null], acos]
-          elif $name == "acosh/0"       then [[null], acosh]
-          elif $name == "asin/0"        then [[null], asin]
-          elif $name == "asinh/0"       then [[null], asinh]
-          elif $name == "atan/0"        then [[null], atan]
-          elif $name == "atanh/0"       then [[null], atanh]
-          elif $name == "cbrt/0"        then [[null], cbrt]
-          elif $name == "ceil/0"        then [[null], ceil]
-          elif $name == "cos/0"         then [[null], cos]
-          elif $name == "cosh/0"        then [[null], cosh]
-          elif $name == "erf/0"         then [[null], erf]
-          elif $name == "erfc/0"        then [[null], erfc]
-          elif $name == "exp/0"         then [[null], exp]
-          elif $name == "exp10/0"       then [[null], exp10]
-          elif $name == "exp2/0"        then [[null], exp2]
-          elif $name == "expm1/0"       then [[null], expm1]
-          elif $name == "fabs/0"        then [[null], fabs]
-          elif $name == "floor/0"       then [[null], floor]
-          elif $name == "gamma/0"       then [[null], gamma]
-          elif $name == "j0/0"          then [[null], j0]
-          elif $name == "j1/0"          then [[null], j1]
-          elif $name == "lgamma/0"      then [[null], lgamma]
-          elif $name == "log/0"         then [[null], log]
-          elif $name == "log10/0"       then [[null], log10]
-          elif $name == "log1p/0"       then [[null], log1p]
-          elif $name == "log2/0"        then [[null], log2]
-          elif $name == "logb/0"        then [[null], logb]
-          elif $name == "nearbyint/0"   then [[null], nearbyint]
-          #elif $name == "pow10/0"      then [[null], pow10]
-          elif $name == "rint/0"        then [[null], rint]
-          elif $name == "round/0"       then [[null], round]
-          elif $name == "significand/0" then [[null], significand]
-          elif $name == "sin/0"         then [[null], sin]
-          elif $name == "sinh/0"        then [[null], sinh]
-          elif $name == "sqrt/0"        then [[null], sqrt]
-          elif $name == "tan/0"         then [[null], tan]
-          elif $name == "tanh/0"        then [[null], tanh]
-          elif $name == "tgamma/0"      then [[null], tgamma]
-          elif $name == "trunc/0"       then [[null], trunc]
-          elif $name == "y0/0"          then [[null], y0]
-          elif $name == "y1/0"          then [[null], y1]
-          elif $name == "match/2"       then match(a0; a1) | [[null], .]
-          elif $name == "test/2"        then test(a0; a1) | [[null], .]
-          elif $name == "gsub/2"        then gsub(a0; a1) | [[null], .]
-          elif $name == "atan2/2"       then [[null], atan2(a0; a1)]
-          elif $name == "copysign/2"    then [[null], copysign(a0; a1)]
-          elif $name == "drem/2"        then [[null], drem(a0; a1)]
-          elif $name == "fdim/2"        then [[null], fdim(a0; a1)]
-          elif $name == "fmax/2"        then [[null], fmax(a0; a1)]
-          elif $name == "fmin/2"        then [[null], fmin(a0; a1)]
-          elif $name == "fmod/2"        then [[null], fmod(a0; a1)]
-          # TODO: in jq docs but seem missing
-          #elif $name == "frexp/2" then [[null],frexp(a0; a1)]
-          elif $name == "hypot/2"       then [[null], hypot(a0; a1)]
-          elif $name == "jn/2"          then [[null], jn(a0; a1)]
-          elif $name == "ldexp/2"       then [[null], ldexp(a0; a1)]
-          # TODO: in jq docs but seem missing
-          # elif $name == "modf/2" then [[null],modf(a0; a1)]
-          elif $name == "nextafter/2"   then [[null], nextafter(a0; a1)]
-          elif $name == "nexttoward/2"  then [[null], nexttoward(a0; a1)]
-          elif $name == "pow/2"         then [[null], pow(a0; a1)]
-          elif $name == "remainder/2"   then [[null], remainder(a0; a1)]
-          elif $name == "scalb/2"       then [[null], scalb(a0; a1)]
-          elif $name == "scalbln/2"     then [[null], scalbln(a0; a1)]
-          elif $name == "yn/2"          then [[null], yn(a0; a1)]
-          elif $name == "fma/3"         then [[null], fma(a0; a1; a2)]
-          else
-            ( . as $input
-            | $query_env[$name] as $e
-            | if $e | has("value") then [[null], $e.value]
-              elif $e.body then
-                ( ($e.args // []) as $func_args
-                | ($args // []) as $call_args
-                | ( $func_args
-                  | with_entries(
-                      ( ( .value
-                        # when using a $<name> binding arg <name> is also available as a lambda
-                        | if startswith("$") then .[1:] else . end
-                        ) as $name
-                      | { key: ($name + "/0")
-                        , value:
-                            { body: $call_args[.key]
-                            # save current env
-                            , env: $query_env
-                            , lambda: true
-                            }
+        ( . as $input
+        | $query.term.func as {$name, $args}
+        | func_name($name; $args) as $name
+        | $query_env[$name] as $e
+        | if $e | has("value") then [[null], $e.value]
+          elif $e.body then
+            ( ($e.args // []) as $func_args
+            | ($args // []) as $call_args
+            | ( $func_args
+              | with_entries(
+                  ( ( .value
+                    # when using a $<name> binding arg <name> is also available as a lambda
+                    | if startswith("$") then .[1:] else . end
+                    ) as $name
+                  | { key: ($name + "/0")
+                    , value:
+                        { body: $call_args[.key]
+                        # save current env
+                        , env: $query_env
+                        , lambda: true
                         }
-                      )
-                    )
-                  ) as $lambda_env
-                # if not lambda inject the function in it's own env to allow recursion
-                # TODO: find a better way
-                | ( if $e.lambda then {}
-                    else {($name): $e}
-                    end
-                  ) as $self_env
-                | $func_args
-                | to_entries
-                | map(
-                    ( select(.value | startswith("$"))
-                    | [ .value
-                      , $call_args[.key]
-                      ]
-                    )
+                    }
                   )
-                | def _f($env):
-                    if length == 0 then $env
-                    else
-                      ( .[0] as [$name, $ast]
-                      | .[1:] as $rest
-                      | $input
-                      | _e($ast; []; $query_env) as [$_, $v]
-                      | $rest
-                      | _f($env | .[$name] = {value: $v})
-                      )
-                    end;
-                  _f({}) as $bindings_env
-                | $input
-                | ($e.env + $bindings_env + $lambda_env + $self_env) as $call_env
-                | _e($e.body; $path; $call_env)
                 )
+              ) as $lambda_env
+            # if not lambda inject the function in it's own env to allow recursion
+            # TODO: find a better way
+            | ( if $e.lambda then {}
+                else {($name): $e}
+                end
+              ) as $self_env
+            | $func_args
+            | to_entries
+            | map(
+                ( select(.value | startswith("$"))
+                | [ .value
+                  , $call_args[.key]
+                  ]
+                )
+              )
+            | def _f($env):
+                if length == 0 then $env
+                else
+                  ( .[0] as [$name, $ast]
+                  | .[1:] as $rest
+                  | $input
+                  | _e($ast; []; $query_env) as [$_, $v]
+                  | $rest
+                  | _f($env | .[$name] = {value: $v})
+                  )
+                end;
+              _f({}) as $bindings_env
+            | $input
+            | ($e.env + $bindings_env + $lambda_env + $self_env) as $call_env
+            | _e($e.body; $path; $call_env)
+            )
+          else
+            ( def a0: _e($args[0]; $path; $query_env)[1];
+              def a1: _e($args[1]; $path; $query_env)[1];
+              def a2: _e($args[2]; $path; $query_env)[1];
+              if $name == "empty/0"    then empty
+              elif $name == "debug/0"  then debug as $_ | [$path, .]
+              elif $name == "type/0"   then [[null], type]
+              elif $name == "length/0" then [[null], length]
+              elif $name == "keys/0"   then [[null], keys]
+              elif $name == "has/1"    then
+                ( a0 as $a0
+                | [[null], has($a0)]
+                )
+              elif $name == "delpaths/1" then
+                ( a0 as $a0
+                | [[null], delpaths($a0)]
+                )
+              elif $name == "explode/0"  then [[null], explode]
+              elif $name == "implode/0"  then [[null], implode]
+              elif $name == "tonumber/0" then [[null], tonumber]
+              # TODO: implement in jqjq?
+              elif $name == "tostring/0" then [[null], tostring]
+              elif $name == "tojson/0"   then [[null], _tojson]
+              elif $name == "tojson/1"   then [[null], _tojson(a0)]
+              elif $name == "fromjson/0" then [[null], _fromjson]
+              # TODO: make args general
+              # note "null | error" is same as empty
+              elif $name == "error/0"    then error
+              elif $name == "error/1"    then
+                # TODO: see comment in _try
+                ( a0 as $a0
+                | error($a0)
+                )
+              elif $name == "halt_error/1" then [[null], halt_error(a0)]
+              elif $name == "getpath/1" then
+                ( a0 as $a0
+                | [ $path+$a0
+                  , getpath($a0)
+                  ]
+                )
+              elif $name == "setpath/2" then
+                ( a0 as $a0
+                | a1 as $a1
+                | [ []
+                  , setpath($a0; $a1)
+                  ]
+                )
+              elif $name == "path/1" then
+                ( _e($args[0]; []; $query_env) as [$p, $_]
+                # TODO: try/catch error
+                | if $p == [null] then error("invalid path expression") else . end
+                | [[null], $p]
+                )
+              elif $name == "acos/0"        then [[null], acos]
+              elif $name == "acosh/0"       then [[null], acosh]
+              elif $name == "asin/0"        then [[null], asin]
+              elif $name == "asinh/0"       then [[null], asinh]
+              elif $name == "atan/0"        then [[null], atan]
+              elif $name == "atanh/0"       then [[null], atanh]
+              elif $name == "cbrt/0"        then [[null], cbrt]
+              elif $name == "ceil/0"        then [[null], ceil]
+              elif $name == "cos/0"         then [[null], cos]
+              elif $name == "cosh/0"        then [[null], cosh]
+              elif $name == "erf/0"         then [[null], erf]
+              elif $name == "erfc/0"        then [[null], erfc]
+              elif $name == "exp/0"         then [[null], exp]
+              elif $name == "exp10/0"       then [[null], exp10]
+              elif $name == "exp2/0"        then [[null], exp2]
+              elif $name == "expm1/0"       then [[null], expm1]
+              elif $name == "fabs/0"        then [[null], fabs]
+              elif $name == "floor/0"       then [[null], floor]
+              elif $name == "gamma/0"       then [[null], gamma]
+              elif $name == "j0/0"          then [[null], j0]
+              elif $name == "j1/0"          then [[null], j1]
+              elif $name == "lgamma/0"      then [[null], lgamma]
+              elif $name == "log/0"         then [[null], log]
+              elif $name == "log10/0"       then [[null], log10]
+              elif $name == "log1p/0"       then [[null], log1p]
+              elif $name == "log2/0"        then [[null], log2]
+              elif $name == "logb/0"        then [[null], logb]
+              elif $name == "nearbyint/0"   then [[null], nearbyint]
+              #elif $name == "pow10/0"      then [[null], pow10]
+              elif $name == "rint/0"        then [[null], rint]
+              elif $name == "round/0"       then [[null], round]
+              elif $name == "significand/0" then [[null], significand]
+              elif $name == "sin/0"         then [[null], sin]
+              elif $name == "sinh/0"        then [[null], sinh]
+              elif $name == "sqrt/0"        then [[null], sqrt]
+              elif $name == "tan/0"         then [[null], tan]
+              elif $name == "tanh/0"        then [[null], tanh]
+              elif $name == "tgamma/0"      then [[null], tgamma]
+              elif $name == "trunc/0"       then [[null], trunc]
+              elif $name == "y0/0"          then [[null], y0]
+              elif $name == "y1/0"          then [[null], y1]
+              elif $name == "match/2"       then match(a0; a1) | [[null], .]
+              elif $name == "test/2"        then test(a0; a1) | [[null], .]
+              elif $name == "gsub/2"        then gsub(a0; a1) | [[null], .]
+              elif $name == "atan2/2"       then [[null], atan2(a0; a1)]
+              elif $name == "copysign/2"    then [[null], copysign(a0; a1)]
+              elif $name == "drem/2"        then [[null], drem(a0; a1)]
+              elif $name == "fdim/2"        then [[null], fdim(a0; a1)]
+              elif $name == "fmax/2"        then [[null], fmax(a0; a1)]
+              elif $name == "fmin/2"        then [[null], fmin(a0; a1)]
+              elif $name == "fmod/2"        then [[null], fmod(a0; a1)]
+              # TODO: in jq docs but seem missing
+              #elif $name == "frexp/2" then [[null],frexp(a0; a1)]
+              elif $name == "hypot/2"       then [[null], hypot(a0; a1)]
+              elif $name == "jn/2"          then [[null], jn(a0; a1)]
+              elif $name == "ldexp/2"       then [[null], ldexp(a0; a1)]
+              # TODO: in jq docs but seem missing
+              # elif $name == "modf/2" then [[null],modf(a0; a1)]
+              elif $name == "nextafter/2"   then [[null], nextafter(a0; a1)]
+              elif $name == "nexttoward/2"  then [[null], nexttoward(a0; a1)]
+              elif $name == "pow/2"         then [[null], pow(a0; a1)]
+              elif $name == "remainder/2"   then [[null], remainder(a0; a1)]
+              elif $name == "scalb/2"       then [[null], scalb(a0; a1)]
+              elif $name == "scalbln/2"     then [[null], scalbln(a0; a1)]
+              elif $name == "yn/2"          then [[null], yn(a0; a1)]
+              elif $name == "fma/3"         then [[null], fma(a0; a1; a2)]
               else
                 ( { input: $input
                   , name: $name
@@ -1831,6 +1829,7 @@ def eval_ast($ast):
   eval_ast($ast; []; {}; undefined_func_error);
 
 def _builtins_src: "
+def debug(msgs): (msgs | debug | empty), .;
 def halt_error: halt_error(5);
 
 # used to implement lhs = rhs

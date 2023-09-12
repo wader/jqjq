@@ -4,7 +4,7 @@ test: test-jq test-jqjq
 
 .PHONY: test-jq
 test-jq:
-	cat jqjq.test | sed '/SKIP_JQ/q' | "${JQ}" --run-tests
+	sed '/SKIP_JQ/q' jqjq.test | "${JQ}" --run-tests
 
 .PHONY: test-jqjq
 test-jqjq:

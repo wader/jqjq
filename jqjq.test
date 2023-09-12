@@ -1003,6 +1003,16 @@ def first: 42; first
 null
 42
 
+def _orig_type: type; def type: "42" + _orig_type; 123 | type, _orig_type
+null
+"42number"
+"number"
+
+def _orig_first: first; def first: 42 + _orig_first; [123] | first, _orig_first
+null
+165
+123
+
 # SKIP_JQ
 # test below does not work with standard jq because of missing features or bugs
 

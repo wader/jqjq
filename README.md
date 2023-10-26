@@ -4,11 +4,11 @@ jq implementation of [jq](https://github.com/stedolan/jq)
 
 > **Warning** this project is mostly for learning, experimenting and fun.
 
-Why? It started when I was researching how to write decoders directly in jq for [fq](https://github.com/wader/fq) which ended up involving some syntax tree rewriting and walking and then it grew from there.
+Why? It started when researching how to write decoders in jq for [fq](https://github.com/wader/fq) which ended up involving some syntax tree rewriting and walking and then it grew from that.
 
-But it's also a great way to promote and show that jq is a very expressive, capable and nice language! :)
+But it's also a great way to show that jq is a very expressive, capable and neat language!
 
-You can try and play around with it at [jqplay.org](https://jqplay.org/s/nQQg2jV7vH5).
+You can try and play around with jqjq using [jqplay.org](https://jqplay.org/s/nQQg2jV7vH5).
 
 ### Use via `jqjq` wrapper
 
@@ -19,11 +19,12 @@ $ ./jqjq -n 'def f: 1,8; [f,f] | map(.+105) | implode'
 $ ./jqjq '.+. | map(.+105) | implode' <<< '[1,8]'
 "jqjq"
 
-# jqjq using jqjq to run above example
-# eval concatenation of jqjq.jq as a string and example
+# use jqjq via jqjq to run above example
+# eval the concatenation of jqjq.jq as a string and the example
 $ ./jqjq "eval($(jq -Rs . jqjq.jq)+.)" <<< '"eval(\"def f: 1,8; [f,f] | map(.+105) | implode\")"'
 "jqjq"
 
+# jqjq have a REPL
 $ ./jqjq --repl
 > 1,2,3 | .*2
 2
@@ -35,7 +36,7 @@ $ ./jqjq --repl
 "JQJQ"
 > ^D
 
-# 01mf02 adaptation of itchyny's bf.jq running fib.bf
+# run 01mf02's adaptation of itchyny's bf.jq running fib.bf
 $ ./jqjq -n "\"$(cat fib.bf)\" | $(cat bf.jq)"
 "1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233"
 
@@ -197,7 +198,7 @@ Note that the tests are meant to be used with jq 1.7.
 - [x] `..` Recurse input, same as `recurse`
 - [x] `//` Alternative operator
 - [ ] `?//` Alternative destructuring operator
-- [ ] `$ENV`
+- [x] `$ENV`
 - [ ] `@format "string"` Format string
 - [ ] `label $out | break $out` Break out
 - [ ] `include "f"`, `import "f"` Include

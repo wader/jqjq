@@ -2355,7 +2355,7 @@ def jqjq($args; $env):
       elif .[0] == "-s" or .[0] == "--slurp"      then {slurp: true}, (.[1:] | _f)
       elif .[0] == "--"                           then {filter: .[1]}, (.[2:] | _f)
       elif .[0] | startswith("-")                 then error("unknown argument: " + (.[0] | tostring))
-      else {filter: .[0]}, (.[2:] | _f)
+      else {filter: .[0]}, (.[1:] | _f)
       end;
     ( [_f]
     | add

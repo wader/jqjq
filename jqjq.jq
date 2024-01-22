@@ -1560,17 +1560,17 @@ def eval_ast($query; $path; $env; undefined_func):
             [ $if_.cond
             , $if_.then
             ]
-            # [elif <cond> then <cond>]*
+            # [elif <cond> then <then>]*
             , ( $if_.elif[]?
               | [.cond, .then]
               )
             , if $if_.else then
-                # else true then . end
+                # else <then> end -> else true then <then> end
                 [ {term: {type: "TermTypeTrue"}}
                 , $if_.else
                 ]
               else
-                # else true then . end
+                # end -> else true then . end
                 [ {term: {type: "TermTypeTrue"}}
                 , {term: {type: "TermTypeIdentity"}}
                 ]

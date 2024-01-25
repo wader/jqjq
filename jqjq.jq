@@ -10,8 +10,10 @@
 # "a |" parses as "a | .", should be error, make empty eval special case?
 #
 # Notes:
-# AST is more or less identical to the one used by gojq to make it easier to test parser
-# jq bindings $<name>_ is used if <name> is a keyword as jq (not gojq) does not allow it
+# - AST is more or less identical to the one used by gojq to make it easier to test parser
+# - jq bindings $<name>_ is used if <name> is a keyword as jq (not gojq) does not allow it
+# - "string_middle" token is used to distingush between a string that could be an index and
+#   a string that is parts of string interpolation.
 #
 
 def _fromradix($base; tonum):
@@ -19,6 +21,7 @@ def _fromradix($base; tonum):
     0;
     . * $base + ($c | tonum)
   );
+
 def _fromhex:
   _fromradix(
     16;
@@ -28,64 +31,100 @@ def _fromhex:
     end
   );
 
+# unescape
+def _unescape:
+  gsub(
+    "(?<surrogate>(\\\\u[dD][89a-fA-F][0-9a-fA-F]{2}){2})"
+    +"|(?<codepoint>\\\\u[0-9a-fA-F]{4})"
+    +"|(?<escape>\\\\.)";
+    if .surrogate then
+      # \uD83D\uDCA9 -> 💩
+      ( .surrogate
+      | ([.[2:6], .[8:] | _fromhex]) as [$hi,$lo]
+      # translate surrogate hi/lo pair values into codepoint
+      # (hi-0xd800<<10) + (lo-0xdc00) + 0x10000
+      | [($hi-55296)*1024 + ($lo-56320) + 65536]
+      | implode
+      )
+    elif .codepoint then
+      # codepoint \u006a -> j
+      ( .codepoint[2:]
+      | [_fromhex]
+      | implode
+      )
+    elif .escape then
+      # escape \n -> \n
+      ( .escape[1:] as $escape
+      | { "n": "\n"
+        , "r": "\r"
+        , "t": "\t"
+        , "f": "\f"
+        , "b": "\b"
+        , "\"": "\""
+        , "/": "/"
+        , "\\": "\\"
+        }[$escape]
+      | if not then error("unknown escape: \\" + $escape) else . end
+      )
+    else error("unreachable")
+    end
+  );
+
 # TODO: keep track of position?
+# TODO: error on unbalanced string stack?
+# string_stack is used to keep track of matching ( ) and \( <-> )" or ) (
 def lex:
   def _token:
     def _re($re; f):
-      ( .remain
-      | . as $v
+      ( . as {$remain, $string_stack}
+      | $remain
       | match($re; "m").string
-      | { result: f
-        , remain: $v[length:]
+      | f as $token
+      | { result: ($token | del(.string_stack))
+        , remain: $remain[length:]
+        , string_stack:
+            ( if $token.string_stack == null then $string_stack
+              else $token.string_stack
+              end
+            )
         }
       );
     if .remain == "" then empty
     else
-      (  _re("^\\s+"; {whitespace: .})
+      ( . as {$string_stack}
+      | _re("^\\s+"; {whitespace: .})
       // _re("^#[^\n]*"; {comment: .})
       // _re("^\\.[_a-zA-Z][_a-zA-Z0-9]*"; {index: .[1:]})
       // _re("^[_a-zA-Z][_a-zA-Z0-9]*"; {ident: .})
       // _re("^\\$[_a-zA-Z][_a-zA-Z0-9]*"; {binding: .})
       # 1.23, .123, 123e2, 1.23e2, 123E2, 1.23e+2, 1.23E-2 or 123
       // _re("^(?:[0-9]*\\.[0-9]+|[0-9]+)(?:[eE][-\\+]?[0-9]+)?"; {number: .})
-      # match " <any non-"-or-\> or <\ + any> "
-      // _re("^\"(?:[^\"\\\\]|\\\\.)*?\"";
-          ( .[1:-1]
-          # match surrogate pairs
-          # TODO: handle unpaired
-          | gsub("(?<c>(\\\\u[dD][89a-fA-F][0-9a-fA-F]{2}){2})";
-              ( .c
-              | ([.[2:6], .[8:] | _fromhex]) as [$hi,$lo]
-              # translate surrogate hi/lo pair values into codepoint
-              # (hi-0xd800<<10) + (lo-0xdc00) + 0x10000
-              | [($hi-55296)*1024 + ($lo-56320) + 65536]
-              | implode
-              )
-            )
-          | gsub("\\\\u(?<c>[0-9a-fA-F]{4})";
-              ( .c
-              | [_fromhex]
-              | implode
-              )
-            )
-          | gsub("\\\\(?<c>.)";
-              ( . as {$c}
-              | { "n": "\n"
-                , "r": "\r"
-                , "t": "\t"
-                , "f": "\f"
-                , "b": "\b"
-                , "\"": "\""
-                , "\/": "\/"
-                , "\\": "\\"
-                , "(": "\\(" # TODO: fix string interpolation
-                }[$c]
-              | if not then error("unknown escape: \\" + $c) else . end
-              )
-            )
-          | {string: .}
+      # TODO in string:
+      # if string_stack thet match .*"?
+      // _re("^\"(?:[^\"\\\\]|\\\\.)*?\\\\\\(";
+          ( .[1:-2]
+          | _unescape
+          | {string_start: ., string_stack: ($string_stack+["\\("])}
           )
         )
+      //
+        # conditonally look for end or middle of interpolated string
+        ( select($string_stack[-1] == "\\(")
+        | _re("^\\)(?:[^\"\\\\]|\\\\.)*?\\\\\\(";
+            ( .[1:-2]
+            | _unescape
+            | {string_middle: .}
+            )
+          )
+        // _re("^\\)(?:[^\"\\\\]|\\\\.)*?\"";
+            ( .[1:-1]
+            | _unescape
+            | {string_end: .
+            , string_stack: ($string_stack[0:-1])})
+          )
+        )
+      # match " <any non-"-or-\> or <\ + any> "
+      // _re("^\"(?:[^\"\\\\]|\\\\.)*?\""; .[1:-1] | _unescape | {string: .})
       // _re("^==";     {equal_equal: .})
       // _re("^\\|=";   {pipe_equal: .})
       // _re("^=";      {equal: .})
@@ -109,8 +148,8 @@ def lex:
       // _re("^//";     {slash_slash: .})
       // _re("^/";      {slash: .})
       // _re("^%";      {percent: .})
-      // _re("^\\(";    {lparen: .})
-      // _re("^\\)";    {rparen: .})
+      // _re("^\\(";    {lparen: ., string_stack: ($string_stack + ["("])})
+      // _re("^\\)";    {rparen: ., string_stack: ($string_stack[0:-1])})
       // _re("^\\[";    {lsquare: .})
       // _re("^\\]";    {rsquare: .})
       // _re("^{";      {lcurly: .})
@@ -118,11 +157,14 @@ def lex:
       // _re("^\\.\\."; {dotdot: .})
       // _re("^\\.";    {dot: .})
       // _re("^\\?";    {qmark: .})
-      // error("unknown token: " + (.remain | tojson))
+      // error("unknown token: " + .remain[0:100] | tojson)
       )
     end;
   def _lex:
-    ( {remain: ., result: {whitespace: ""}}
+    ( { remain: .
+      , result: {whitespace: ""}
+      , string_stack: []
+      }
     | recurse(_token)
     | .result
     | select((.whitespace // .comment) | not)
@@ -224,6 +266,19 @@ def parse:
             end
           );
         _f($t)
+      );
+
+    def _scalar($type; c; f):
+      ( . as [$first]
+      | _consume(c)
+      | [ .
+        , { term:
+              ( $first
+              | f
+              | .type = $type
+              )
+          }
+        ]
       );
 
     # {<keyval>...} where keyval is:
@@ -886,6 +941,31 @@ def parse:
         )
       );
 
+    def _string_query:
+      ( .[0] as {$string_start}
+      | _consume(.string_start)
+      | _repeat(
+          ( select(length > 0 ) # make sure there is something
+          | _p("query")
+          // _scalar("TermTypeString"; .string_middle; {str: .string_middle})
+          )
+        ) as [$rest, $queries]
+      | $rest
+      | .[0] as {$string_end}
+      | _consume(.string_end)
+      | [ .
+        , { term:
+            { type: "TermTypeString"
+            , queries:
+                [ {term: {str: $string_start, type: "TermTypeString"}}
+                , ($queries[] | {term: {query: ., type: "TermTypeQuery"}})
+                , {term: {str: $string_end, type: "TermTypeString"}}
+                ]
+            }
+          }
+        ]
+      );
+
     # try <query>
     # try <query> catch <query>
     # TODO: query should not allow |?
@@ -942,19 +1022,6 @@ def parse:
         ]
       );
 
-    def _scalar($type; c; f):
-      ( . as [$first]
-      | _consume(c)
-      | [ .
-        , { term:
-              ( $first
-              | f
-              | .type = $type
-              )
-          }
-        ]
-      );
-
     ( .# debug({_p: $type})
     | if $type == "query" then
         # query1, used by _op_prec_climb, exist to fix infinite recursion
@@ -994,6 +1061,7 @@ def parse:
           // _p("func")
           // _p("number")
           // _p("string")
+          // _p("string_query")
           // _p("array")
           // _p("subquery") # TODO: rename?
           // _p("object")
@@ -1024,6 +1092,7 @@ def parse:
       elif $type == "null" then _scalar("TermTypeNull"; .ident == "null"; .)
       elif $type == "number" then _scalar("TermTypeNumber"; .number; {number: .number})
       elif $type == "string" then _scalar("TermTypeString"; .string; {str: .string})
+      elif $type == "string_query" then _string_query
       elif $type == "index" then _index
       elif $type == "identity" then _identity
       elif $type == "array" then _array
@@ -1086,10 +1155,7 @@ def eval_ast($query; $path; $env; undefined_func):
         | func_defs_to_env($env)
         )
       ) as $query_env
-    | # .
-      def _identity:
-        [$path, .];
-
+    |
       # eval a index, is also used by _e_suffix
       def _e_index($index; $query_path; $query_input; $opt):
         try
@@ -1130,6 +1196,32 @@ def eval_ast($query; $path; $env; undefined_func):
           if $opt then empty
           else error
           end;
+
+      # "str" or "str \(..) str"
+      def _string:
+        if $query.term.str then [[null], $query.term.str]
+        else
+          ( . as $input
+          | def _f($str_parts):
+              if length == 0 then $str_parts | join("")
+              else
+                ( .[0] as $q
+                | .[1:] as $rest
+                | $input
+                | _e($q; []; $query_env) as [$_, $v]
+                | $rest
+                | _f($str_parts + [$v | tostring])
+                )
+              end;
+            $query.term.queries
+          | _f([])
+          | [[], .]
+          )
+        end;
+
+      # .
+      def _identity:
+        [$path, .];
 
       # destructing pattern to env
       def _e_pattern($input):
@@ -1734,7 +1826,7 @@ def eval_ast($query; $path; $env; undefined_func):
         ( . as $input
         | if $type == "TermTypeNull"       then [[], null]
           elif $type == "TermTypeNumber"   then [[null], ($query.term.number | tonumber)]
-          elif $type == "TermTypeString"   then [[null], $query.term.str]
+          elif $type == "TermTypeString"   then _string
           elif $type == "TermTypeTrue"     then [[null], true]
           elif $type == "TermTypeFalse"    then [[null], false]
           elif $type == "TermTypeIdentity" then _identity

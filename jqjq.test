@@ -28,6 +28,41 @@ null
 null
 "abc"
 
+# string interpolation
+"aaa \(123)"
+null
+"aaa 123"
+
+"aaa \(.) ccc \(.) ddd"
+123
+"aaa 123 ccc 123 ddd"
+
+"aaa \("a" + . + "c") ccc"
+"b"
+"aaa abc ccc"
+
+"\("")"
+null
+""
+
+"aaa \("bbb \("ccc") ddd") eee"
+null
+"aaa bbb ccc ddd eee"
+
+"aaa \(1,2,3) bbb"
+null
+"aaa 1 bbb"
+"aaa 2 bbb"
+"aaa 3 bbb"
+
+"aaa \(def f: .; f) bbb"
+[1,2,3]
+"aaa [1,2,3] bbb"
+
+"aaa \({a:1}) bbb \([1,2,3]) ccc \(["a","b"])"
+null
+"aaa {\"a\":1} bbb [1,2,3] ccc [\"a\",\"b\"]"
+
 # unicode codepoint escape
 "\u006a\u0071\u1234\uFFff\u0000"
 null
@@ -38,6 +73,10 @@ null
 null
 "💩"
 "💩"
+
+"a\u006a\u0071\ud83d\udca9 \(111) a\u006a\u0071\ud83d\udca9 \(222) a\u006a\u0071\ud83d\udca9"
+null
+"ajq💩 111 ajq💩 222 ajq💩"
 
 "escape \"\n\r\t\f\b\\\/ literal"
 null
@@ -1044,3 +1083,13 @@ map(group)
 .[].[]
 [[1]]
 1
+
+# various regressions
+("aa \(123) ") + "bbb"
+null
+"aa 123 bbb"
+
+# unescape order/overlap
+"\u005cn"
+null
+"\\n"

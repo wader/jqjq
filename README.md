@@ -2,9 +2,10 @@
 
 jq implementation of [jq](https://github.com/stedolan/jq)
 
-> **Warning** this project is mostly for learning, experimenting and fun.
+> [!WARNING]
+> This project is mostly for learning, experimenting and fun.
 
-Why? It started when researching how to write decoders in jq for [fq](https://github.com/wader/fq) which ended up involving some syntax tree rewriting and walking and then it grew from that.
+Why? It started when researching how to write decoders in jq for [fq](https://github.com/wader/fq) which ended up involving some AST rewriting and walking and then it escalated a bit.
 
 But it's also a great way to show that jq is a very expressive, capable and neat language!
 
@@ -19,7 +20,7 @@ $ ./jqjq -n 'def f: 1,8; [f,f] | map(.+105) | implode'
 $ ./jqjq '.+. | map(.+105) | implode' <<< '[1,8]'
 "jqjq"
 
-# use jqjq via jqjq to run above example
+# eval example above using jqjq in jqjq. will take some time.
 # eval the concatenation of jqjq.jq as a string and the example
 $ ./jqjq "eval($(jq -Rs . jqjq.jq)+.)" <<< '"eval(\"def f: 1,8; [f,f] | map(.+105) | implode\")"'
 "jqjq"
@@ -75,13 +76,14 @@ Note that the tests are meant to be used with jq 1.7.
   - [x] Unicode codepoint escape `"\ud83d\ude03"`
   - [x] Handle surrogate pairs `\ud800`-`\udfff`, should translate to codepoint.
   - [x] Control code and quote escape `"\"\n\r\t\f\b\\\/"`
+- [x] `"abc \(123)"` String interpolation
 - [x] `{key: "value"}` Object literal
   - [x] `{key}`
   - [x] `{"key"}`
   - [x] `{$key}`
   - [x] `{(f): f}`
   - [x] `{("a","b"): (1,2), c: 2}` Multiple key/value outputs
-  - [ ] `{"\(f)"}` String interpolation
+  - [ ] `{"\("abc")": 123}` Key string interpolation
   - [x] `{key: 1 | .}` Multi value queries
 - [x] `[1,2,3]` Array literal, collect
 - [x] `1, 2` Comma operator
@@ -209,7 +211,7 @@ Note that the tests are meant to be used with jq 1.7.
 
 ```
 $ ./jqjq --run-tests < ../jq/tests/jq.test | grep passed
-297 of 442 tests passed
+303 of 449 tests passed
 ```
 
 Note that expected test values are based on stedolan's jq. If you run with a different jq implementation like gojq some tests might fail because of different error messages, support for arbitrary precision integers etc.

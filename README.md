@@ -2,14 +2,11 @@
 
 jq implementation of [jq](https://github.com/stedolan/jq)
 
-> [!WARNING]
-> This project is mostly for learning, experimenting and fun.
-
 Why? It started when researching how to write decoders in jq for [fq](https://github.com/wader/fq) which ended up involving some AST rewriting and walking and then it escalated a bit.
 
-But it's also a great way to show that jq is a very expressive, capable and neat language!
+It's also a great way to show that jq is a very expressive, capable and neat language!
 
-You can try and play around with jqjq using [jqplay.org](https://jqplay.org/s/nQQg2jV7vH5).
+You can play around with it using this [jqplay snippet](https://jqplay.org/s/nQQg2jV7vH5).
 
 ### Use via `jqjq` wrapper
 
@@ -68,7 +65,7 @@ $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
 
 `make test`
 
-Note that the tests are meant to be used with jq 1.7.
+Note that the tests are meant to be used with jq 1.7.1.
 
 ## Progress
 
@@ -248,6 +245,7 @@ When evaluating the AST eval function get the current AST node, path and environ
 - The "environment" pass around is not very efficient and also it makes support recursion a bit awkward (called function is injected in the env at call time).
 - "," operator in jq (and gojq) is left associate but for the way jqjq parses it creates the correct parse tree when it's right associate. Don't know why.
 - Suffix with multiple `[]` outputs values in wrong order.
+- String literal using interpolation that has more than one generator outputs in wrong order. Ex: `"\(1,2) \(3,4)"`.
 - Non-associate operators like `==` should fail, ex: `1 == 2 == 3`.
 - Object are parsed differently compared to gojq. gojq has a list of pipe queries, jqjq will only have one that might be pipe op.
 - Less "passthrough" piggyback on jq features:

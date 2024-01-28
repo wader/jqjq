@@ -31,14 +31,13 @@ def _fromhex:
     end
   );
 
-# unescape
 def _unescape:
   gsub(
     "(?<surrogate>(\\\\u[dD][89a-fA-F][0-9a-fA-F]{2}){2})"
     +"|(?<codepoint>\\\\u[0-9a-fA-F]{4})"
     +"|(?<escape>\\\\.)";
     if .surrogate then
-      # \uD83D\uDCA9 -> 💩
+      # surrogate pair \uD83D\uDCA9 -> 💩
       ( .surrogate
       | ([.[2:6], .[8:] | _fromhex]) as [$hi,$lo]
       # translate surrogate hi/lo pair values into codepoint
@@ -64,7 +63,7 @@ def _unescape:
         , "/": "/"
         , "\\": "\\"
         }[$escape]
-      | if not then error("unknown escape: \\" + $escape) else . end
+      | if not then error("unknown escape: \\\($escape)") else . end
       )
     else error("unreachable")
     end
@@ -157,7 +156,7 @@ def lex:
       // _re("^\\.\\."; {dotdot: .})
       // _re("^\\.";    {dot: .})
       // _re("^\\?";    {qmark: .})
-      // error("unknown token: " + .remain[0:100] | tojson)
+      // error("unknown token: '\(.remain[0:100])'")
       )
     end;
   def _lex:
@@ -1107,26 +1106,26 @@ def parse:
       elif $type == "unary_minus" then _unary_op(.dash; "-")
       elif $type == "recurse" then _recurse
       elif $type == "pattern" then _pattern
-      else error("unknown type " + $type)
+      else error("unknown type \($type)")
       end
     );
   ( ( _p("query")
-    | if .[0] != [] then error("tokens left: " + tojson) else . end
+    | if .[0] != [] then error("tokens left: \(.)") else . end
     | .[1]
     )
-  // error("parse error: " + tojson)
+  // error("parse error: \(.)")
   );
 
 
 def undefined_func_error:
-  error("undefined function " + .name);
+  error("undefined function \(.name)");
 
 def func_name($name; $args):
   # no .args if 0 args
   if $name | startswith("$") then $name
   else
     ( ( ($args // []) | length) as $argc_count
-    | $name + "/" + ($argc_count | tostring)
+    | "\($name)/\($argc_count)"
     )
   end;
 
@@ -1760,7 +1759,7 @@ def eval_ast($query; $path; $env; undefined_func):
           # TODO: not +. as jq don't support + unary operator
           if $op == "+" then _f[1] | [[null], .]
           elif $op == "-" then _f[1] | [[null], -.]
-          else error("unsupported unary op: " + ($query | tojson))
+          else error("unsupported unary op: \($query)")
           end
         );
 
@@ -1802,7 +1801,7 @@ def eval_ast($query; $path; $env; undefined_func):
               if $opt then empty
               else error
               end
-          else error("unknown suffix: " + ($suffix | tojson))
+          else error("unknown suffix: \($suffix)")
           end
         );
 
@@ -1840,7 +1839,7 @@ def eval_ast($query; $path; $env; undefined_func):
           elif $type == "TermTypeQuery"    then _e($query.term.query; $path; $query_env)
           elif $type == "TermTypeTry"      then _try
           elif $type == "TermTypeUnary"    then _unary
-          else error("unsupported term: " + ($query | tojson))
+          else error("unsupported term: \($query)")
           end
         | if $query.term.suffix_list then _e_suffix_list($input; $path)
           else .
@@ -1908,10 +1907,10 @@ def eval_ast($query; $path; $env; undefined_func):
               $path;
               $query_env
             )
-          else error("unsupported op: " + ($query | tojson))
+          else error("unsupported op: \($query)")
           end
         )
-      else error("unsupported query: " + ($query | tojson))
+      else error("unsupported query: \($query)")
       end
     );
   ( _e($query; []; $env) as [$_, $v]
@@ -2323,7 +2322,7 @@ def builtins_env:
     | func_defs_to_env({})
     )
   catch
-    error("builtins: " + tostring);
+    error("builtins: \(.)");
 
 def eval($expr; $globals; $builtins_env):
   def _undefined_func:
@@ -2446,7 +2445,7 @@ def jqjq($args; $env):
       elif .[0] == "--run-tests"                  then {run_tests: true}, (.[1:] | _f)
       elif .[0] == "-s" or .[0] == "--slurp"      then {slurp: true}, (.[1:] | _f)
       elif .[0] == "--"                           then {filter: .[1]}, (.[2:] | _f)
-      elif .[0] | startswith("-")                 then error("unknown argument: " + (.[0] | tostring))
+      elif .[0] | startswith("-")                 then error("unknown argument: \(.[0])")
       else {filter: .[0]}, (.[1:] | _f)
       end;
     ( [_f]
@@ -2486,7 +2485,7 @@ def jqjq($args; $env):
               , "\n"
               )
             catch
-              ("error: " + tostring + "\n")
+              ("error: \(.)\n")
           )
         )
       )

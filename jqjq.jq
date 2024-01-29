@@ -22,6 +22,10 @@ def _fromradix($base; tonum):
     . * $base + ($c | tonum)
   );
 
+def _internal_error($v): {_internal_error: $v} | error;
+def _is_internal_error: type == "object" and has("_internal_error");
+def _unwrap_internal_error: ._internal_error;
+
 def _fromhex:
   _fromradix(
     16;
@@ -1145,9 +1149,15 @@ def func_defs_to_env($env):
 
 def eval_ast($query; $path; $env; undefined_func):
   def _e($query; $path; $env):
-    ( .
-    #| debug({c: ., $query, $path, $env})
-    | $query as {term: {type: $type}, $op, $func_defs}
+    ( .#| debug({c: ., $query, $path, $env})
+    | $query as
+        { term:
+            { type: $type
+            , suffix_list: [{$optional}]
+            }
+        , $op
+        , $func_defs
+        }
     | ( ( ($func_defs // [])
         | func_defs_to_env($env)
         )
@@ -1250,14 +1260,14 @@ def eval_ast($query; $path; $env; undefined_func):
                         ( _e($kv.key_query; $path; $query_env)[1]
                         | [., $kv.val]
                         )
-                      else error("unreachable")
+                      else _internal_error("unreachable")
                       end
                     ) as [$key, $val]
                   | $val
                   | _f($input[$key]; $env)
                   )
                 )
-              else error("unreachable")
+              else _internal_error("unreachable")
               end
             end;
           _f($input; {})
@@ -1290,7 +1300,7 @@ def eval_ast($query; $path; $env; undefined_func):
                 ( def _a: if .op then .left, .right | _a end;
                   [$v.term.array.query // empty | _a | _f]
                 )
-              else error("unknown term")
+              else _internal_error("unknown term")
               end
             );
           try
@@ -1335,7 +1345,7 @@ def eval_ast($query; $path; $env; undefined_func):
                     , $prefix, "}"
                     ]
                   end
-                else error("unknown type \($t)")
+                else _internal_error("unknown type \($t)")
                 end
               );
             _r("");
@@ -1610,7 +1620,7 @@ def eval_ast($query; $path; $env; undefined_func):
                 [ $kv.key_query
                 , $kv.val.queries[0]
                 ]
-              else error("unknown object key")
+              else _internal_error("unknown object key")
               end
             )
           )
@@ -1748,7 +1758,9 @@ def eval_ast($query; $path; $env; undefined_func):
         | try
             _e($body; $path; $query_env)
           catch
-            _e($catch_; $path; $query_env)
+            if _is_internal_error then error
+            else _e($catch_; $path; $query_env)
+            end
         );
 
       def _unary:
@@ -1757,7 +1769,7 @@ def eval_ast($query; $path; $env; undefined_func):
           # TODO: not +. as jq don't support + unary operator
           if $op == "+" then _f[1] | [[null], .]
           elif $op == "-" then _f[1] | [[null], -.]
-          else error("unsupported unary op: \($query)")
+          else _internal_error("unsupported unary op: \($query)")
           end
         );
 
@@ -1799,7 +1811,7 @@ def eval_ast($query; $path; $env; undefined_func):
               if $opt then empty
               else error
               end
-          else error("unknown suffix: \($suffix)")
+          else _internal_error("unknown suffix: \($suffix)")
           end
         );
 
@@ -1821,24 +1833,30 @@ def eval_ast($query; $path; $env; undefined_func):
 
       if $type then
         ( . as $input
-        | if $type == "TermTypeNull"       then [[], null]
-          elif $type == "TermTypeNumber"   then [[null], ($query.term.number | tonumber)]
-          elif $type == "TermTypeString"   then _string
-          elif $type == "TermTypeTrue"     then [[null], true]
-          elif $type == "TermTypeFalse"    then [[null], false]
-          elif $type == "TermTypeIdentity" then _identity
-          elif $type == "TermTypeIndex"    then _index
-          elif $type == "TermTypeFunc"     then _func
-          elif $type == "TermTypeObject"   then _object
-          elif $type == "TermTypeArray"    then _array
-          elif $type == "TermTypeIf"       then _if
-          elif $type == "TermTypeReduce"   then _reduce
-          elif $type == "TermTypeForeach"  then _foreach
-          elif $type == "TermTypeQuery"    then _e($query.term.query; $path; $query_env)
-          elif $type == "TermTypeTry"      then _try
-          elif $type == "TermTypeUnary"    then _unary
-          else error("unsupported term: \($query)")
-          end
+        | try
+            if $type == "TermTypeNull"       then [[], null]
+            elif $type == "TermTypeNumber"   then [[null], ($query.term.number | tonumber)]
+            elif $type == "TermTypeString"   then _string
+            elif $type == "TermTypeTrue"     then [[null], true]
+            elif $type == "TermTypeFalse"    then [[null], false]
+            elif $type == "TermTypeIdentity" then _identity
+            elif $type == "TermTypeIndex"    then _index
+            elif $type == "TermTypeFunc"     then _func
+            elif $type == "TermTypeObject"   then _object
+            elif $type == "TermTypeArray"    then _array
+            elif $type == "TermTypeIf"       then _if
+            elif $type == "TermTypeReduce"   then _reduce
+            elif $type == "TermTypeForeach"  then _foreach
+            elif $type == "TermTypeQuery"    then _e($query.term.query; $path; $query_env)
+            elif $type == "TermTypeTry"      then _try
+            elif $type == "TermTypeUnary"    then _unary
+            else _internal_error("unsupported term: \($query)")
+            end
+          catch
+            if _is_internal_error then error # forward internal eror
+            elif $optional then empty # query?
+            else error
+            end
         | if $query.term.suffix_list then _e_suffix_list($input; $path)
           else .
           end
@@ -1905,15 +1923,20 @@ def eval_ast($query; $path; $env; undefined_func):
               $path;
               $query_env
             )
-          else error("unsupported op: \($query)")
+          else _internal_error("unsupported op: \($query)")
           end
         )
-      else error("unsupported query: \($query)")
+      else _internal_error("unsupported query: \($query)")
       end
     );
-  ( _e($query; []; $env) as [$_, $v]
-  | $v
-  );
+  try
+    ( _e($query; []; $env) as [$_, $v]
+    | $v
+    )
+  catch
+    if _is_internal_error then _unwrap_internal_error | error("internal error: \(.)")
+    else error
+    end;
 def eval_ast($ast):
   eval_ast($ast; []; {}; undefined_func_error);
 
@@ -2322,46 +2345,47 @@ def builtins_env:
   catch
     error("builtins: \(.)");
 
-def eval($expr; $globals; $builtins_env):
-  def _undefined_func:
-    ( . as $f
-    | if $f.name | startswith("$") then
-        if $globals | has($f.name) then
-          [[null], $globals[$f.name]]
-        else
-          undefined_func_error
-        end
-      elif $f.name == "input/0" then
-        [[null], input]
-      elif $f.name == "inputs/0" then
-        inputs | [[null], .]
-      elif $f.name == "eval/1" then
-        # behaves as eval($expr)
-        ( $f.input
-        | eval_ast(
-            $f.args[0];
-            [];
-            $builtins_env;
-            undefined_func_error
-          ) as $expr
-        | $f.input
-        | eval_ast(
-            $expr | lex | parse;
-            [];
-            $builtins_env;
-            undefined_func_error
-          )
-        | [[null], .]
-        )
+def builtin_undefined_func($globals; $builtins_env):
+  ( . as $f
+  | if $f.name | startswith("$") then
+      if $globals | has($f.name) then
+        [[null], $globals[$f.name]]
       else
         undefined_func_error
       end
-    );
+    elif $f.name == "input/0" then
+      [[null], input]
+    elif $f.name == "inputs/0" then
+      inputs | [[null], .]
+    elif $f.name == "eval/1" then
+      # behaves as eval($expr)
+      ( $f.input
+      | eval_ast(
+          $f.args[0];
+          [];
+          $builtins_env;
+          undefined_func_error
+        ) as $expr
+      | $f.input
+      | eval_ast(
+          $expr | lex | parse;
+          [];
+          $builtins_env;
+          undefined_func_error
+        )
+      | [[null], .]
+      )
+    else
+      undefined_func_error
+    end
+  );
+
+def eval($expr; $globals; $builtins_env):
   eval_ast(
     $expr | lex | parse;
     [];
     $builtins_env;
-    _undefined_func
+    builtin_undefined_func($globals; $builtins_env)
   );
 def eval($expr):
   eval($expr; {}; builtins_env);
@@ -2518,7 +2542,7 @@ def jqjq($args; $env):
                 $ast;
                 [];
                 $builtins_env;
-                undefined_func_error
+                builtin_undefined_func({"$ENV": {"jqjq": 123}}; $builtins_env)
               )
             ] as $actual_output
           | if $test.output == $actual_output then

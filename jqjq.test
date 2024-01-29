@@ -630,7 +630,7 @@ def f: 1; def g: f, def f: 2; def g: 3; f, def f: g; f, g; def f: 4; [f, def f: 
 null
 [4,1,2,3,3,5,4,1,2,3,3]
 
-# try/catch/error
+# try catch and ?
 try .
 123
 123
@@ -658,6 +658,16 @@ null
 try (1+"a") catch .
 null
 "number (1) and string (\"a\") cannot be added"
+
+(1+"a")?
+null
+
+error(123)?
+null
+
+error(123)? // 456
+null
+456
 
 # standard library
 map(add)
@@ -1052,8 +1062,34 @@ null
 165
 123
 
+# binding using a keyword
+. as $if | $if
+123
+123
+
+# suffix dot between []
+.[].[]
+[[1]]
+1
+
+# various regressions
+("aa \(123) ") + "bbb"
+null
+"aa 123 bbb"
+
+# unescape order/overlap
+"\u005cn"
+null
+"\\n"
+
 # SKIP_JQ
-# test below does not work with standard jq because of missing features or bugs
+# test below does not work with standard jq because of missing features or
+# they test jqjq specific things
+
+# there is no group/0 in jq
+map(group)
+[[],[1],[3,2,2],[3,1,1,2]]
+[[],[[1]],[[2,2],[3]],[[1,1],[2],[3]]]
 
 # unary plus operator
 +123
@@ -1070,26 +1106,22 @@ null
 123
 123
 
-# binding using a keyword
-. as $if | $if
+eval(".,.,1,2")
 123
 123
-
-map(group)
-[[],[1],[3,2,2],[3,1,1,2]]
-[[],[[1]],[[2,2],[3]],[[1,1],[2],[3]]]
-
-# suffix dot between []
-.[].[]
-[[1]]
+123
 1
+2
 
-# various regressions
-("aa \(123) ") + "bbb"
+eval("empty")
 null
-"aa 123 bbb"
 
-# unescape order/overlap
-"\u005cn"
+# make sure internal errors are not caught
+try eval("try error({_internal_error: 123}) catch 456") catch .
 null
-"\\n"
+"internal error: 123"
+
+# make sure normal errors are not seen as internal
+try eval("try error(123) catch 456") catch .
+null
+456

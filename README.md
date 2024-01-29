@@ -103,7 +103,7 @@ Note that the tests are meant to be used with jq 1.7.1.
   - [ ] `.[{start: 123, stop: 123}]` Slice using object
   - [ ] Slice and path tracking `path(.[1:2]) -> [{"start":1,"end":2}]`
 - [x] `try f`, Shorthand for `try f catch empty`
-- [ ] `f?` Shorthand for `try f catch empty`
+- [x] `f?` Shorthand for `try f catch empty`
 - [x] `and`, `or` operators
 - [x] `not` operator
 - [x] `if f then 2 else 3 end` Conditional
@@ -208,7 +208,7 @@ Note that the tests are meant to be used with jq 1.7.1.
 
 ```
 $ ./jqjq --run-tests < ../jq/tests/jq.test | grep passed
-303 of 449 tests passed
+307 of 449 tests passed
 ```
 
 Note that expected test values are based on stedolan's jq. If you run with a different jq implementation like gojq some tests might fail because of different error messages, support for arbitrary precision integers etc.

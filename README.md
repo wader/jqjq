@@ -219,7 +219,9 @@ jqjq has the common lex, parse, eval design.
 
 #### Lex
 
-Lexer gets a string and chews off parts from left to right producing an array of tokens `[{<name>: ...}, ...]`. Each chew is done by testing regex:s in a priority order to make sure to match longer prefixes first, ex: `+=` is matched before `+`. For a match a lambda is evaluated, usually just `.` (identity), but in some cases like for quoted strings it is a bit more complicated.
+Lexer gets a string and chews off parts from left to right producing an array of tokens `[{<name>: ...}, ...]`. Each chew is done by testing regex:s in a priority order to make sure to match longer prefixes first, ex: `+=` is matched before `+`. For a match a lambda is evaluated, usually `{<token-name>: .}`, but in some cases like for quoted strings it is a bit more complicated.
+
+The lexer also has a stack to keep track of balance of seen `(`, `)` and `\(` to properly know how to chop of a string with interpolation into tokens. e.g. is `)` a right paratheses or contuination of a string as in `"abc \(123) def"`?
 
 You can use `./jqjq --lex '...'` to lex and see the tokens.
 

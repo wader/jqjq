@@ -98,8 +98,6 @@ def lex:
       // _re("^\\$[_a-zA-Z][_a-zA-Z0-9]*"; {binding: .})
       # 1.23, .123, 123e2, 1.23e2, 123E2, 1.23e+2, 1.23E-2 or 123
       // _re("^(?:[0-9]*\\.[0-9]+|[0-9]+)(?:[eE][-\\+]?[0-9]+)?"; {number: .})
-      # TODO in string:
-      # if string_stack thet match .*"?
       // _re("^\"(?:[^\"\\\\]|\\\\.)*?\\\\\\(";
           ( .[1:-2]
           | _unescape
@@ -107,7 +105,7 @@ def lex:
           )
         )
       //
-        # conditonally look for end or middle of interpolated string
+        # conditionally look for end or middle of interpolated string
         ( select($string_stack[-1] == "\\(")
         | _re("^\\)(?:[^\"\\\\]|\\\\.)*?\\\\\\(";
             ( .[1:-2]

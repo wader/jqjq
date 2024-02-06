@@ -3,7 +3,6 @@
 # MIT License
 #
 # TODO:
-# jq bug with error undefined function (possibly https://github.com/stedolan/jq/issues/2485?)
 # ".end" lex, require whitespace/end around ident?
 # how test associativity 1|2|3?
 # add some term builder helper, _term("TermTypeArray"; {query: ...}) etc?

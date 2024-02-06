@@ -1308,17 +1308,25 @@ def eval_ast($query; $path; $env; undefined_func):
             error("fromjson only supports constant literals");
 
         def _tojson($opts):
+          # color order: null, false, true, number, string, array, object
+          def _color($id):
+            if $opts.colors != null then
+              "\u001b[\($opts.colors[$id])m" + . + "\u001b[0m"
+            end;
           def _f($opts; $indent):
             def _r($prefix):
               ( type as $t
-              | if $t == "null" then tojson
-                elif $t == "string" then tojson
-                elif $t == "number" then tojson
-                elif $t == "boolean" then tojson
+              | if $t == "null" then tojson | _color(0)
+                elif $t == "string" then tojson | _color(4)
+                elif $t == "number" then tojson | _color(3)
+                elif $t == "boolean" then
+                  if . then "true" | _color(2)
+                  else "false" | _color(1)
+                  end
                 elif $t == "array" then
-                  if length == 0 then "[]"
+                  if length == 0 then "[]" | _color(5)
                   else
-                    [ "[", $opts.compound_newline
+                    [ ("[" | _color(5)), $opts.compound_newline
                     , ( [ .[]
                         | $prefix, $indent
                         , _r($prefix+$indent), $opts.array_sep
@@ -1326,13 +1334,13 @@ def eval_ast($query; $path; $env; undefined_func):
                       | .[0:-1]
                       )
                     , $opts.compound_newline
-                    , $prefix, "]"
+                    , $prefix, ("]" | _color(5))
                     ]
                   end
                 elif $t == "object" then
-                  if length == 0 then "{}"
+                  if length == 0 then "{}" | _color(6)
                   else
-                    [ "{", $opts.compound_newline
+                    [ ("{" | _color(6)), $opts.compound_newline
                     , ( [ to_entries[]
                         | $prefix, $indent
                         , (.key | tojson), $opts.key_sep
@@ -1341,7 +1349,7 @@ def eval_ast($query; $path; $env; undefined_func):
                       | .[0:-1]
                       )
                     , $opts.compound_newline
-                    , $prefix, "}"
+                    , $prefix, ("}" | _color(6))
                     ]
                   end
                 else _internal_error("unknown type \($t)")
@@ -2473,6 +2481,28 @@ def jqjq($args; $env):
     | add
     );
 
+  # get the ANSI color codes for printing values
+  # corresponds to jv_set_colors and its usage in main
+  # TODO: handle -C/--color-output and -M/--monochrome-output
+  def parse_colors($env):
+    # color order: null, false, true, number, string, array, object
+    ( ["0;90", "0;39", "0;39", "0;39", "0;32", "1;39", "1;39", "1;34"] as $default
+    | if $env | has("JQ_COLORS") then
+        ( ($env.JQ_COLORS | split(":")[:8]) as $custom
+        | if $custom | all(length <= 12 and test("^[0-9;]*$")) then
+            {colors: ($custom + $default[$custom | length:]), ok: true}
+          else
+            {colors: $default, ok: false}
+          end
+        )
+      else
+        {colors: $default, ok: true}
+      end
+    | if $env | .NO_COLOR != null and .NO_COLOR != "" then
+        .colors = null
+      end
+    );
+
   def _help:
     ( "jqjq - jq implementation of jq"
     , "Usage: jqjq [OPTIONS] [--] [EXPR]"
@@ -2493,7 +2523,8 @@ def jqjq($args; $env):
         if . == "break" then empty
         else error
         end;
-    ( builtins_env as $builtins_env
+    ( parse_colors($env) as {$colors}
+    | builtins_env as $builtins_env
     | _repeat_break(
         ( "> "
         , ( try input
@@ -2502,6 +2533,7 @@ def jqjq($args; $env):
           | null
           | try
               ( eval($expr; {"$ENV": $env}; $builtins_env)
+              # TODO: apply colors
               | tojson
               , "\n"
               )
@@ -2583,7 +2615,7 @@ def jqjq($args; $env):
         };
         if ($l | type) == "object" then
           ( .line = false
-          | if $l.error then .errors +=1
+          | if $l.error then .errors += 1
             elif $l.ok then .oks += 1
             elif $l.end then .end = true
             else .
@@ -2611,12 +2643,15 @@ def jqjq($args; $env):
         elif $opts.slurp then [inputs]
         else inputs
         end;
-      ( if $opts.no_builtins then {}
+    # TODO: jq prints "Failed to set $JQ_COLORS\n" to stderr on failure
+      parse_colors($env) as {$colors}
+    | ( if $opts.no_builtins then {}
         else builtins_env
         end
       ) as $builtins_env
     | _inputs
     | eval($opts.filter; {"$ENV": $env}; $builtins_env)
+    # TODO: apply colors
     | tojson
     );
 

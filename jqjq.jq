@@ -2490,16 +2490,14 @@ def jqjq($args; $env):
     | if $env | has("JQ_COLORS") then
         ( ($env.JQ_COLORS | split(":")[:8]) as $custom
         | if $custom | all(length <= 12 and test("^[0-9;]*$")) then
-            {colors: ($custom + $default[$custom | length:]), ok: true}
-          else
-            {colors: $default, ok: false}
+            $custom + $default[$custom | length:]
+          else "Failed to set $JQ_COLORS\n" | stderr | $default
           end
         )
-      else
-        {colors: $default, ok: true}
+      else $default
       end
     | if $env | .NO_COLOR != null and .NO_COLOR != "" then
-        .colors = null
+        null
       end
     );
 
@@ -2523,7 +2521,7 @@ def jqjq($args; $env):
         if . == "break" then empty
         else error
         end;
-    ( parse_colors($env) as {$colors}
+    ( parse_colors($env) as $colors
     | builtins_env as $builtins_env
     | _repeat_break(
         ( "> "
@@ -2643,8 +2641,7 @@ def jqjq($args; $env):
         elif $opts.slurp then [inputs]
         else inputs
         end;
-    # TODO: jq prints "Failed to set $JQ_COLORS\n" to stderr on failure
-      parse_colors($env) as {$colors}
+      parse_colors($env) as $colors
     | ( if $opts.no_builtins then {}
         else builtins_env
         end

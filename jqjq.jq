@@ -2487,6 +2487,7 @@ def jqjq($args; $env):
       elif $a == "--parse"                           then {parse: true}, (.[1:] | _f)
       elif $a == "--repl"                            then {repl: true}, (.[1:] | _f)
       elif $a == "-n" or $a == "--null-input"        then {null_input: true}, (.[1:] | _f)
+      elif $a == "-c" or $a == "--compact-output"    then {compact_output: true}, (.[1:] | _f)
       elif $a == "-r" or $a == "--raw-output"        then {raw_output: true}, (.[1:] | _f)
       elif $a == "--raw-output0"                     then {raw_output: true,
                                                            raw_no_lf: true,
@@ -2507,7 +2508,7 @@ def jqjq($args; $env):
 
   # get the ANSI color codes for printing values
   # corresponds to jv_set_colors in jq and its usage in main
-  def parse_colors($opts; $env):
+  def _parse_colors($opts; $env):
     # color order: null, false, true, number, string, array, object, field
     ( ["0;90", "0;39", "0;39", "0;39", "0;32", "1;39", "1;39", "1;34"] as $default
     | if $env | has("JQ_COLORS") then
@@ -2529,6 +2530,13 @@ def jqjq($args; $env):
       end
     );
 
+  def _parse_opts($opts; $env):
+    ( $opts
+      + { colors: _parse_colors($opts; $env)
+        , indent: (if $opts.compact_output then 0 else 2 end)
+        }
+    );
+
   def _help:
     ( "jqjq - jq implementation of jq"
     , "Usage: jqjq [OPTIONS] [--] [EXPR]"
@@ -2541,6 +2549,7 @@ def jqjq($args; $env):
     , "  --repl                    REPL"
     , ""
     , "  --null-input / -n         Null input"
+    , "  --compact-output / -c     Output each object on one line"
     , "  --raw-output / -r         Output strings raw with newline"
     , "  --raw-output0             Output strings raw with NUL"
     , "  --join-output             Output strings raw"
@@ -2557,7 +2566,7 @@ def jqjq($args; $env):
         if . == "break" then empty
         else error
         end;
-    ( parse_colors({}; $env) as $colors
+    ( _parse_opts({}; $env) as $opts
     | builtins_env as $builtins_env
     | _repeat_break(
         ( "> "
@@ -2567,7 +2576,7 @@ def jqjq($args; $env):
           | null
           | try
               ( eval($expr; {"$ENV": $env}; $builtins_env)
-              | _tojson({$colors})
+              | _tojson($opts)
               , "\n"
               )
             catch
@@ -2676,7 +2685,7 @@ def jqjq($args; $env):
         elif $opts.slurp then [inputs]
         else inputs
         end;
-      parse_colors($opts; $env) as $colors
+      _parse_opts($opts; $env) as $opts
     | ( if $opts.no_builtins then {}
         else builtins_env
         end
@@ -2687,7 +2696,7 @@ def jqjq($args; $env):
         if $opts.raw_output0 and contains("\u0000") then
           error("Cannot dump a string containing NUL with --raw-output0 option")
         end
-      else _tojson({$colors})
+      else _tojson($opts)
       end
     | if $opts.raw_no_lf | not then ., "\n" end
     | if $opts.raw_output0 then ., "\u0000" end

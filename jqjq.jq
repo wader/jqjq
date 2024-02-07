@@ -1308,48 +1308,56 @@ def eval_ast($query; $path; $env; undefined_func):
             error("fromjson only supports constant literals");
 
         def _tojson($opts):
-          # color order: null, false, true, number, string, array, object
+          # color order: null, false, true, number, string, array, object, field
           def _color($id):
-            if $opts.colors != null then
-              "\u001b[\($opts.colors[$id])m" + . + "\u001b[0m"
-            end;
+            if $opts.colors != null then "\u001b[\($opts.colors[$id])m"
+            else empty end;
+          def _reset_color:
+            if $opts.colors != null then "\u001b[0m"
+            else empty end;
+          def _wrap_color($id):
+            if $opts.colors != null then _color($id) + . + _reset_color
+            else . end;
           def _f($opts; $indent):
             def _r($prefix):
               ( type as $t
-              | if $t == "null" then tojson | _color(0)
-                elif $t == "string" then tojson | _color(4)
-                elif $t == "number" then tojson | _color(3)
+              | if $t == "null" then tojson | _wrap_color(0)
+                elif $t == "string" then tojson | _wrap_color(4)
+                elif $t == "number" then tojson | _wrap_color(3)
                 elif $t == "boolean" then
-                  if . then "true" | _color(2)
-                  else "false" | _color(1)
+                  if . then "true" | _wrap_color(2)
+                  else "false" | _wrap_color(1)
                   end
                 elif $t == "array" then
-                  if length == 0 then "[]" | _color(5)
+                  if length == 0 then "[]" | _wrap_color(5)
                   else
-                    [ ("[" | _color(5)), $opts.compound_newline
+                    [ _color(5), "[", $opts.compound_newline
                     , ( [ .[]
                         | $prefix, $indent
-                        , _r($prefix+$indent), $opts.array_sep
+                        , _r($prefix+$indent)
+                        , _color(5), $opts.array_sep
                         ]
                       | .[0:-1]
                       )
                     , $opts.compound_newline
-                    , $prefix, ("]" | _color(5))
+                    , $prefix, ("]" | _wrap_color(5))
                     ]
                   end
                 elif $t == "object" then
-                  if length == 0 then "{}" | _color(6)
+                  if length == 0 then "{}" | _wrap_color(6)
                   else
-                    [ ("{" | _color(6)), $opts.compound_newline
+                    [ _color(6), "{", $opts.compound_newline
                     , ( [ to_entries[]
-                        | $prefix, $indent
-                        , (.key | tojson), $opts.key_sep
-                        , (.value | _r($prefix+$indent)), $opts.object_sep
+                        | $prefix, $indent, _reset_color
+                        , (.key | tojson | _wrap_color(7))
+                        , ($opts.key_sep | _wrap_color(6))
+                        , (.value | _r($prefix+$indent))
+                        , _color(6), $opts.object_sep
                         ]
                       | .[0:-1]
                       )
                     , $opts.compound_newline
-                    , $prefix, ("}" | _color(6))
+                    , $prefix, ("}" | _wrap_color(6))
                     ]
                   end
                 else _internal_error("unknown type \($t)")
@@ -2485,7 +2493,7 @@ def jqjq($args; $env):
   # corresponds to jv_set_colors and its usage in main
   # TODO: handle -C/--color-output and -M/--monochrome-output
   def parse_colors($env):
-    # color order: null, false, true, number, string, array, object
+    # color order: null, false, true, number, string, array, object, field
     ( ["0;90", "0;39", "0;39", "0;39", "0;32", "1;39", "1;39", "1;34"] as $default
     | if $env | has("JQ_COLORS") then
         ( ($env.JQ_COLORS | split(":")[:8]) as $custom

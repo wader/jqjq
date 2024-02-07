@@ -1117,6 +1117,81 @@ def parse:
   // error("parse error: \(.)")
   );
 
+def _tojson($opts):
+  # color order: null, false, true, number, string, array, object, field
+  def _color($id):
+    if $opts.colors != null then "\u001b[\($opts.colors[$id])m"
+    else empty end;
+  def _reset_color:
+    if $opts.colors != null then "\u001b[0m"
+    else empty end;
+  def _wrap_color($id):
+    if $opts.colors != null then _color($id) + . + _reset_color
+    else . end;
+  def _f($opts; $indent):
+    def _r($prefix):
+      ( type as $t
+      | if $t == "null" then tojson | _wrap_color(0)
+        elif $t == "string" then tojson | _wrap_color(4)
+        elif $t == "number" then tojson | _wrap_color(3)
+        elif $t == "boolean" then
+          if . then "true" | _wrap_color(2)
+          else "false" | _wrap_color(1)
+          end
+        elif $t == "array" then
+          if length == 0 then "[]" | _wrap_color(5)
+          else
+            [ _color(5), "[", $opts.compound_newline
+            , ( [ .[]
+                | $prefix, $indent
+                , _r($prefix+$indent)
+                , _color(5), $opts.array_sep
+                ]
+              | .[0:-1]
+              )
+            , $opts.compound_newline
+            , $prefix, ("]" | _wrap_color(5))
+            ]
+          end
+        elif $t == "object" then
+          if length == 0 then "{}" | _wrap_color(6)
+          else
+            [ _color(6), "{", $opts.compound_newline
+            , ( [ to_entries[]
+                | $prefix, $indent, _reset_color
+                , (.key | tojson | _wrap_color(7))
+                , ($opts.key_sep | _wrap_color(6))
+                , (.value | _r($prefix+$indent))
+                , _color(6), $opts.object_sep
+                ]
+              | .[0:-1]
+              )
+            , $opts.compound_newline
+            , $prefix, ("}" | _wrap_color(6))
+            ]
+          end
+        else _internal_error("unknown type \($t)")
+        end
+      );
+    _r("");
+  ( ( { indent: 0,
+        key_sep: ":",
+        object_sep: ",",
+        array_sep: ",",
+        compound_newline: "",
+      } + $opts
+    | if .indent > 0  then
+        ( .key_sep = ": "
+        | .object_sep = ",\n"
+        | .array_sep = ",\n"
+        | .compound_newline = "\n"
+        )
+      end
+    ) as $o
+  | _f($o; $o.indent * " ")
+  | if type == "array" then flatten | join("") end
+  );
+def _tojson: _tojson({});
 
 def undefined_func_error:
   error("undefined function \(.name)");
@@ -1306,82 +1381,6 @@ def eval_ast($query; $path; $env; undefined_func):
             (lex | parse | _f)
           catch
             error("fromjson only supports constant literals");
-
-        def _tojson($opts):
-          # color order: null, false, true, number, string, array, object, field
-          def _color($id):
-            if $opts.colors != null then "\u001b[\($opts.colors[$id])m"
-            else empty end;
-          def _reset_color:
-            if $opts.colors != null then "\u001b[0m"
-            else empty end;
-          def _wrap_color($id):
-            if $opts.colors != null then _color($id) + . + _reset_color
-            else . end;
-          def _f($opts; $indent):
-            def _r($prefix):
-              ( type as $t
-              | if $t == "null" then tojson | _wrap_color(0)
-                elif $t == "string" then tojson | _wrap_color(4)
-                elif $t == "number" then tojson | _wrap_color(3)
-                elif $t == "boolean" then
-                  if . then "true" | _wrap_color(2)
-                  else "false" | _wrap_color(1)
-                  end
-                elif $t == "array" then
-                  if length == 0 then "[]" | _wrap_color(5)
-                  else
-                    [ _color(5), "[", $opts.compound_newline
-                    , ( [ .[]
-                        | $prefix, $indent
-                        , _r($prefix+$indent)
-                        , _color(5), $opts.array_sep
-                        ]
-                      | .[0:-1]
-                      )
-                    , $opts.compound_newline
-                    , $prefix, ("]" | _wrap_color(5))
-                    ]
-                  end
-                elif $t == "object" then
-                  if length == 0 then "{}" | _wrap_color(6)
-                  else
-                    [ _color(6), "{", $opts.compound_newline
-                    , ( [ to_entries[]
-                        | $prefix, $indent, _reset_color
-                        , (.key | tojson | _wrap_color(7))
-                        , ($opts.key_sep | _wrap_color(6))
-                        , (.value | _r($prefix+$indent))
-                        , _color(6), $opts.object_sep
-                        ]
-                      | .[0:-1]
-                      )
-                    , $opts.compound_newline
-                    , $prefix, ("}" | _wrap_color(6))
-                    ]
-                  end
-                else _internal_error("unknown type \($t)")
-                end
-              );
-            _r("");
-          ( ( { indent: 0,
-                key_sep: ":",
-                object_sep: ",",
-                array_sep: ",",
-                compound_newline: "",
-              } + $opts
-            | if .indent > 0  then
-                ( .key_sep = ": "
-                | .object_sep = ",\n"
-                | .array_sep = ",\n"
-                | .compound_newline = "\n"
-                )
-              end
-            ) as $o
-          | _f($o; $o.indent * " ")
-          | if type == "array" then flatten | join("") end
-          );
-        def _tojson: _tojson({});
 
         ( . as $input
         | $query.term.func as {$name, $args}
@@ -2538,8 +2537,7 @@ def jqjq($args; $env):
           | null
           | try
               ( eval($expr; {"$ENV": $env}; $builtins_env)
-              # TODO: apply colors
-              | tojson
+              | _tojson({$colors})
               , "\n"
               )
             catch
@@ -2655,8 +2653,7 @@ def jqjq($args; $env):
       ) as $builtins_env
     | _inputs
     | eval($opts.filter; {"$ENV": $env}; $builtins_env)
-    # TODO: apply colors
-    | tojson
+    | _tojson({$colors})
     );
 
   ( ( { filter: "."

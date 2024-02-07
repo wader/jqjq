@@ -1128,71 +1128,62 @@ def _tojson($opts):
   def _c_object: 6;
   def _c_field: 7;
   def _color($id):
-    if $opts.colors != null then "\u001b[\($opts.colors[$id])m"
-    else empty end;
-  def _reset_color:
-    if $opts.colors != null then "\u001b[0m"
-    else empty end;
-  def _wrap_color($id):
-    if $opts.colors != null then _color($id) + . + _reset_color
+    if $opts.colors != null then
+      "\u001b[\($opts.colors[$id])m" + . + "\u001b[0m"
     else . end;
   def _f($opts; $indent):
     def _r($prefix):
       ( type as $t
-      | if $t == "null" then tojson | _wrap_color(_c_null)
-        elif $t == "string" then tojson | _wrap_color(_c_string)
-        elif $t == "number" then tojson | _wrap_color(_c_number)
+      | if $t == "null" then tojson | _color(_c_null)
+        elif $t == "string" then tojson | _color(_c_string)
+        elif $t == "number" then tojson | _color(_c_number)
         elif $t == "boolean" then
-          if . then "true" | _wrap_color(_c_true)
-          else "false" | _wrap_color(_c_false)
+          if . then "true" | _color(_c_true)
+          else "false" | _color(_c_false)
           end
         elif $t == "array" then
-          if length == 0 then "[]" | _wrap_color(_c_array)
+          if length == 0 then "[]" | _color(_c_array)
           else
-            [ _color(_c_array), "[", $opts.compound_newline
+            [ ("[" | _color(_c_array)), $opts.newline
             , ( [ .[]
                 | $prefix, $indent
                 , _r($prefix+$indent)
-                , _color(_c_array), $opts.array_sep
+                , ("," | _color(_c_array)), $opts.newline
                 ]
-              | .[0:-1]
+              | .[0:-2]
               )
-            , $opts.compound_newline
-            , $prefix, ("]" | _wrap_color(_c_array))
+            , $opts.newline
+            , $prefix, ("]" | _color(_c_array))
             ]
           end
         elif $t == "object" then
-          if length == 0 then "{}" | _wrap_color(_c_object)
+          if length == 0 then "{}" | _color(_c_object)
           else
-            [ _color(_c_object), "{", $opts.compound_newline
+            [ ("{" | _color(_c_object)), $opts.newline
             , ( [ to_entries[]
-                | $prefix, $indent, _reset_color
-                , (.key | tojson | _wrap_color(_c_field))
-                , ($opts.key_sep | _wrap_color(_c_object))
+                | $prefix, $indent
+                , (.key | tojson | _color(_c_field))
+                , (":" | _color(_c_object)), $opts.space
                 , (.value | _r($prefix+$indent))
-                , _color(_c_object), $opts.object_sep
+                , ("," | _color(_c_object)), $opts.newline
                 ]
-              | .[0:-1]
+              | .[0:-2]
               )
-            , $opts.compound_newline
-            , $prefix, ("}" | _wrap_color(_c_object))
+            , $opts.newline
+            , $prefix, ("}" | _color(_c_object))
             ]
           end
         else _internal_error("unknown type \($t)")
         end
       );
     _r("");
-  ( ( { indent: 0,
-        key_sep: ":",
-        object_sep: ",",
-        array_sep: ",",
-        compound_newline: "",
+  ( ( { indent: 0
+      , newline: ""
+      , space: ""
       } + $opts
     | if .indent > 0  then
-        ( .key_sep = ": "
-        | .object_sep = ",\n"
-        | .array_sep = ",\n"
-        | .compound_newline = "\n"
+        ( .newline = "\n"
+        | .space = " "
         )
       end
     ) as $o

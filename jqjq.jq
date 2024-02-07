@@ -1462,7 +1462,6 @@ def eval_ast($query; $path; $env; undefined_func):
               # TODO: implement in jqjq?
               elif $name == "tostring/0" then [[null], tostring]
               elif $name == "tojson/0"   then [[null], _tojson]
-              elif $name == "tojson/1"   then [[null], _tojson(a0)]
               elif $name == "fromjson/0" then [[null], _fromjson]
               # TODO: make args general
               # note "null | error" is same as empty

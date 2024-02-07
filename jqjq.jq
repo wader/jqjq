@@ -1118,7 +1118,15 @@ def parse:
   );
 
 def _tojson($opts):
-  # color order: null, false, true, number, string, array, object, field
+  # see jq jv_print.c:jv_dump_term for the reference color printing logic
+  def _c_null: 0;
+  def _c_false: 1;
+  def _c_true: 2;
+  def _c_number: 3;
+  def _c_string: 4;
+  def _c_array: 5;
+  def _c_object: 6;
+  def _c_field: 7;
   def _color($id):
     if $opts.colors != null then "\u001b[\($opts.colors[$id])m"
     else empty end;
@@ -1131,43 +1139,43 @@ def _tojson($opts):
   def _f($opts; $indent):
     def _r($prefix):
       ( type as $t
-      | if $t == "null" then tojson | _wrap_color(0)
-        elif $t == "string" then tojson | _wrap_color(4)
-        elif $t == "number" then tojson | _wrap_color(3)
+      | if $t == "null" then tojson | _wrap_color(_c_null)
+        elif $t == "string" then tojson | _wrap_color(_c_string)
+        elif $t == "number" then tojson | _wrap_color(_c_number)
         elif $t == "boolean" then
-          if . then "true" | _wrap_color(2)
-          else "false" | _wrap_color(1)
+          if . then "true" | _wrap_color(_c_true)
+          else "false" | _wrap_color(_c_false)
           end
         elif $t == "array" then
-          if length == 0 then "[]" | _wrap_color(5)
+          if length == 0 then "[]" | _wrap_color(_c_array)
           else
-            [ _color(5), "[", $opts.compound_newline
+            [ _color(_c_array), "[", $opts.compound_newline
             , ( [ .[]
                 | $prefix, $indent
                 , _r($prefix+$indent)
-                , _color(5), $opts.array_sep
+                , _color(_c_array), $opts.array_sep
                 ]
               | .[0:-1]
               )
             , $opts.compound_newline
-            , $prefix, ("]" | _wrap_color(5))
+            , $prefix, ("]" | _wrap_color(_c_array))
             ]
           end
         elif $t == "object" then
-          if length == 0 then "{}" | _wrap_color(6)
+          if length == 0 then "{}" | _wrap_color(_c_object)
           else
-            [ _color(6), "{", $opts.compound_newline
+            [ _color(_c_object), "{", $opts.compound_newline
             , ( [ to_entries[]
                 | $prefix, $indent, _reset_color
-                , (.key | tojson | _wrap_color(7))
-                , ($opts.key_sep | _wrap_color(6))
+                , (.key | tojson | _wrap_color(_c_field))
+                , ($opts.key_sep | _wrap_color(_c_object))
                 , (.value | _r($prefix+$indent))
-                , _color(6), $opts.object_sep
+                , _color(_c_object), $opts.object_sep
                 ]
               | .[0:-1]
               )
             , $opts.compound_newline
-            , $prefix, ("}" | _wrap_color(6))
+            , $prefix, ("}" | _wrap_color(_c_object))
             ]
           end
         else _internal_error("unknown type \($t)")

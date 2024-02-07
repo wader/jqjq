@@ -2498,15 +2498,19 @@ def jqjq($args; $env):
     );
 
   # get the ANSI color codes for printing values
-  # corresponds to jv_set_colors and its usage in main
+  # corresponds to jv_set_colors in jq and its usage in main
   def parse_colors($opts; $env):
     # color order: null, false, true, number, string, array, object, field
     ( ["0;90", "0;39", "0;39", "0;39", "0;32", "1;39", "1;39", "1;34"] as $default
     | if $env | has("JQ_COLORS") then
+        # only up to the first 8 color sequences are used
         ( ($env.JQ_COLORS | split(":")[:8]) as $custom
+        # jq limits color sequences to 12 bytes, to fit into 16-byte buffers
+        # with ESC, [, m, and NUL.
         | if $custom | all(length <= 12 and test("^[0-9;]*$")) then
             $custom + $default[$custom | length:]
-          else "Failed to set $JQ_COLORS\n" | stderr | $default
+          else
+            "Failed to set $JQ_COLORS\n" | stderr | $default
           end
         )
       else $default

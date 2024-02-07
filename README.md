@@ -205,11 +205,11 @@ Note that the tests are meant to be used with jq 1.7.1.
   - [x] `--help` / `-h`
   - [x] `--null-input` / `-n`
   - [ ] `--raw-input` / `-R`
+  - [x] `--slurp` / `-s`
   - [x] `--compact-output` / `-c`
   - [x] `--raw-output` / `-r`
   - [x] `--raw-output0`
   - [x] `--join-output` / `-j`
-  - [x] `--slurp` / `-s`
   - [x] `--color-output` / `-C`
   - [x] `--monochrome-output` / `-M`
   - [ ] `-L directory`

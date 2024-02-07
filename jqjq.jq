@@ -2478,6 +2478,7 @@ def jqjq($args; $env):
       elif $a == "--parse"                           then {parse: true}, (.[1:] | _f)
       elif $a == "--repl"                            then {repl: true}, (.[1:] | _f)
       elif $a == "-n" or $a == "--null-input"        then {null_input: true}, (.[1:] | _f)
+      elif $a == "-s" or $a == "--slurp"             then {slurp: true}, (.[1:] | _f)
       elif $a == "-c" or $a == "--compact-output"    then {compact_output: true}, (.[1:] | _f)
       elif $a == "-r" or $a == "--raw-output"        then {raw_output: true}, (.[1:] | _f)
       elif $a == "--raw-output0"                     then {raw_output: true,
@@ -2485,7 +2486,6 @@ def jqjq($args; $env):
                                                            raw_output0: true}, (.[1:] | _f)
       elif $a == "-j" or $a == "--join-output"       then {raw_output: true,
                                                            raw_no_lf: true}, (.[1:] | _f)
-      elif $a == "-s" or $a == "--slurp"             then {slurp: true}, (.[1:] | _f)
       elif $a == "-C" or $a == "--color-output"      then {color_output: true}, (.[1:] | _f)
       elif $a == "-M" or $a == "--monochrome-output" then {monochrome_output: true}, (.[1:] | _f)
       elif $a == "--run-tests"                       then {run_tests: true}, (.[1:] | _f)
@@ -2540,11 +2540,11 @@ def jqjq($args; $env):
     , "  --repl                    REPL"
     , ""
     , "  --null-input / -n         Null input"
+    , "  --slurp / -s              Slurp inputs into an array"
     , "  --compact-output / -c     Output each object on one line"
     , "  --raw-output / -r         Output strings raw with newline"
     , "  --raw-output0             Output strings raw with NUL"
     , "  --join-output             Output strings raw"
-    , "  --slurp / -s              Slurp inputs into an array"
     , "  --color-output / -C       Force colored output"
     , "  --monochrome-output / -M  Disable colored output"
     , "  --run-tests               Run jq tests from stdin"

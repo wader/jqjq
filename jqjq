@@ -6,13 +6,13 @@ JQ="jq"
 JQJQ_PATH="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 ARGS=("$@")
 
-JQ_ARGS=("--raw-output" "--null-input")
+JQ_ARGS=("--join-output" "--null-input")
 # some arguments require to run jq in different input/output mode
 while [ "$1" != "" ]; do
     case "$1" in
       --jq) shift; JQ="$1";;
       --run-tests) JQ_ARGS+=("--raw-input" "--slurp");;
-      --repl) JQ_ARGS+=("--raw-input" "--join-output");;
+      --repl) JQ_ARGS+=("--raw-input");;
       --) break;;
     esac
     shift

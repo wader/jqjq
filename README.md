@@ -206,9 +206,9 @@ Note that the tests are meant to be used with jq 1.7.1.
   - [x] `--null-input` / `-n`
   - [ ] `--raw-input` / `-R`
   - [ ] `--compact-output` / `-c`
-  - [ ] `--raw-output` / `-r`
-  - [ ] `--raw-output0`
-  - [ ] `--join-output` / `-j`
+  - [x] `--raw-output` / `-r`
+  - [x] `--raw-output0`
+  - [x] `--join-output` / `-j`
   - [x] `--slurp` / `-s`
   - [x] `--color-output` / `-C`
   - [x] `--monochrome-output` / `-M`

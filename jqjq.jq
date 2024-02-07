@@ -2476,13 +2476,19 @@ def jqjq($args; $env):
       elif $a == "--jq"                              then {jq: .[1]}, (.[2:] | _f)
       elif $a == "--lex"                             then {lex: true}, (.[1:] | _f)
       elif $a == "--no-builtins"                     then {no_builtins: true}, (.[1:] | _f)
-      elif $a == "-n" or $a == "--null-input"        then {null_input: true}, (.[1:] | _f)
       elif $a == "--parse"                           then {parse: true}, (.[1:] | _f)
       elif $a == "--repl"                            then {repl: true}, (.[1:] | _f)
-      elif $a == "--run-tests"                       then {run_tests: true}, (.[1:] | _f)
+      elif $a == "-n" or $a == "--null-input"        then {null_input: true}, (.[1:] | _f)
+      elif $a == "-r" or $a == "--raw-output"        then {raw_output: true}, (.[1:] | _f)
+      elif $a == "--raw-output0"                     then {raw_output: true,
+                                                           raw_no_lf: true,
+                                                           raw_output0: true}, (.[1:] | _f)
+      elif $a == "-j" or $a == "--join-output"       then {raw_output: true,
+                                                           raw_no_lf: true}, (.[1:] | _f)
       elif $a == "-s" or $a == "--slurp"             then {slurp: true}, (.[1:] | _f)
       elif $a == "-C" or $a == "--color-output"      then {color_output: true}, (.[1:] | _f)
       elif $a == "-M" or $a == "--monochrome-output" then {monochrome_output: true}, (.[1:] | _f)
+      elif $a == "--run-tests"                       then {run_tests: true}, (.[1:] | _f)
       elif $a == "--"                                then {filter: .[1]}, (.[2:] | _f)
       elif $a | startswith("-")                      then error("unknown argument: \($a)")
       else {filter: $a}, (.[1:] | _f)
@@ -2514,16 +2520,22 @@ def jqjq($args; $env):
   def _help:
     ( "jqjq - jq implementation of jq"
     , "Usage: jqjq [OPTIONS] [--] [EXPR]"
+    , ""
+    , "Options:"
     , "  --jq PATH                 jq implementation to run with"
     , "  --lex                     Lex EXPR"
     , "  --no-builtins             Don't include builtins"
-    , "  --null-input / -n         Null input"
     , "  --parse                   Lex then parse EXPR"
     , "  --repl                    REPL"
-    , "  --run-tests               Run jq tests from stdin"
+    , ""
+    , "  --null-input / -n         Null input"
+    , "  --raw-output / -r         Output strings raw with newline"
+    , "  --raw-output0             Output strings raw with NUL"
+    , "  --join-output             Output strings raw"
     , "  --slurp / -s              Slurp inputs into an array"
     , "  --color-output / -C       Force colored output"
     , "  --monochrome-output / -M  Disable colored output"
+    , "  --run-tests               Run jq tests from stdin"
     );
 
   def _repl:
@@ -2659,7 +2671,14 @@ def jqjq($args; $env):
       ) as $builtins_env
     | _inputs
     | eval($opts.filter; {"$ENV": $env}; $builtins_env)
-    | _tojson({$colors})
+    | if $opts.raw_output and type == "string" then
+        if $opts.raw_output0 and contains("\u0000") then
+          error("Cannot dump a string containing NUL with --raw-output0 option")
+        end
+      else _tojson({$colors})
+      end
+    | if $opts.raw_no_lf | not then ., "\n" end
+    | if $opts.raw_output0 then ., "\u0000" end
     );
 
   ( ( { filter: "."

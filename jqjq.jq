@@ -2469,19 +2469,22 @@ def fromjqtest:
 def jqjq($args; $env):
   def _parse_args:
     def _f:
+      .[0] as $a |
       if length == 0 then empty
-      elif .[0] == "-h" or .[0] == "--help"       then {help: true}, (.[1:] | _f)
-      elif .[0] == "--jq"                         then {jq: .[1]}, (.[2:] | _f)
-      elif .[0] == "--lex"                        then {lex: true}, (.[1:] | _f)
-      elif .[0] == "--no-builtins"                then {no_builtins: true}, (.[1:] | _f)
-      elif .[0] == "-n" or .[0] == "--null-input" then {null_input: true}, (.[1:] | _f)
-      elif .[0] == "--parse"                      then {parse: true}, (.[1:] | _f)
-      elif .[0] == "--repl"                       then {repl: true}, (.[1:] | _f)
-      elif .[0] == "--run-tests"                  then {run_tests: true}, (.[1:] | _f)
-      elif .[0] == "-s" or .[0] == "--slurp"      then {slurp: true}, (.[1:] | _f)
-      elif .[0] == "--"                           then {filter: .[1]}, (.[2:] | _f)
-      elif .[0] | startswith("-")                 then error("unknown argument: \(.[0])")
-      else {filter: .[0]}, (.[1:] | _f)
+      elif $a == "-h" or $a == "--help"              then {help: true}, (.[1:] | _f)
+      elif $a == "--jq"                              then {jq: .[1]}, (.[2:] | _f)
+      elif $a == "--lex"                             then {lex: true}, (.[1:] | _f)
+      elif $a == "--no-builtins"                     then {no_builtins: true}, (.[1:] | _f)
+      elif $a == "-n" or $a == "--null-input"        then {null_input: true}, (.[1:] | _f)
+      elif $a == "--parse"                           then {parse: true}, (.[1:] | _f)
+      elif $a == "--repl"                            then {repl: true}, (.[1:] | _f)
+      elif $a == "--run-tests"                       then {run_tests: true}, (.[1:] | _f)
+      elif $a == "-s" or $a == "--slurp"             then {slurp: true}, (.[1:] | _f)
+      elif $a == "-C" or $a == "--color-output"      then {color_output: true}, (.[1:] | _f)
+      elif $a == "-M" or $a == "--monochrome-output" then {monochrome_output: true}, (.[1:] | _f)
+      elif $a == "--"                                then {filter: .[1]}, (.[2:] | _f)
+      elif $a | startswith("-")                      then error("unknown argument: \($a)")
+      else {filter: $a}, (.[1:] | _f)
       end;
     ( [_f]
     | add
@@ -2489,8 +2492,7 @@ def jqjq($args; $env):
 
   # get the ANSI color codes for printing values
   # corresponds to jv_set_colors and its usage in main
-  # TODO: handle -C/--color-output and -M/--monochrome-output
-  def parse_colors($env):
+  def parse_colors($opts; $env):
     # color order: null, false, true, number, string, array, object, field
     ( ["0;90", "0;39", "0;39", "0;39", "0;32", "1;39", "1;39", "1;34"] as $default
     | if $env | has("JQ_COLORS") then
@@ -2502,7 +2504,8 @@ def jqjq($args; $env):
         )
       else $default
       end
-    | if $env | .NO_COLOR != null and .NO_COLOR != "" then
+    | if $opts.monochrome_output or
+          (($opts.color_output | not) and ($env.NO_COLOR | . != null and . != "")) then
         null
       end
     );
@@ -2510,14 +2513,16 @@ def jqjq($args; $env):
   def _help:
     ( "jqjq - jq implementation of jq"
     , "Usage: jqjq [OPTIONS] [--] [EXPR]"
-    , "  --jq PATH        jq implementation to run with"
-    , "  --lex            Lex EXPR"
-    , "  --no-builtins    Don't include builtins"
-    , "  --null-input,-n  Null input"
-    , "  --parse          Lex then parse EXPR"
-    , "  --repl           REPL"
-    , "  --run-tests      Run jq tests from stdin"
-    , "  --slurp,-s       Slurp inputs into an array"
+    , "  --jq PATH                 jq implementation to run with"
+    , "  --lex                     Lex EXPR"
+    , "  --no-builtins             Don't include builtins"
+    , "  --null-input / -n         Null input"
+    , "  --parse                   Lex then parse EXPR"
+    , "  --repl                    REPL"
+    , "  --run-tests               Run jq tests from stdin"
+    , "  --slurp / -s              Slurp inputs into an array"
+    , "  --color-output / -C       Force colored output"
+    , "  --monochrome-output / -M  Disable colored output"
     );
 
   def _repl:
@@ -2527,7 +2532,7 @@ def jqjq($args; $env):
         if . == "break" then empty
         else error
         end;
-    ( parse_colors($env) as $colors
+    ( parse_colors({}; $env) as $colors
     | builtins_env as $builtins_env
     | _repeat_break(
         ( "> "
@@ -2646,7 +2651,7 @@ def jqjq($args; $env):
         elif $opts.slurp then [inputs]
         else inputs
         end;
-      parse_colors($env) as $colors
+      parse_colors($opts; $env) as $colors
     | ( if $opts.no_builtins then {}
         else builtins_env
         end

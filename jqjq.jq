@@ -1534,6 +1534,7 @@ def eval_ast($query; $path; $env; undefined_func):
               elif $name == "match/2"       then match(a0; a1) | [[null], .]
               elif $name == "test/2"        then test(a0; a1) | [[null], .]
               elif $name == "gsub/2"        then gsub(a0; a1) | [[null], .]
+              elif $name == "gsub/3"        then gsub(a0; a1; a2) | [[null], .]
               elif $name == "atan2/2"       then [[null], atan2(a0; a1)]
               elif $name == "copysign/2"    then [[null], copysign(a0; a1)]
               elif $name == "drem/2"        then [[null], drem(a0; a1)]

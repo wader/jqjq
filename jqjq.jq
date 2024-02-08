@@ -3,7 +3,6 @@
 # MIT License
 #
 # TODO:
-# jq bug with error undefined function (possibly https://github.com/stedolan/jq/issues/2485?)
 # ".end" lex, require whitespace/end around ident?
 # how test associativity 1|2|3?
 # add some term builder helper, _term("TermTypeArray"; {query: ...}) etc?
@@ -1118,6 +1117,80 @@ def parse:
   // error("parse error: \(.)")
   );
 
+def _tojson($opts):
+  # see jq jv_print.c:jv_dump_term for the reference color printing logic
+  def _c_null: 0;
+  def _c_false: 1;
+  def _c_true: 2;
+  def _c_number: 3;
+  def _c_string: 4;
+  def _c_array: 5;
+  def _c_object: 6;
+  def _c_field: 7;
+  def _color($id):
+    if $opts.colors != null then
+      "\u001b[\($opts.colors[$id])m" + . + "\u001b[0m"
+    else . end;
+  def _f($opts; $indent):
+    def _r($prefix):
+      ( type as $t
+      | if $t == "null" then tojson | _color(_c_null)
+        elif $t == "string" then tojson | _color(_c_string)
+        elif $t == "number" then tojson | _color(_c_number)
+        elif $t == "boolean" then
+          if . then "true" | _color(_c_true)
+          else "false" | _color(_c_false)
+          end
+        elif $t == "array" then
+          if length == 0 then "[]" | _color(_c_array)
+          else
+            [ ("[" | _color(_c_array)), $opts.newline
+            , ( [ .[]
+                | $prefix, $indent
+                , _r($prefix+$indent)
+                , ("," | _color(_c_array)), $opts.newline
+                ]
+              | .[0:-2]
+              )
+            , $opts.newline
+            , $prefix, ("]" | _color(_c_array))
+            ]
+          end
+        elif $t == "object" then
+          if length == 0 then "{}" | _color(_c_object)
+          else
+            [ ("{" | _color(_c_object)), $opts.newline
+            , ( [ to_entries[]
+                | $prefix, $indent
+                , (.key | tojson | _color(_c_field))
+                , (":" | _color(_c_object)), $opts.space
+                , (.value | _r($prefix+$indent))
+                , ("," | _color(_c_object)), $opts.newline
+                ]
+              | .[0:-2]
+              )
+            , $opts.newline
+            , $prefix, ("}" | _color(_c_object))
+            ]
+          end
+        else _internal_error("unknown type \($t)")
+        end
+      );
+    _r("");
+  ( ( { indent: 0
+      , newline: ""
+      , space: ""
+      } + $opts
+    | if .indent > 0  then
+        ( .newline = "\n"
+        | .space = " "
+        )
+      end
+    ) as $o
+  | _f($o; $o.indent * " ")
+  | if type == "array" then flatten | join("") end
+  );
+def _tojson: _tojson({});
 
 def undefined_func_error:
   error("undefined function \(.name)");
@@ -1308,66 +1381,6 @@ def eval_ast($query; $path; $env; undefined_func):
           catch
             error("fromjson only supports constant literals");
 
-        def _tojson($opts):
-          def _f($opts; $indent):
-            def _r($prefix):
-              ( type as $t
-              | if $t == "null" then tojson
-                elif $t == "string" then tojson
-                elif $t == "number" then tojson
-                elif $t == "boolean" then tojson
-                elif $t == "array" then
-                  if length == 0 then "[]"
-                  else
-                    [ "[", $opts.compound_newline
-                    , ( [ .[]
-                        | $prefix, $indent
-                        , _r($prefix+$indent), $opts.array_sep
-                        ]
-                      | .[0:-1]
-                      )
-                    , $opts.compound_newline
-                    , $prefix, "]"
-                    ]
-                  end
-                elif $t == "object" then
-                  if length == 0 then "{}"
-                  else
-                    [ "{", $opts.compound_newline
-                    , ( [ to_entries[]
-                        | $prefix, $indent
-                        , (.key | tojson), $opts.key_sep
-                        , (.value | _r($prefix+$indent)), $opts.object_sep
-                        ]
-                      | .[0:-1]
-                      )
-                    , $opts.compound_newline
-                    , $prefix, "}"
-                    ]
-                  end
-                else _internal_error("unknown type \($t)")
-                end
-              );
-            _r("");
-          ( ( { indent: 0,
-                key_sep: ":",
-                object_sep: ",",
-                array_sep: ",",
-                compound_newline: "",
-              } + $opts
-            | if .indent > 0  then
-                ( .key_sep = ": "
-                | .object_sep = ",\n"
-                | .array_sep = ",\n"
-                | .compound_newline = "\n"
-                )
-              end
-            ) as $o
-          | _f($o; $o.indent * " ")
-          | if type == "array" then flatten | join("") end
-          );
-        def _tojson: _tojson({});
-
         ( . as $input
         | $query.term.func as {$name, $args}
         | func_name($name; $args) as $name
@@ -1447,7 +1460,6 @@ def eval_ast($query; $path; $env; undefined_func):
               # TODO: implement in jqjq?
               elif $name == "tostring/0" then [[null], tostring]
               elif $name == "tojson/0"   then [[null], _tojson]
-              elif $name == "tojson/1"   then [[null], _tojson(a0)]
               elif $name == "fromjson/0" then [[null], _fromjson]
               # TODO: make args general
               # note "null | error" is same as empty
@@ -1521,6 +1533,7 @@ def eval_ast($query; $path; $env; undefined_func):
               elif $name == "match/2"       then match(a0; a1) | [[null], .]
               elif $name == "test/2"        then test(a0; a1) | [[null], .]
               elif $name == "gsub/2"        then gsub(a0; a1) | [[null], .]
+              elif $name == "gsub/3"        then gsub(a0; a1; a2) | [[null], .]
               elif $name == "atan2/2"       then [[null], atan2(a0; a1)]
               elif $name == "copysign/2"    then [[null], copysign(a0; a1)]
               elif $name == "drem/2"        then [[null], drem(a0; a1)]
@@ -2456,35 +2469,85 @@ def fromjqtest:
 def jqjq($args; $env):
   def _parse_args:
     def _f:
+      .[0] as $a |
       if length == 0 then empty
-      elif .[0] == "-h" or .[0] == "--help"       then {help: true}, (.[1:] | _f)
-      elif .[0] == "--jq"                         then {jq: .[1]}, (.[2:] | _f)
-      elif .[0] == "--lex"                        then {lex: true}, (.[1:] | _f)
-      elif .[0] == "--no-builtins"                then {no_builtins: true}, (.[1:] | _f)
-      elif .[0] == "-n" or .[0] == "--null-input" then {null_input: true}, (.[1:] | _f)
-      elif .[0] == "--parse"                      then {parse: true}, (.[1:] | _f)
-      elif .[0] == "--repl"                       then {repl: true}, (.[1:] | _f)
-      elif .[0] == "--run-tests"                  then {run_tests: true}, (.[1:] | _f)
-      elif .[0] == "-s" or .[0] == "--slurp"      then {slurp: true}, (.[1:] | _f)
-      elif .[0] == "--"                           then {filter: .[1]}, (.[2:] | _f)
-      elif .[0] | startswith("-")                 then error("unknown argument: \(.[0])")
-      else {filter: .[0]}, (.[1:] | _f)
+      elif $a == "-h" or $a == "--help"              then {help: true}, (.[1:] | _f)
+      elif $a == "--jq"                              then {jq: .[1]}, (.[2:] | _f)
+      elif $a == "--lex"                             then {lex: true}, (.[1:] | _f)
+      elif $a == "--no-builtins"                     then {no_builtins: true}, (.[1:] | _f)
+      elif $a == "--parse"                           then {parse: true}, (.[1:] | _f)
+      elif $a == "--repl"                            then {repl: true}, (.[1:] | _f)
+      elif $a == "-n" or $a == "--null-input"        then {null_input: true}, (.[1:] | _f)
+      elif $a == "-s" or $a == "--slurp"             then {slurp: true}, (.[1:] | _f)
+      elif $a == "-c" or $a == "--compact-output"    then {compact_output: true}, (.[1:] | _f)
+      elif $a == "-r" or $a == "--raw-output"        then {raw_output: true}, (.[1:] | _f)
+      elif $a == "--raw-output0"                     then {raw_output: true,
+                                                           raw_no_lf: true,
+                                                           raw_output0: true}, (.[1:] | _f)
+      elif $a == "-j" or $a == "--join-output"       then {raw_output: true,
+                                                           raw_no_lf: true}, (.[1:] | _f)
+      elif $a == "-C" or $a == "--color-output"      then {color_output: true}, (.[1:] | _f)
+      elif $a == "-M" or $a == "--monochrome-output" then {monochrome_output: true}, (.[1:] | _f)
+      elif $a == "--run-tests"                       then {run_tests: true}, (.[1:] | _f)
+      elif $a == "--"                                then {filter: .[1]}, (.[2:] | _f)
+      elif $a | startswith("-")                      then error("unknown argument: \($a)")
+      else {filter: $a}, (.[1:] | _f)
       end;
     ( [_f]
     | add
     );
 
+  # get the ANSI color codes for printing values
+  # corresponds to jv_set_colors in jq and its usage in main
+  def _parse_colors($opts; $env):
+    # color order: null, false, true, number, string, array, object, field
+    ( ["0;90", "0;39", "0;39", "0;39", "0;32", "1;39", "1;39", "1;34"] as $default
+    | if $env | has("JQ_COLORS") then
+        # only up to the first 8 color sequences are used
+        ( ($env.JQ_COLORS | split(":")[:8]) as $custom
+        # jq limits color sequences to 12 bytes, to fit into 16-byte buffers
+        # with ESC, [, m, and NUL.
+        | if $custom | all(length <= 12 and test("^[0-9;]*$")) then
+            $custom + $default[$custom | length:]
+          else
+            "Failed to set $JQ_COLORS\n" | stderr | $default
+          end
+        )
+      else $default
+      end
+    | if $opts.monochrome_output or
+          (($opts.color_output | not) and ($env.NO_COLOR | . != null and . != "")) then
+        null
+      end
+    );
+
+  def _parse_opts($opts; $env):
+    ( $opts
+      + { colors: _parse_colors($opts; $env)
+        , indent: (if $opts.compact_output then 0 else 2 end)
+        }
+    );
+
   def _help:
     ( "jqjq - jq implementation of jq"
     , "Usage: jqjq [OPTIONS] [--] [EXPR]"
-    , "  --jq PATH        jq implementation to run with"
-    , "  --lex            Lex EXPR"
-    , "  --no-builtins    Don't include builtins"
-    , "  --null-input,-n  Null input"
-    , "  --parse          Lex then parse EXPR"
-    , "  --repl           REPL"
-    , "  --run-tests      Run jq tests from stdin"
-    , "  --slurp,-s       Slurp inputs into an array"
+    , ""
+    , "Options:"
+    , "  --jq PATH                 jq implementation to run with"
+    , "  --lex                     Lex EXPR"
+    , "  --no-builtins             Don't include builtins"
+    , "  --parse                   Lex then parse EXPR"
+    , "  --repl                    REPL"
+    , ""
+    , "  --null-input / -n         Null input"
+    , "  --slurp / -s              Slurp inputs into an array"
+    , "  --compact-output / -c     Output each object on one line"
+    , "  --raw-output / -r         Output strings raw with newline"
+    , "  --raw-output0             Output strings raw with NUL"
+    , "  --join-output             Output strings raw"
+    , "  --color-output / -C       Force colored output"
+    , "  --monochrome-output / -M  Disable colored output"
+    , "  --run-tests               Run jq tests from stdin"
     );
 
   def _repl:
@@ -2494,7 +2557,8 @@ def jqjq($args; $env):
         if . == "break" then empty
         else error
         end;
-    ( builtins_env as $builtins_env
+    ( _parse_opts({}; $env) as $opts
+    | builtins_env as $builtins_env
     | _repeat_break(
         ( "> "
         , ( try input
@@ -2503,7 +2567,7 @@ def jqjq($args; $env):
           | null
           | try
               ( eval($expr; {"$ENV": $env}; $builtins_env)
-              | tojson
+              | _tojson($opts)
               , "\n"
               )
             catch
@@ -2584,7 +2648,7 @@ def jqjq($args; $env):
         };
         if ($l | type) == "object" then
           ( .line = false
-          | if $l.error then .errors +=1
+          | if $l.error then .errors += 1
             elif $l.ok then .oks += 1
             elif $l.end then .end = true
             else .
@@ -2612,13 +2676,21 @@ def jqjq($args; $env):
         elif $opts.slurp then [inputs]
         else inputs
         end;
-      ( if $opts.no_builtins then {}
+      _parse_opts($opts; $env) as $opts
+    | ( if $opts.no_builtins then {}
         else builtins_env
         end
       ) as $builtins_env
     | _inputs
     | eval($opts.filter; {"$ENV": $env}; $builtins_env)
-    | tojson
+    | if $opts.raw_output and type == "string" then
+        if $opts.raw_output0 and contains("\u0000") then
+          error("Cannot dump a string containing NUL with --raw-output0 option")
+        end
+      else _tojson($opts)
+      end
+    | if $opts.raw_no_lf | not then ., "\n" end
+    | if $opts.raw_output0 then ., "\u0000" end
     );
 
   ( ( { filter: "."

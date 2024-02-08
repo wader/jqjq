@@ -142,7 +142,7 @@ Note that the tests are meant to be used with jq 1.7.1.
   - [x] `getpath(path)` (passthrough)
   - [x] `group`, `group_by(f)`
   - [x] `gsub($regex; f)` (passthrough)
-  - [ ] `gsub($regex; f; $flags)`
+  - [x] `gsub($regex; f; $flags)` (passthrough)
   - [x] `halt_error`, `halt_error($exit_code)`
   - [x] `has($key)` (passthrough)
   - [x] `implode` (passthrough)
@@ -201,12 +201,37 @@ Note that the tests are meant to be used with jq 1.7.1.
 - [ ] `@format "string"` Format string
 - [ ] `label $out | break $out` Break out
 - [ ] `include "f"`, `import "f"` Include
+- [ ] CLI options
+  - [x] `--help` / `-h`
+  - [x] `--null-input` / `-n`
+  - [ ] `--raw-input` / `-R`
+  - [x] `--slurp` / `-s`
+  - [x] `--compact-output` / `-c`
+  - [x] `--raw-output` / `-r`
+  - [x] `--raw-output0`
+  - [x] `--join-output` / `-j`
+  - [x] `--color-output` / `-C`
+  - [x] `--monochrome-output` / `-M`
+  - [ ] `-L directory`
+  - [ ] `--arg name value`
+  - [ ] `--rawfile name filename`
+  - [x] `--run-tests`
+  - [ ] `--run-tests [filename]`
+  - [x] `--`
+  - [ ] Combined short options
+  - [ ] More...
+  - Non-standard CLI options
+    - [x] `--jq`
+    - [x] `--lex`
+    - [x] `--no-builtins`
+    - [x] `--parse`
+    - [x] `--repl`
 - [x] Run jqjq with jqjq
 - [x] Bugs
 
 ### jq's test suite
 
-```
+```sh
 $ ./jqjq --run-tests < ../jq/tests/jq.test | grep passed
 307 of 449 tests passed
 ```

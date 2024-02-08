@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # wrapper for jqjq cli entrypoint
 # shellcheck disable=SC2016
 
@@ -11,7 +11,7 @@ JQ_ARGS=("--join-output" "--null-input")
 while [ "$1" != "" ]; do
     case "$1" in
       --jq) shift; JQ="$1";;
-      --run-tests) JQ_ARGS+=("--raw-input" "--slurp");;
+      --run-tests) JQ_ARGS+=("--raw-input" "--slurp"); JQ_ARGS[0]="--raw-output";;
       --repl) JQ_ARGS+=("--raw-input");;
       --) break;;
     esac

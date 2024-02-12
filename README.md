@@ -198,7 +198,16 @@ Note that the tests are meant to be used with jq 1.7.1.
 - [x] `//` Alternative operator
 - [ ] `?//` Alternative destructuring operator
 - [x] `$ENV`
-- [ ] `@format "string"` Format string
+- [x] `@format "abc \(.)"` Format string
+  - [ ] `@base32`
+  - [ ] `@base64`
+  - [ ] `@csv`
+  - [ ] `@html`
+  - [ ] `@sh`
+  - [ ] `@tsv`
+  - [ ] `@uri`
+  - [x] `@json`
+  - [x] `@text`
 - [ ] `label $out | break $out` Break out
 - [ ] `include "f"`, `import "f"` Include
 - [ ] CLI options

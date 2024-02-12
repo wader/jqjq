@@ -98,6 +98,7 @@ def lex:
       // _re("^#[^\n]*"; {comment: .})
       // _re("^\\.[_a-zA-Z][_a-zA-Z0-9]*"; {index: .[1:]})
       // _re("^[_a-zA-Z][_a-zA-Z0-9]*"; {ident: .})
+      // _re("^@[_a-zA-Z][_a-zA-Z0-9]*"; {at_ident: .})
       // _re("^\\$[_a-zA-Z][_a-zA-Z0-9]*"; {binding: .})
       # 1.23, .123, 123e2, 1.23e2, 123E2, 1.23e+2, 1.23E-2 or 123
       // _re("^(?:[0-9]*\\.[0-9]+|[0-9]+)(?:[eE][-\\+]?[0-9]+)?"; {number: .})
@@ -941,6 +942,11 @@ def parse:
         )
       );
 
+    # "abc"
+    def _string_simple:
+      _scalar("TermTypeString"; .string; {str: .string});
+
+    # "abc \(123)"
     def _string_query:
       ( .[0] as {$string_start}
       | _consume(.string_start)
@@ -958,9 +964,33 @@ def parse:
             { type: "TermTypeString"
             , queries:
                 [ {term: {str: $string_start, type: "TermTypeString"}}
-                , ($queries[] | {term: {query: ., type: "TermTypeQuery"}})
+                , ( $queries[]
+                  | if .term.type == "TermTypeString" then .
+                    else {term: {query: ., type: "TermTypeQuery"}}
+                    end
+                  )
                 , {term: {str: $string_end, type: "TermTypeString"}}
                 ]
+            }
+          }
+        ]
+      );
+
+    def _string:
+      ( _string_simple
+      // _string_query
+      );
+
+    # @format "abc"
+    def _format_string:
+      ( .[0] as {$at_ident}
+      | _consume(.at_ident)
+      | _string as [$rest, $string]
+      | [ $rest
+        , { term:
+            { type: "TermTypeFormat"
+            , format: $at_ident
+            , str: $string
             }
           }
         ]
@@ -1061,7 +1091,7 @@ def parse:
           // _p("func")
           // _p("number")
           // _p("string")
-          // _p("string_query")
+          // _p("format_string")
           // _p("array")
           // _p("subquery") # TODO: rename?
           // _p("object")
@@ -1091,8 +1121,8 @@ def parse:
       elif $type == "false" then _scalar("TermTypeFalse"; .ident == "false"; .)
       elif $type == "null" then _scalar("TermTypeNull"; .ident == "null"; .)
       elif $type == "number" then _scalar("TermTypeNumber"; .number; {number: .number})
-      elif $type == "string" then _scalar("TermTypeString"; .string; {str: .string})
-      elif $type == "string_query" then _string_query
+      elif $type == "string" then _string
+      elif $type == "format_string" then _format_string
       elif $type == "index" then _index
       elif $type == "identity" then _identity
       elif $type == "array" then _array
@@ -1277,8 +1307,9 @@ def eval_ast($query; $path; $env; undefined_func):
           else error
           end;
 
-      # "str" or "str \(..) str"
-      def _string:
+      # "str" or "str \(..) str" with format
+      # called with query arg from _string and _format
+      def _string($query; $format_func):
         if $query.term.str then [[null], $query.term.str]
         else
           ( . as $input
@@ -1289,8 +1320,24 @@ def eval_ast($query; $path; $env; undefined_func):
                 | .[1:] as $rest
                 | $input
                 | _e($q; []; $query_env) as [$_, $v]
+                | $v
+                | ( if $q.term.query then
+                      ( _e(
+                          { term:
+                              { type: "TermTypeFunc"
+                              , func: {name: $format_func}
+                              }
+                          };
+                          [];
+                          $query_env
+                        ) as [$_, $v]
+                      | $v
+                      )
+                    else .
+                    end
+                  ) as $v
                 | $rest
-                | _f($str_parts + [$v | tostring])
+                | _f($str_parts + [$v])
                 )
               end;
             $query.term.queries
@@ -1298,6 +1345,13 @@ def eval_ast($query; $path; $env; undefined_func):
           | [[], .]
           )
         end;
+
+      def _string:
+        _string($query; "_format_text");
+
+      def _format:
+        # @name -> _format_name
+        _string($query.term.str; "_format_\($query.term.format[1:])");
 
       # .
       def _identity:
@@ -1850,6 +1904,7 @@ def eval_ast($query; $path; $env; undefined_func):
             if $type == "TermTypeNull"       then [[], null]
             elif $type == "TermTypeNumber"   then [[null], ($query.term.number | tonumber)]
             elif $type == "TermTypeString"   then _string
+            elif $type == "TermTypeFormat"   then _format
             elif $type == "TermTypeTrue"     then [[null], true]
             elif $type == "TermTypeFalse"    then [[null], false]
             elif $type == "TermTypeIdentity" then _identity
@@ -2345,6 +2400,10 @@ def any(cond): any(.[]; cond);
 def any: any(.);
 
 def del(p): delpaths([path(p)]);
+
+def _format_text: tostring;
+def _format_json: tojson;
+
 ";
 
 def builtins_env:

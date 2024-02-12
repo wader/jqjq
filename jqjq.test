@@ -83,6 +83,15 @@ null
 "escape \"\n\r\t\f\b\\\/ literal"
 # TODO: invalid escape
 
+# format string
+@text "aaa \(.) bbb \(.) ccc"
+"abc"
+"aaa abc bbb abc ccc"
+
+@json "aaa \(.) bbb \(.) ccc"
+"abc"
+"aaa \"abc\" bbb \"abc\" ccc"
+
 # array literal
 []
 null

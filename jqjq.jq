@@ -2404,6 +2404,55 @@ def del(p): delpaths([path(p)]);
 def _format_text: tostring;
 def _format_json: tojson;
 
+def _utf8_bytes:
+  [ explode[]
+  | if . < 128 then
+      # 1-byte = 0xxxxxxx
+      .
+    elif . < 2048 then
+      # 2-byte = 110xxxxx 10xxxxxx
+      ( ((. / 64) | trunc) as $x1
+      | (. - ($x1 * 64)) as $x0
+      | 192 + $x1
+      , 128 + $x0
+      )
+    elif . < 65536 then
+      # 3-byte = 1110xxxx 10xxxxxx 10xxxxxx
+      ( ((. / 4096) | trunc) as $x2
+      | ((. - ($x2 * 4096)) / 64 | trunc) as $x1
+      | (. - ($x2 * 4096) - ($x1 * 64)) as $x0
+      | 224 + $x2
+      , 128 + $x1
+      , 128 + $x0
+      )
+    else
+      # 4-byte = 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+      ( ((. / 262144) | trunc) as $x3
+      | ((. - ($x3 * 262144)) / 4096 | trunc) as $x2
+      | ((. - ($x3 * 262144) - ($x2 * 4096)) / 64 | trunc) as $x1
+      | (. - ($x3 * 262144) - ($x2 * 4096) - ($x1 * 64)) as $x0
+      | 240 + $x3
+      , 128 + $x2
+      , 128 + $x1
+      , 128 + $x0
+      )
+    end
+  ];
+
+def _format_uri:
+  gsub(\"(?<c>[^A-Za-z0-9-_\\\\.~])\";
+    ( # A (65) - 10 = 55
+      def _hex: . + if . < 10 then 48 else 55 end;
+      .c
+    | [ _utf8_bytes[]
+      | 37 # %
+      , (((. / 16) | trunc) | _hex)
+      , ((. % 16) | _hex)
+      ]
+    | implode
+    )
+  );
+
 ";
 
 def builtins_env:

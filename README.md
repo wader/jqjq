@@ -205,7 +205,7 @@ Note that the tests are meant to be used with jq 1.7.1.
   - [ ] `@html`
   - [ ] `@sh`
   - [ ] `@tsv`
-  - [ ] `@uri`
+  - [x] `@uri`
   - [x] `@json`
   - [x] `@text`
 - [ ] `label $out | break $out` Break out

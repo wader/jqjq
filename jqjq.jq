@@ -15,67 +15,67 @@
 #   a string that is parts of string interpolation.
 #
 
-def _fromradix($base; tonum):
-  reduce explode[] as $c (
-    0;
-    . * $base + ($c | tonum)
-  );
-
 def _internal_error($v): {_internal_error: $v} | error;
 def _is_internal_error: type == "object" and has("_internal_error");
 def _unwrap_internal_error: ._internal_error;
-
-def _fromhex:
-  _fromradix(
-    16;
-    if . >= 48 and . <= 57 then .-48 # 0-9
-    elif . >= 97 and . <= 102 then .-97+10 # a-f
-    else .-65+10 # A-F
-    end
-  );
-
-def _unescape:
-  gsub(
-    "(?<surrogate>(\\\\u[dD][89a-fA-F][0-9a-fA-F]{2}){2})"
-    +"|(?<codepoint>\\\\u[0-9a-fA-F]{4})"
-    +"|(?<escape>\\\\.)";
-    if .surrogate then
-      # surrogate pair \uD83D\uDCA9 -> 💩
-      ( .surrogate
-      | ([.[2:6], .[8:] | _fromhex]) as [$hi,$lo]
-      # translate surrogate hi/lo pair values into codepoint
-      # (hi-0xd800<<10) + (lo-0xdc00) + 0x10000
-      | [($hi-55296)*1024 + ($lo-56320) + 65536]
-      | implode
-      )
-    elif .codepoint then
-      # codepoint \u006a -> j
-      ( .codepoint[2:]
-      | [_fromhex]
-      | implode
-      )
-    elif .escape then
-      # escape \n -> \n
-      ( .escape[1:] as $escape
-      | { "n": "\n"
-        , "r": "\r"
-        , "t": "\t"
-        , "f": "\f"
-        , "b": "\b"
-        , "\"": "\""
-        , "/": "/"
-        , "\\": "\\"
-        }[$escape]
-      | if not then error("unknown escape: \\\($escape)") else . end
-      )
-    else error("unreachable")
-    end
-  );
 
 # TODO: keep track of position?
 # TODO: error on unbalanced string stack?
 # string_stack is used to keep track of matching ( ) and \( <-> )" or ) (
 def lex:
+  def _unescape:
+    def _fromhex:
+      def _fromradix($base; tonum):
+        reduce explode[] as $c (
+          0;
+          . * $base + ($c | tonum)
+        );
+      _fromradix(
+        16;
+        if . >= 48 and . <= 57 then .-48 # 0-9
+        elif . >= 97 and . <= 102 then .-97+10 # a-f
+        else .-65+10 # A-F
+        end
+      );
+
+   gsub(
+      ( "(?<surrogate>(\\\\u[dD][89a-fA-F][0-9a-fA-F]{2}){2})|"
+      + "(?<codepoint>\\\\u[0-9a-fA-F]{4})|"
+      + "(?<escape>\\\\.)"
+      );
+      if .surrogate then
+        # surrogate pair \uD83D\uDCA9 -> 💩
+        ( .surrogate
+        | ([.[2:6], .[8:] | _fromhex]) as [$hi,$lo]
+        # translate surrogate hi/lo pair values into codepoint
+        # (hi-0xd800<<10) + (lo-0xdc00) + 0x10000
+        | [($hi-55296)*1024 + ($lo-56320) + 65536]
+        | implode
+        )
+      elif .codepoint then
+        # codepoint \u006a -> j
+        ( .codepoint[2:]
+        | [_fromhex]
+        | implode
+        )
+      elif .escape then
+        # escape \n -> \n
+        ( .escape[1:] as $escape
+        | { "n": "\n"
+          , "r": "\r"
+          , "t": "\t"
+          , "f": "\f"
+          , "b": "\b"
+          , "\"": "\""
+          , "/": "/"
+          , "\\": "\\"
+          }[$escape]
+        | if not then error("unknown escape: \\\($escape)") else . end
+        )
+      else error("unreachable")
+      end
+    );
+
   def _token:
     def _re($re; f):
       ( . as {$remain, $string_stack}
@@ -2451,7 +2451,7 @@ def _format_uri:
 
 ";
 
-def builtins_env:
+def _builtins_env:
   try
     ( _builtins_src
     | lex
@@ -2505,67 +2505,7 @@ def eval($expr; $globals; $builtins_env):
     builtin_undefined_func($globals; $builtins_env)
   );
 def eval($expr):
-  eval($expr; {}; builtins_env);
-
-# read jq test format:
-# # comment
-# expr
-# input
-# output*
-# <blank>+
-# ...
-# <next test>
-def fromjqtest:
-  [ foreach (split("\n")[], "") as $l (
-      { current_line: 0
-      , nr: 1
-      , emit: true
-      };
-      ( .current_line += 1
-      | if .emit then
-          ( .expr = null
-          | .input = null
-          | .output = []
-          | .fail = null
-          | .emit = null
-          | .error = null
-          )
-        else .
-        end
-      | if $l | test("^\\s*#") then .
-        elif $l | test("^\\s*$") then
-          if .expr then
-            ( .emit =
-                { line
-                , nr
-                , expr
-                , input
-                , output
-                , fail
-                , error
-                }
-            | .nr += 1
-            )
-          else .
-          end
-        elif $l | test("^\\s*%%FAIL") then
-          .fail = $l
-        else
-          if .expr == null then
-            ( .line = .current_line
-            | .expr = $l
-            )
-          elif .fail and .error == null then .error = $l
-          elif .input == null then .input = $l
-          else .output += [$l]
-          end
-        end
-      );
-      if .emit then .emit
-      else empty
-      end
-    )
-  ];
+  eval($expr; {}; _builtins_env);
 
 # entrypoint for jqjq wrapper
 # what argument jq will run with depends as bit on some arguments, --repl, --run-tests
@@ -2573,35 +2513,36 @@ def fromjqtest:
 def jqjq($args; $env):
   def _parse_args:
     def _f:
-      .[0] as $a |
-      if length == 0 then empty
-      elif $a == "-h" or $a == "--help"              then {help: true}, (.[1:] | _f)
-      elif $a == "--jq"                              then {jq: .[1]}, (.[2:] | _f)
-      elif $a == "--lex"                             then {lex: true}, (.[1:] | _f)
-      elif $a == "--no-builtins"                     then {no_builtins: true}, (.[1:] | _f)
-      elif $a == "--parse"                           then {parse: true}, (.[1:] | _f)
-      elif $a == "--repl"                            then {repl: true}, (.[1:] | _f)
-      elif $a == "-n" or $a == "--null-input"        then {null_input: true}, (.[1:] | _f)
-      elif $a == "-s" or $a == "--slurp"             then {slurp: true}, (.[1:] | _f)
-      elif $a == "-c" or $a == "--compact-output"    then {compact_output: true}, (.[1:] | _f)
-      elif $a == "-r" or $a == "--raw-output"        then {raw_output: true}, (.[1:] | _f)
-      elif $a == "--raw-output0"                     then ( { raw_output: true
-                                                            , raw_no_lf: true
-                                                            , raw_output0: true
-                                                            }
-                                                          , (.[1:] | _f)
-                                                          )
-      elif $a == "-j" or $a == "--join-output"       then ( { raw_output: true
-                                                            , raw_no_lf: true}
-                                                          , (.[1:] | _f)
-                                                          )
-      elif $a == "-C" or $a == "--color-output"      then {color_output: true}, (.[1:] | _f)
-      elif $a == "-M" or $a == "--monochrome-output" then {monochrome_output: true}, (.[1:] | _f)
-      elif $a == "--run-tests"                       then {run_tests: true}, (.[1:] | _f)
-      elif $a == "--"                                then {filter: .[1]}, (.[2:] | _f)
-      elif $a | startswith("-")                      then error("unknown argument: \($a)")
-      else {filter: $a}, (.[1:] | _f)
-      end;
+      ( .[0] as $a
+      | if length == 0 then empty
+        elif $a == "-h" or $a == "--help"              then {help: true}, (.[1:] | _f)
+        elif $a == "--jq"                              then {jq: .[1]}, (.[2:] | _f)
+        elif $a == "--lex"                             then {lex: true}, (.[1:] | _f)
+        elif $a == "--no-builtins"                     then {no_builtins: true}, (.[1:] | _f)
+        elif $a == "--parse"                           then {parse: true}, (.[1:] | _f)
+        elif $a == "--repl"                            then {repl: true}, (.[1:] | _f)
+        elif $a == "-n" or $a == "--null-input"        then {null_input: true}, (.[1:] | _f)
+        elif $a == "-s" or $a == "--slurp"             then {slurp: true}, (.[1:] | _f)
+        elif $a == "-c" or $a == "--compact-output"    then {compact_output: true}, (.[1:] | _f)
+        elif $a == "-r" or $a == "--raw-output"        then {raw_output: true}, (.[1:] | _f)
+        elif $a == "--raw-output0"                     then ( { raw_output: true
+                                                              , raw_no_lf: true
+                                                              , raw_output0: true
+                                                              }
+                                                            , (.[1:] | _f)
+                                                            )
+        elif $a == "-j" or $a == "--join-output"       then ( { raw_output: true
+                                                              , raw_no_lf: true}
+                                                            , (.[1:] | _f)
+                                                            )
+        elif $a == "-C" or $a == "--color-output"      then {color_output: true}, (.[1:] | _f)
+        elif $a == "-M" or $a == "--monochrome-output" then {monochrome_output: true}, (.[1:] | _f)
+        elif $a == "--run-tests"                       then {run_tests: true}, (.[1:] | _f)
+        elif $a == "--"                                then {filter: .[1]}, (.[2:] | _f)
+        elif $a | startswith("-")                      then error("unknown argument: \($a)")
+        else {filter: $a}, (.[1:] | _f)
+        end
+      );
     ( [_f]
     | add
     );
@@ -2667,7 +2608,7 @@ def jqjq($args; $env):
         else error
         end;
     ( _parse_opts({}; $env) as $opts
-    | builtins_env as $builtins_env
+    | _builtins_env as $builtins_env
     | _repeat_break(
         ( "> "
         , ( try input
@@ -2688,9 +2629,68 @@ def jqjq($args; $env):
     );
 
   def _run_tests:
+    # read jq test format:
+    # # comment
+    # expr
+    # input
+    # output*
+    # <blank>+
+    # ...
+    # <next test>
+    def _from_jqtest:
+      [ foreach (split("\n")[], "") as $l (
+          { current_line: 0
+          , nr: 1
+          , emit: true
+          };
+          ( .current_line += 1
+          | if .emit then
+              ( .expr = null
+              | .input = null
+              | .output = []
+              | .fail = null
+              | .emit = null
+              | .error = null
+              )
+            else .
+            end
+          | if $l | test("^\\s*#") then .
+            elif $l | test("^\\s*$") then
+              if .expr then
+                ( .emit =
+                    { line
+                    , nr
+                    , expr
+                    , input
+                    , output
+                    , fail
+                    , error
+                    }
+                | .nr += 1
+                )
+              else .
+              end
+            elif $l | test("^\\s*%%FAIL") then
+              .fail = $l
+            else
+              if .expr == null then
+                ( .line = .current_line
+                | .expr = $l
+                )
+              elif .fail and .error == null then .error = $l
+              elif .input == null then .input = $l
+              else .output += [$l]
+              end
+            end
+          );
+          if .emit then .emit
+          else empty
+          end
+        )
+      ];
     def _f:
-      ( builtins_env as $builtins_env
-      | fromjqtest[]
+      ( _builtins_env as $builtins_env
+      | _from_jqtest[]
       | . as $c
       | try
           if .error | not then
@@ -2787,7 +2787,7 @@ def jqjq($args; $env):
         end;
       _parse_opts($opts; $env) as $opts
     | ( if $opts.no_builtins then {}
-        else builtins_env
+        else _builtins_env
         end
       ) as $builtins_env
     | _inputs

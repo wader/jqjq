@@ -500,8 +500,8 @@ def parse:
       | _consume(.rparen)
       | [ .
         , { term:
-              { type: "TermTypeQuery",
-                query: $query
+              { type: "TermTypeQuery"
+              , query: $query
               }
           }
         ]
@@ -571,8 +571,8 @@ def parse:
       | _consume(.rsquare)
       | [ .
         , { term:
-              { type: "TermTypeArray",
-                array:
+              { type: "TermTypeArray"
+              , array:
                   {query: $query}
               }
           }
@@ -1417,8 +1417,8 @@ def eval_ast($query; $path; $env; undefined_func):
               elif . == "TermTypeObject" then
                 ( $v.term.object.key_vals // []
                 | map(
-                    { key: .key_string.str,
-                      value: (.val.queries[0] | _f)
+                    { key: .key_string.str
+                    , value: (.val.queries[0] | _f)
                     }
                   )
                 | from_entries
@@ -1634,8 +1634,8 @@ def eval_ast($query; $path; $env; undefined_func):
         | map(
             ( def _term_str:
                 { term:
-                    { type: "TermTypeString",
-                      str: .
+                    { type: "TermTypeString"
+                    , str: .
                     }
                 };
               . as $kv
@@ -1649,18 +1649,14 @@ def eval_ast($query; $path; $env; undefined_func):
                     ( $kv.key
                     | if startswith("$") then
                         { term:
-                            { type: "TermTypeFunc",
-                              func:
-                                { name: .
-                                }
+                            { type: "TermTypeFunc"
+                            , func: { name: .}
                             }
                         }
                       else
                         { term:
-                            { type: "TermTypeIndex",
-                              index:
-                                { name: .
-                                }
+                            { type: "TermTypeIndex"
+                            , index: { name: .}
                             }
                         }
                       end
@@ -1674,8 +1670,8 @@ def eval_ast($query; $path; $env; undefined_func):
                   , ( $kv.val.queries[0]
                     //
                       { term:
-                          { type: "TermTypeIndex",
-                            index:
+                          { type: "TermTypeIndex"
+                          , index:
                               { name: $kv.key_string.str
                               }
                           }
@@ -1964,8 +1960,8 @@ def eval_ast($query; $path; $env; undefined_func):
             # transform <lhr> <op> <rhs> to _assign/_update(lhr; "<op>"; rhs)
             _e(
               { term:
-                  { type: "TermTypeFunc",
-                    func:
+                  { type: "TermTypeFunc"
+                  , func:
                       { name:
                           { "=":  "_assign"
                           , "|=": "_update"
@@ -2589,11 +2585,16 @@ def jqjq($args; $env):
       elif $a == "-s" or $a == "--slurp"             then {slurp: true}, (.[1:] | _f)
       elif $a == "-c" or $a == "--compact-output"    then {compact_output: true}, (.[1:] | _f)
       elif $a == "-r" or $a == "--raw-output"        then {raw_output: true}, (.[1:] | _f)
-      elif $a == "--raw-output0"                     then {raw_output: true,
-                                                           raw_no_lf: true,
-                                                           raw_output0: true}, (.[1:] | _f)
-      elif $a == "-j" or $a == "--join-output"       then {raw_output: true,
-                                                           raw_no_lf: true}, (.[1:] | _f)
+      elif $a == "--raw-output0"                     then ( { raw_output: true
+                                                            , raw_no_lf: true
+                                                            , raw_output0: true
+                                                            }
+                                                          , (.[1:] | _f)
+                                                          )
+      elif $a == "-j" or $a == "--join-output"       then ( { raw_output: true
+                                                            , raw_no_lf: true}
+                                                          , (.[1:] | _f)
+                                                          )
       elif $a == "-C" or $a == "--color-output"      then {color_output: true}, (.[1:] | _f)
       elif $a == "-M" or $a == "--monochrome-output" then {monochrome_output: true}, (.[1:] | _f)
       elif $a == "--run-tests"                       then {run_tests: true}, (.[1:] | _f)

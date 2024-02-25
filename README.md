@@ -235,7 +235,15 @@ Note that the tests are meant to be used with jq 1.7.1.
     - [x] `--no-builtins`
     - [x] `--parse`
     - [x] `--repl`
-- [x] Run jqjq with jqjq
+- Host jq
+  - [x] jq
+  - [x] gojq
+  - [x] jqjq
+    - Used to work but runs out of memory on my laptop
+  - [ ] jaq
+    - Fails on missing destructing support
+  - [ ] xq
+    - Fails on missing `debug`, maths, jqjq `lex` returns empty (regexp issues?)
 - [x] Bugs
 
 ### jq's test suite

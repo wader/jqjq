@@ -2809,8 +2809,8 @@ def jqjq($args; $env):
     + ($args | _parse_args)
     ) as $opts
   | if $opts.help        then _help
-    elif $opts.lex       then $opts.filter | lex
-    elif $opts.parse     then $opts.filter | lex | parse
+    elif $opts.lex       then $opts.filter | lex, "\n"
+    elif $opts.parse     then $opts.filter | lex | parse, "\n"
     elif $opts.repl      then _repl
     elif $opts.run_tests then input | _run_tests
     else

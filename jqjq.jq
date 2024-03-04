@@ -2511,42 +2511,6 @@ def eval($expr):
 # what argument jq will run with depends as bit on some arguments, --repl, --run-tests
 # etc, see wrapper script
 def jqjq($args; $env):
-  def _parse_args:
-    def _f:
-      ( .[0] as $a
-      | if length == 0 then empty
-        elif $a == "-h" or $a == "--help"              then {help: true}, (.[1:] | _f)
-        elif $a == "--jq"                              then {jq: .[1]}, (.[2:] | _f)
-        elif $a == "--lex"                             then {lex: true}, (.[1:] | _f)
-        elif $a == "--no-builtins"                     then {no_builtins: true}, (.[1:] | _f)
-        elif $a == "--parse"                           then {parse: true}, (.[1:] | _f)
-        elif $a == "--repl"                            then {repl: true}, (.[1:] | _f)
-        elif $a == "-n" or $a == "--null-input"        then {null_input: true}, (.[1:] | _f)
-        elif $a == "-s" or $a == "--slurp"             then {slurp: true}, (.[1:] | _f)
-        elif $a == "-c" or $a == "--compact-output"    then {compact_output: true}, (.[1:] | _f)
-        elif $a == "-r" or $a == "--raw-output"        then {raw_output: true}, (.[1:] | _f)
-        elif $a == "--raw-output0"                     then ( { raw_output: true
-                                                              , raw_no_lf: true
-                                                              , raw_output0: true
-                                                              }
-                                                            , (.[1:] | _f)
-                                                            )
-        elif $a == "-j" or $a == "--join-output"       then ( { raw_output: true
-                                                              , raw_no_lf: true}
-                                                            , (.[1:] | _f)
-                                                            )
-        elif $a == "-C" or $a == "--color-output"      then {color_output: true}, (.[1:] | _f)
-        elif $a == "-M" or $a == "--monochrome-output" then {monochrome_output: true}, (.[1:] | _f)
-        elif $a == "--run-tests"                       then {run_tests: true}, (.[1:] | _f)
-        elif $a == "--"                                then {filter: .[1]}, (.[2:] | _f)
-        elif $a | startswith("-")                      then error("unknown argument: \($a)")
-        else {filter: $a}, (.[1:] | _f)
-        end
-      );
-    ( [_f]
-    | add
-    );
-
   # get the ANSI color codes for printing values
   # corresponds to jv_set_colors in jq and its usage in main
   def _parse_colors($opts; $env):
@@ -2576,28 +2540,6 @@ def jqjq($args; $env):
       + { colors: _parse_colors($opts; $env)
         , indent: (if $opts.compact_output then 0 else 2 end)
         }
-    );
-
-  def _help:
-    ( "jqjq - jq implementation of jq\n"
-    + "Usage: jqjq [OPTIONS] [--] [EXPR]\n"
-    + "\n"
-    + "Options:\n"
-    + "  --jq PATH                 jq implementation to run with\n"
-    + "  --lex                     Lex EXPR\n"
-    + "  --no-builtins             Don't include builtins\n"
-    + "  --parse                   Lex then parse EXPR\n"
-    + "  --repl                    REPL\n"
-    + "\n"
-    + "  --null-input / -n         Null input\n"
-    + "  --slurp / -s              Slurp inputs into an array\n"
-    + "  --compact-output / -c     Output each object on one line\n"
-    + "  --raw-output / -r         Output strings raw with newline\n"
-    + "  --raw-output0             Output strings raw with NUL\n"
-    + "  --join-output             Output strings raw\n"
-    + "  --color-output / -C       Force colored output\n"
-    + "  --monochrome-output / -M  Disable colored output\n"
-    + "  --run-tests               Run jq tests from stdin\n"
     );
 
   def _repl:
@@ -2800,6 +2742,65 @@ def jqjq($args; $env):
       end
     | if $opts.raw_no_lf | not then ., "\n" end
     | if $opts.raw_output0 then ., "\u0000" end
+    );
+
+  def _parse_args:
+    def _f:
+      ( .[0] as $a
+      | if length == 0 then empty
+        elif $a == "-h" or $a == "--help"              then {help: true}, (.[1:] | _f)
+        elif $a == "--jq"                              then {jq: .[1]}, (.[2:] | _f)
+        elif $a == "--lex"                             then {lex: true}, (.[1:] | _f)
+        elif $a == "--no-builtins"                     then {no_builtins: true}, (.[1:] | _f)
+        elif $a == "--parse"                           then {parse: true}, (.[1:] | _f)
+        elif $a == "--repl"                            then {repl: true}, (.[1:] | _f)
+        elif $a == "-n" or $a == "--null-input"        then {null_input: true}, (.[1:] | _f)
+        elif $a == "-s" or $a == "--slurp"             then {slurp: true}, (.[1:] | _f)
+        elif $a == "-c" or $a == "--compact-output"    then {compact_output: true}, (.[1:] | _f)
+        elif $a == "-r" or $a == "--raw-output"        then {raw_output: true}, (.[1:] | _f)
+        elif $a == "--raw-output0"                     then ( { raw_output: true
+                                                              , raw_no_lf: true
+                                                              , raw_output0: true
+                                                              }
+                                                            , (.[1:] | _f)
+                                                            )
+        elif $a == "-j" or $a == "--join-output"       then ( { raw_output: true
+                                                              , raw_no_lf: true
+                                                              }
+                                                            , (.[1:] | _f)
+                                                            )
+        elif $a == "-C" or $a == "--color-output"      then {color_output: true}, (.[1:] | _f)
+        elif $a == "-M" or $a == "--monochrome-output" then {monochrome_output: true}, (.[1:] | _f)
+        elif $a == "--run-tests"                       then {run_tests: true}, (.[1:] | _f)
+        elif $a == "--"                                then {filter: .[1]}, (.[2:] | _f)
+        elif $a | startswith("-")                      then error("unknown argument: \($a)")
+        else {filter: $a}, (.[1:] | _f)
+        end
+      );
+    ( [_f]
+    | add
+    );
+
+  def _help:
+    ( "jqjq - jq implementation of jq\n"
+    + "Usage: jqjq [OPTIONS] [--] [EXPR]\n"
+    + "\n"
+    + "Options:\n"
+    + "  --jq PATH                 jq implementation to run with\n"
+    + "  --lex                     Lex EXPR\n"
+    + "  --no-builtins             Don't include builtins\n"
+    + "  --parse                   Lex then parse EXPR\n"
+    + "  --repl                    REPL\n"
+    + "\n"
+    + "  --null-input / -n         Null input\n"
+    + "  --slurp / -s              Slurp inputs into an array\n"
+    + "  --compact-output / -c     Output each object on one line\n"
+    + "  --raw-output / -r         Output strings raw with newline\n"
+    + "  --raw-output0             Output strings raw with NUL\n"
+    + "  --join-output             Output strings raw\n"
+    + "  --color-output / -C       Force colored output\n"
+    + "  --monochrome-output / -M  Disable colored output\n"
+    + "  --run-tests               Run jq tests from stdin\n"
     );
 
   ( ( { filter: "."

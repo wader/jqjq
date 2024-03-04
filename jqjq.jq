@@ -126,6 +126,30 @@ def lex:
         )
       # match " <any non-"-or-\> or <\ + any> "
       // _re("^\"(?:[^\"\\\\]|\\\\.)*?\""; .[1:-1] | _unescape | {string: .})
+      # NOTES:
+      # Does not match new line in literal (same as js), ex:
+      #   | . / 2
+      #   | . / 4
+      # Does note match empty regexp (//-alt, comment in js)
+      #   2 // 4
+      # TODO: 1 / 2 / 3
+      // _re("^/(?:[^/\\\\\\n]|\\\\.)+?/";
+          def _regex_valid:
+            ( . as $regex
+            | ""
+            | ((first(match($regex))) | $regex) // $regex
+            );
+          # NOTES: hack, should be has named capture groups?
+          def _regex_has_capture_groups:
+            test("^\\(|[^\\\\]\\(");
+
+          ( .[1:-1]
+          | _regex_valid
+          | { regex: .
+            , has_capture_groups: _regex_has_capture_groups
+            }
+          )
+        )
       // _re("^==";     {equal_equal: .})
       // _re("^\\|=";   {pipe_equal: .})
       // _re("^=";      {equal: .})
@@ -996,6 +1020,56 @@ def parse:
         ]
       );
 
+    # /regex/
+    def _regex:
+      ( .[0] as {$regex, $has_capture_groups}
+      | _consume(.regex)
+      | [ .
+        , if $has_capture_groups then
+            # capture("regex")
+            { term:
+                { type: "TermTypeFunc"
+                , func:
+                    { name: "capture"
+                    , args:
+                        [ { term:
+                              { str: $regex
+                              , type: "TermTypeString"
+                              }
+                          }
+                        ]
+                    }
+                }
+            }
+          else
+            # select(test("regex"))
+            { term:
+                { type: "TermTypeFunc"
+                , func:
+                    { name: "select"
+                    , args:
+                        [ { term:
+                              { type: "TermTypeFunc"
+                              , func:
+                                  { name: "test"
+                                  , args:
+                                      [ { term:
+                                            { str: $regex
+                                            , type: "TermTypeString"
+                                            }
+                                        }
+                                      ]
+                                  }
+                              }
+                          }
+                        ]
+                    }
+                }
+            }
+          end
+        ]
+      );
+
     # try <query>
     # try <query> catch <query>
     # TODO: query should not allow |?
@@ -1092,6 +1166,7 @@ def parse:
           // _p("number")
           // _p("string")
           // _p("format_string")
+          // _p("regex")
           // _p("array")
           // _p("subquery") # TODO: rename?
           // _p("object")
@@ -1123,6 +1198,7 @@ def parse:
       elif $type == "number" then _scalar("TermTypeNumber"; .number; {number: .number})
       elif $type == "string" then _string
       elif $type == "format_string" then _format_string
+      elif $type == "regex" then _regex
       elif $type == "index" then _index
       elif $type == "identity" then _identity
       elif $type == "array" then _array

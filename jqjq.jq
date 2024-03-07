@@ -1994,9 +1994,7 @@ def eval_ast($query; $path; $env; undefined_func):
       end
     );
   try
-    ( _e($query; []; $env) as [$_, $v]
-    | $v
-    )
+    _e($query; []; $env)
   catch
     if _is_internal_error then _unwrap_internal_error | error("internal error: \(.)")
     else error
@@ -2482,15 +2480,19 @@ def builtin_undefined_func($globals; $builtins_env):
           [];
           $builtins_env;
           undefined_func_error
-        ) as $expr
+        ) as [$_path, $expr]
       | $f.input
       | eval_ast(
           $expr | lex | parse;
           [];
           $builtins_env;
           undefined_func_error
-        )
-      | [[null], .]
+        ) as [$path, $value]
+      | [ if $path == [null] then $path
+          else $f.path + $path
+          end
+        , $value
+        ]
       )
     else
       undefined_func_error
@@ -2503,7 +2505,7 @@ def eval($expr; $globals; $builtins_env):
     [];
     $builtins_env;
     builtin_undefined_func($globals; $builtins_env)
-  );
+  )[1]; # [path, value]
 def eval($expr):
   eval($expr; {}; _builtins_env);
 
@@ -2658,7 +2660,8 @@ def jqjq($args; $env):
                 [];
                 $builtins_env;
                 builtin_undefined_func({"$ENV": {"jqjq": 123}}; $builtins_env)
-              )
+              ) as [$_path, $value]
+            | $value
             ] as $actual_output
           | if $test.output == $actual_output then
               ( "OK: \($test_name)"

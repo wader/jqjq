@@ -2479,14 +2479,14 @@ def builtin_undefined_func($globals; $builtins_env):
           $f.args[0];
           [];
           $builtins_env;
-          undefined_func_error
+          builtin_undefined_func($globals; $builtins_env)
         ) as [$_path, $expr]
       | $f.input
       | eval_ast(
           $expr | lex | parse;
           [];
           $builtins_env;
-          undefined_func_error
+          builtin_undefined_func($globals; $builtins_env)
         ) as [$path, $value]
       | [ if $path == [null] then $path
           else $f.path + $path

@@ -1211,7 +1211,7 @@ def _tojson_stream($opts):
         else _internal_error("unknown type \($t)")
         end
       );
-    _f($newline + $indent)
+    _f($newline)
   );
 def _tojson: [_tojson_stream({})] | join("");
 

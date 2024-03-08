@@ -1161,8 +1161,10 @@ def _tojson_stream($opts):
     if $opts.colors != null then
       $opts.colors[$id], ., "\u001b[0m"
     else . end;
-  def _f($opts; $indent):
-    def _r($prefix):
+  ( ($opts.indent // 0) as $indent
+  | (if $indent > 0 then ["\n", " "] else ["", ""] end) as [$newline, $space]
+  | ($indent * " ") as $indent
+  | def _f($prefix):
       ( type as $t
       | if $t == "null" then "null" | _color(_c_null)
         elif $t == "string" then tojson | _color(_c_string)
@@ -1175,13 +1177,12 @@ def _tojson_stream($opts):
           if length == 0 then "[]" | _color(_c_array)
           else
             ( ($prefix + $indent) as $elem_prefix
-            | ("[" | _color(_c_array)), $opts.newline
-            , $elem_prefix, (.[0] | _r($elem_prefix))
+            | ("[" | _color(_c_array))
+            , $elem_prefix, (.[0] | _f($elem_prefix))
             , ( .[1:][]
-              | ("," | _color(_c_array)), $opts.newline
-              , $elem_prefix, _r($elem_prefix)
+              | ("," | _color(_c_array))
+              , $elem_prefix, _f($elem_prefix)
               )
-            , $opts.newline
             , $prefix, ("]" | _color(_c_array))
             )
           end
@@ -1190,50 +1191,39 @@ def _tojson_stream($opts):
           else
             ( ($prefix + $indent) as $elem_prefix
             | to_entries as $entries
-            | ("{" | _color(_c_object)), $opts.newline
+            | ("{" | _color(_c_object))
             , ( $entries[0]
               | $elem_prefix
               , (.key | tojson | _color(_c_field))
-              , (":" | _color(_c_object)), $opts.space
-              , (.value | _r($elem_prefix))
+              , (":" | _color(_c_object)), $space
+              , (.value | _f($elem_prefix))
               )
             , ( $entries[1:][]
-              | ("," | _color(_c_object)), $opts.newline
+              | ("," | _color(_c_object))
               , $elem_prefix
               , (.key | tojson | _color(_c_field))
-              , (":" | _color(_c_object)), $opts.space
-              , (.value | _r($elem_prefix))
+              , (":" | _color(_c_object)), $space
+              , (.value | _f($elem_prefix))
               )
-            , $opts.newline
             , $prefix, ("}" | _color(_c_object))
             )
           end
         else _internal_error("unknown type \($t)")
         end
       );
-    _r("");
-  ( ( { indent: 0
-      , newline: ""
-      , space: ""
-      } + $opts
-    | if .indent > 0  then
-        ( .newline = "\n"
-        | .space = " "
-        )
-      end
-    ) as $o
-  | _f($o; $o.indent * " ")
-  , if $o.stream_sep != null then $o.stream_sep else empty end
+    _f($newline + $indent)
   );
 def _tojson: [_tojson_stream({})] | join("");
 
 def dump($opts):
-  if $opts.raw_output and type == "string" then
-    if $opts.raw_output0 and contains("\u0000") then
-      error("Cannot dump a string containing NUL with --raw-output0 option")
+  ( if $opts.raw_output and type == "string" then
+      if $opts.raw_output0 and contains("\u0000") then
+        error("Cannot dump a string containing NUL with --raw-output0 option")
+      end
+    else _tojson_stream($opts)
     end
-  else _tojson_stream($opts)
-  end;
+  , if $opts.stream_sep != null then $opts.stream_sep else empty end
+  );
 
 def undefined_func_error:
   error("undefined function \(.name)");

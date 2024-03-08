@@ -1147,7 +1147,7 @@ def parse:
   // error("parse error: \(.)")
   );
 
-def _tojson($opts):
+def _tojson_stream($opts):
   # see jq jv_print.c:jv_dump_term for the reference color printing logic
   def _c_null: 0;
   def _c_false: 1;
@@ -1159,12 +1159,12 @@ def _tojson($opts):
   def _c_field: 7;
   def _color($id):
     if $opts.colors != null then
-      "\u001b[\($opts.colors[$id])m" + . + "\u001b[0m"
+      $opts.colors[$id], ., "\u001b[0m"
     else . end;
   def _f($opts; $indent):
     def _r($prefix):
       ( type as $t
-      | if $t == "null" then tojson | _color(_c_null)
+      | if $t == "null" then "null" | _color(_c_null)
         elif $t == "string" then tojson | _color(_c_string)
         elif $t == "number" then tojson | _color(_c_number)
         elif $t == "boolean" then
@@ -1174,34 +1174,39 @@ def _tojson($opts):
         elif $t == "array" then
           if length == 0 then "[]" | _color(_c_array)
           else
-            [ ("[" | _color(_c_array)), $opts.newline
-            , ( [ .[]
-                | $prefix, $indent
-                , _r($prefix+$indent)
-                , ("," | _color(_c_array)), $opts.newline
-                ]
-              | .[0:-2]
+            ( ($prefix + $indent) as $elem_prefix
+            | ("[" | _color(_c_array)), $opts.newline
+            , $elem_prefix, (.[0] | _r($elem_prefix))
+            , ( .[1:][]
+              | ("," | _color(_c_array)), $opts.newline
+              , $elem_prefix, _r($elem_prefix)
               )
             , $opts.newline
             , $prefix, ("]" | _color(_c_array))
-            ]
+            )
           end
         elif $t == "object" then
           if length == 0 then "{}" | _color(_c_object)
           else
-            [ ("{" | _color(_c_object)), $opts.newline
-            , ( [ to_entries[]
-                | $prefix, $indent
-                , (.key | tojson | _color(_c_field))
-                , (":" | _color(_c_object)), $opts.space
-                , (.value | _r($prefix+$indent))
-                , ("," | _color(_c_object)), $opts.newline
-                ]
-              | .[0:-2]
+            ( ($prefix + $indent) as $elem_prefix
+            | to_entries as $entries
+            | ("{" | _color(_c_object)), $opts.newline
+            , ( $entries[0]
+              | $elem_prefix
+              , (.key | tojson | _color(_c_field))
+              , (":" | _color(_c_object)), $opts.space
+              , (.value | _r($elem_prefix))
+              )
+            , ( $entries[1:][]
+              | ("," | _color(_c_object)), $opts.newline
+              , $elem_prefix
+              , (.key | tojson | _color(_c_field))
+              , (":" | _color(_c_object)), $opts.space
+              , (.value | _r($elem_prefix))
               )
             , $opts.newline
             , $prefix, ("}" | _color(_c_object))
-            ]
+            )
           end
         else _internal_error("unknown type \($t)")
         end
@@ -1218,9 +1223,9 @@ def _tojson($opts):
       end
     ) as $o
   | _f($o; $o.indent * " ")
-  | if type == "array" then flatten | join("") end
+  , if $o.stream_sep != null then $o.stream_sep else empty end
   );
-def _tojson: _tojson({});
+def _tojson: [_tojson_stream({})] | join("");
 
 def undefined_func_error:
   error("undefined function \(.name)");
@@ -2535,12 +2540,18 @@ def jqjq($args; $env):
           (($opts.color_output | not) and ($env.NO_COLOR | . != null and . != "")) then
         null
       end
+    | if . != null then map("\u001b[\(.)m") end
     );
 
   def _parse_opts($opts; $env):
     ( $opts
       + { colors: _parse_colors($opts; $env)
         , indent: (if $opts.compact_output then 0 else 2 end)
+        , stream_sep: (
+            ( if $opts.raw_no_lf then "" else "\n" end
+            | if $opts.raw_output0 then . + "\u0000" end
+            )
+          )
         }
     );
 
@@ -2561,8 +2572,7 @@ def jqjq($args; $env):
           | null
           | try
               ( eval($expr; {"$ENV": $env}; $builtins_env)
-              | _tojson($opts)
-              , "\n"
+              | _tojson_stream($opts)
               )
             catch
               ("error: \(.)\n")
@@ -2741,10 +2751,8 @@ def jqjq($args; $env):
         if $opts.raw_output0 and contains("\u0000") then
           error("Cannot dump a string containing NUL with --raw-output0 option")
         end
-      else _tojson($opts)
+      else _tojson_stream($opts)
       end
-    | if $opts.raw_no_lf | not then ., "\n" end
-    | if $opts.raw_output0 then ., "\u0000" end
     );
 
   def _parse_args:

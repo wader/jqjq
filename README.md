@@ -22,7 +22,7 @@ $ ./jqjq '.+. | map(.+105) | implode' <<< '[1,8]'
 $ ./jqjq "eval($(jq -Rs . jqjq.jq)+.)" <<< '"eval(\"def f: 1,8; [f,f] | map(.+105) | implode\")"'
 "jqjq"
 
-# jqjq have a REPL
+# jqjq has a REPL
 $ ./jqjq --repl
 > 1,2,3 | .*2
 2
@@ -263,7 +263,7 @@ jqjq has the common lex, parse, eval design.
 
 Lexer gets a string and chews off parts from left to right producing an array of tokens `[{<name>: ...}, ...]`. Each chew is done by testing regex:s in a priority order to make sure to match longer prefixes first, ex: `+=` is matched before `+`. For a match a lambda is evaluated, usually `{<token-name>: .}`, but in some cases like for quoted strings it is a bit more complicated.
 
-The lexer also has a stack to keep track of balance of seen `(`, `)` and `\(` to properly know how to chop of a string with interpolation into tokens. e.g. is `)` a right paratheses or contuination of a string as in `"abc \(123) def"`?
+The lexer also has a stack to keep track of balance of seen `(`, `)` and `\(` to properly know how to chop of a string with interpolation into tokens. e.g. is `)` a right parenthesis or continuation of a string as in `"abc \(123) def"`?
 
 You can use `./jqjq --lex '...'` to lex and see the tokens.
 
@@ -290,8 +290,8 @@ When evaluating the AST eval function get the current AST node, path and environ
 - "," operator in jq (and gojq) is left associate but for the way jqjq parses it creates the correct parse tree when it's right associate. Don't know why.
 - Suffix with multiple `[]` outputs values in wrong order.
 - String literal using interpolation that has more than one generator outputs in wrong order. Ex: `"\(1,2) \(3,4)"`.
-- Non-associate operators like `==` should fail, ex: `1 == 2 == 3`.
-- Object are parsed differently compared to gojq. gojq has a list of pipe queries, jqjq will only have one that might be pipe op.
+- Non-associative operators like `==` should fail, ex: `1 == 2 == 3`.
+- Objects are parsed differently compared to gojq. gojq has a list of pipe queries, jqjq will only have one that might be pipe op.
 - Less "passthrough" piggyback on jq features:
   - `reduce/foreach` via recursive function? similar to `if` or `{}`-literal?
   - `try/catch` via some backtrack return value? change `[path, value]` to include an error somehow?

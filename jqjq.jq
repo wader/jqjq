@@ -1147,7 +1147,7 @@ def parse:
   // error("parse error: \(.)")
   );
 
-def _tojson($opts):
+def _tojson_stream($opts):
   # see jq jv_print.c:jv_dump_term for the reference color printing logic
   def _c_null: 0;
   def _c_false: 1;
@@ -1159,12 +1159,14 @@ def _tojson($opts):
   def _c_field: 7;
   def _color($id):
     if $opts.colors != null then
-      "\u001b[\($opts.colors[$id])m" + . + "\u001b[0m"
+      $opts.colors[$id], ., "\u001b[0m"
     else . end;
-  def _f($opts; $indent):
-    def _r($prefix):
+  ( ($opts.indent // 0) as $indent
+  | (if $indent > 0 then ["\n", " "] else ["", ""] end) as [$newline, $space]
+  | ($indent * " ") as $indent
+  | def _f($prefix):
       ( type as $t
-      | if $t == "null" then tojson | _color(_c_null)
+      | if $t == "null" then "null" | _color(_c_null)
         elif $t == "string" then tojson | _color(_c_string)
         elif $t == "number" then tojson | _color(_c_number)
         elif $t == "boolean" then
@@ -1174,53 +1176,54 @@ def _tojson($opts):
         elif $t == "array" then
           if length == 0 then "[]" | _color(_c_array)
           else
-            [ ("[" | _color(_c_array)), $opts.newline
-            , ( [ .[]
-                | $prefix, $indent
-                , _r($prefix+$indent)
-                , ("," | _color(_c_array)), $opts.newline
-                ]
-              | .[0:-2]
+            ( ($prefix + $indent) as $elem_prefix
+            | ("[" | _color(_c_array))
+            , $elem_prefix, (.[0] | _f($elem_prefix))
+            , ( .[1:][]
+              | ("," | _color(_c_array))
+              , $elem_prefix, _f($elem_prefix)
               )
-            , $opts.newline
             , $prefix, ("]" | _color(_c_array))
-            ]
+            )
           end
         elif $t == "object" then
           if length == 0 then "{}" | _color(_c_object)
           else
-            [ ("{" | _color(_c_object)), $opts.newline
-            , ( [ to_entries[]
-                | $prefix, $indent
-                , (.key | tojson | _color(_c_field))
-                , (":" | _color(_c_object)), $opts.space
-                , (.value | _r($prefix+$indent))
-                , ("," | _color(_c_object)), $opts.newline
-                ]
-              | .[0:-2]
+            ( ($prefix + $indent) as $elem_prefix
+            | to_entries as $entries
+            | ("{" | _color(_c_object))
+            , ( $entries[0]
+              | $elem_prefix
+              , (.key | tojson | _color(_c_field))
+              , (":" | _color(_c_object)), $space
+              , (.value | _f($elem_prefix))
               )
-            , $opts.newline
+            , ( $entries[1:][]
+              | ("," | _color(_c_object))
+              , $elem_prefix
+              , (.key | tojson | _color(_c_field))
+              , (":" | _color(_c_object)), $space
+              , (.value | _f($elem_prefix))
+              )
             , $prefix, ("}" | _color(_c_object))
-            ]
+            )
           end
         else _internal_error("unknown type \($t)")
         end
       );
-    _r("");
-  ( ( { indent: 0
-      , newline: ""
-      , space: ""
-      } + $opts
-    | if .indent > 0  then
-        ( .newline = "\n"
-        | .space = " "
-        )
-      end
-    ) as $o
-  | _f($o; $o.indent * " ")
-  | if type == "array" then flatten | join("") end
+    _f($newline)
   );
-def _tojson: _tojson({});
+def _tojson: [_tojson_stream({})] | join("");
+
+def dump($opts):
+  ( if $opts.raw_output and type == "string" then
+      if $opts.raw_output0 and contains("\u0000") then
+        error("Cannot dump a string containing NUL with --raw-output0 option")
+      end
+    else _tojson_stream($opts)
+    end
+  , if $opts.stream_sep != null then $opts.stream_sep else empty end
+  );
 
 def undefined_func_error:
   error("undefined function \(.name)");
@@ -2301,7 +2304,7 @@ def isempty(f): [limit(1; f)] == [];
 
 # Assuming the input array is sorted, bsearch/1 returns
 # the index of the target if the target is in the input array; and otherwise
-#  (-1 - ix), where ix is the insertion point that would leave the array sorted.
+# (-1 - ix), where ix is the insertion point that would leave the array sorted.
 # If the input is not sorted, bsearch will terminate but with irrelevant results.
 def bsearch($target):
   if length == 0 then -1
@@ -2535,24 +2538,33 @@ def jqjq($args; $env):
           (($opts.color_output | not) and ($env.NO_COLOR | . != null and . != "")) then
         null
       end
+    | if . != null then map("\u001b[\(.)m") end
     );
 
   def _parse_opts($opts; $env):
     ( $opts
       + { colors: _parse_colors($opts; $env)
         , indent: (if $opts.compact_output then 0 else 2 end)
+        , stream_sep: (
+            ( if $opts.raw_no_lf then "" else "\n" end
+            | if $opts.raw_output0 then . + "\u0000" end
+            )
+          )
         }
     );
 
-  def _repl:
+  def _repl($opts):
     def _repeat_break(f):
       try repeat(f)
       catch
         if . == "break" then empty
         else error
         end;
-    ( _parse_opts({}; $env) as $opts
-    | _builtins_env as $builtins_env
+    ( _parse_opts($opts; $env) as $opts
+    | ( if $opts.no_builtins then {}
+        else _builtins_env
+        end
+      ) as $builtins_env
     | _repeat_break(
         ( "> "
         , ( try input
@@ -2560,12 +2572,14 @@ def jqjq($args; $env):
           | . as $expr
           | null
           | try
-              ( eval($expr; {"$ENV": $env}; $builtins_env)
-              | _tojson($opts)
-              , "\n"
+              (
+                ( eval($expr; {"$ENV": $env}; $builtins_env)
+                | dump($opts)
+                )
+                , if $opts.raw_no_lf then "\n" else empty end
               )
             catch
-              ("error: \(.)\n")
+              "error: \(.)\n"
           )
         )
       )
@@ -2737,14 +2751,7 @@ def jqjq($args; $env):
       ) as $builtins_env
     | _inputs
     | eval($opts.filter; {"$ENV": $env}; $builtins_env)
-    | if $opts.raw_output and type == "string" then
-        if $opts.raw_output0 and contains("\u0000") then
-          error("Cannot dump a string containing NUL with --raw-output0 option")
-        end
-      else _tojson($opts)
-      end
-    | if $opts.raw_no_lf | not then ., "\n" end
-    | if $opts.raw_output0 then ., "\u0000" end
+    | dump($opts)
     );
 
   def _parse_args:
@@ -2815,7 +2822,7 @@ def jqjq($args; $env):
   | if $opts.help        then _help
     elif $opts.lex       then $opts.filter | lex, "\n"
     elif $opts.parse     then $opts.filter | lex | parse, "\n"
-    elif $opts.repl      then _repl
+    elif $opts.repl      then _repl($opts)
     elif $opts.run_tests then input | _run_tests
     else
       _filter($opts)

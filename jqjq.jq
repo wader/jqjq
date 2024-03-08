@@ -1227,6 +1227,14 @@ def _tojson_stream($opts):
   );
 def _tojson: [_tojson_stream({})] | join("");
 
+def dump($opts):
+  if $opts.raw_output and type == "string" then
+    if $opts.raw_output0 and contains("\u0000") then
+      error("Cannot dump a string containing NUL with --raw-output0 option")
+    end
+  else _tojson_stream($opts)
+  end;
+
 def undefined_func_error:
   error("undefined function \(.name)");
 
@@ -2555,15 +2563,18 @@ def jqjq($args; $env):
         }
     );
 
-  def _repl:
+  def _repl($opts):
     def _repeat_break(f):
       try repeat(f)
       catch
         if . == "break" then empty
         else error
         end;
-    ( _parse_opts({}; $env) as $opts
-    | _builtins_env as $builtins_env
+    ( _parse_opts($opts; $env) as $opts
+    | ( if $opts.no_builtins then {}
+        else _builtins_env
+        end
+      ) as $builtins_env
     | _repeat_break(
         ( "> "
         , ( try input
@@ -2571,11 +2582,14 @@ def jqjq($args; $env):
           | . as $expr
           | null
           | try
-              ( eval($expr; {"$ENV": $env}; $builtins_env)
-              | _tojson_stream($opts)
+              (
+                ( eval($expr; {"$ENV": $env}; $builtins_env)
+                | dump($opts)
+                )
+                , if $opts.raw_no_lf then "\n" else empty end
               )
             catch
-              ("error: \(.)\n")
+              "error: \(.)\n"
           )
         )
       )
@@ -2747,12 +2761,7 @@ def jqjq($args; $env):
       ) as $builtins_env
     | _inputs
     | eval($opts.filter; {"$ENV": $env}; $builtins_env)
-    | if $opts.raw_output and type == "string" then
-        if $opts.raw_output0 and contains("\u0000") then
-          error("Cannot dump a string containing NUL with --raw-output0 option")
-        end
-      else _tojson_stream($opts)
-      end
+    | dump($opts)
     );
 
   def _parse_args:
@@ -2823,7 +2832,7 @@ def jqjq($args; $env):
   | if $opts.help        then _help
     elif $opts.lex       then $opts.filter | lex, "\n"
     elif $opts.parse     then $opts.filter | lex | parse, "\n"
-    elif $opts.repl      then _repl
+    elif $opts.repl      then _repl($opts)
     elif $opts.run_tests then input | _run_tests
     else
       _filter($opts)

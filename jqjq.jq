@@ -2306,7 +2306,7 @@ def isempty(f): [limit(1; f)] == [];
 
 # Assuming the input array is sorted, bsearch/1 returns
 # the index of the target if the target is in the input array; and otherwise
-#  (-1 - ix), where ix is the insertion point that would leave the array sorted.
+# (-1 - ix), where ix is the insertion point that would leave the array sorted.
 # If the input is not sorted, bsearch will terminate but with irrelevant results.
 def bsearch($target):
   if length == 0 then -1

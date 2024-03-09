@@ -1138,3 +1138,23 @@ null
 try eval("try error(123) catch 456") catch .
 null
 456
+
+# eval in eval
+eval("eval(\".,.,1,2\")")
+123
+123
+123
+1
+2
+
+eval("eval(\"empty\")")
+null
+
+path(eval(".a, .b.c"))
+null
+["a]
+["b","c"]
+
+(.a | eval(".a, .b.c")) = 123
+null
+{"a":{"a":123,"b":{"c":123}}}

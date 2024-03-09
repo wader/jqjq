@@ -2647,6 +2647,7 @@ def jqjq($args; $env):
         )
       ];
     def _f:
+      def _to_unslurped: map(tojson) | join(",");
       ( _builtins_env as $builtins_env
       | _from_jqtest[]
       | . as $c
@@ -2664,7 +2665,7 @@ def jqjq($args; $env):
           | .fromjson_error = $err
           )
       | select(.fromjson_error | not)
-      | "\(.nr) (line \(.line)): [\(.input | tojson) | \(.expr)] -> \(.output | tojson)" as $test_name
+      | "line \(.line): \(.input | tojson) | \(.expr) -> \(.output | _to_unslurped)" as $test_name
       | . as $test
       | try
           ( ($test.expr | lex | parse) as $ast
@@ -2683,8 +2684,8 @@ def jqjq($args; $env):
               )
             else
               ( "DIFF: \($test_name)"
-              , "  Expected: \($test.output | tojson)"
-              , "    Actual: \($actual_output | tojson)"
+              , "  Expected: \($test.output | _to_unslurped)"
+              , "    Actual: \($actual_output | _to_unslurped)"
               , {error: true}
               )
             end

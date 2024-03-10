@@ -285,6 +285,7 @@ When evaluating the AST eval function get the current AST node, path and environ
 
 ### Problems, issues and unknowns
 
+- `try 1 catch 2, try 3 catch 4` parsed incorrectly
 - Better error messages.
 - The "environment" pass around is not very efficient and also it makes support recursion a bit awkward (called function is injected in the env at call time).
 - "," operator in jq (and gojq) is left associate but for the way jqjq parses it creates the correct parse tree when it's right associate. Don't know why.

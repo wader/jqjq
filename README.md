@@ -251,7 +251,7 @@ Note that the tests are meant to be used with jq 1.7.1.
 
 ```sh
 $ ./jqjq --run-tests < ../jq/tests/jq.test | grep passed
-308 of 449 tests passed
+310 of 449 tests passed
 ```
 
 Note that expected test values are based on stedolan's jq. If you run with a different jq implementation like gojq some tests might fail because of different error messages, support for arbitrary precision integers etc.
@@ -286,7 +286,6 @@ When evaluating the AST eval function get the current AST node, path and environ
 
 ### Problems, issues and unknowns
 
-- `try 1 catch 2, try 3 catch 4` parsed incorrectly
 - Better error messages.
 - The "environment" pass around is not very efficient and also it makes support recursion a bit awkward (called function is injected in the env at call time).
 - "," operator in jq (and gojq) is left associate but for the way jqjq parses it creates the correct parse tree when it's right associate. Don't know why.

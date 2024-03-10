@@ -659,6 +659,22 @@ try error(.) catch .
 123
 123
 
+# try and , and | operator precedence
+try error, try error catch 3
+null
+3
+
+try 1 catch error, try error catch 3
+null
+1
+3
+
+try 1 catch 2 | 3
+null
+3
+
+# TODO: some try 1 | ... test?
+
 # null error same as empty
 try error catch .
 null
@@ -1120,7 +1136,7 @@ null
 ["invalid","invalid","invalid","invalid","invalid","invalid","invalid"]
 
 # literal
-[(try path(null) catch "i"), (try path(true) catch "i"), (try path(false) catch "i"), (try path("abc") catch "i"), (try path([]) catch "i"), (try path({}) catch "i")]
+[try path(null) catch "i", try path(true) catch "i", try path(false) catch "i", try path("abc") catch "i", try path([]) catch "i", try path({}) catch "i"]
 null
 [[],"i","i","i","i","i"]
 

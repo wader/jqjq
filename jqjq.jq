@@ -988,10 +988,10 @@ def parse:
       | _string as [$rest, $string]
       | [ $rest
         , { term:
-            { type: "TermTypeFormat"
-            , format: $at_ident
-            , str: $string
-            }
+              { type: "TermTypeFormat"
+              , format: $at_ident
+              , str: $string
+              }
           }
         ]
       );
@@ -1011,12 +1011,12 @@ def parse:
       | $rest
       | [ .
         , { term:
-            { type: "TermTypeTry"
-            , try:
-                ( {body: $body}
-                | if $catch_ then .catch = $catch_ else . end
-                )
-            }
+              { type: "TermTypeTry"
+              , try:
+                  ( {body: $body}
+                  | if $catch_ then .catch = $catch_ else . end
+                  )
+              }
           }
         ]
       );

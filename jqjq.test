@@ -1095,9 +1095,34 @@ null
 null
 "\\n"
 
+# paths
+map([paths])
+[null, {}, [], {"a": [1,2,3], "b": true}]
+[[],[],[],[["a"],["a",0],["a",1],["a",2],["b"]]]
+
+# path expressions
+[path(.a, .b.c)]
+{}
+[["a"],["b","c"]]
+
+[path(empty)]
+{}
+[]
+
 # SKIP_JQ
 # test below does not work with standard jq because of missing features or
 # they test jqjq specific things
+
+# TODO: proper message
+# test binding with path
+def t(v; f): try path(v | f) catch "invalid"; [(null, true, false, 1, "abc", [], {}) as $v | t($v; .)]
+null
+["invalid","invalid","invalid","invalid","invalid","invalid","invalid"]
+
+# literal
+[(try path(null) catch "i"), (try path(true) catch "i"), (try path(false) catch "i"), (try path("abc") catch "i"), (try path([]) catch "i"), (try path({}) catch "i")]
+null
+[[],"i","i","i","i","i"]
 
 # there is no group/0 in jq
 map(group)

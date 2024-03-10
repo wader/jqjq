@@ -1345,7 +1345,7 @@ def eval_ast($query; $path; $env; undefined_func):
               end;
             $query.term.queries
           | _f([])
-          | [[], .]
+          | [[null], .]
           )
         end;
 
@@ -1541,9 +1541,13 @@ def eval_ast($query; $path; $env; undefined_func):
                   ]
                 )
               elif $name == "path/1" then
-                ( _e($args[0]; []; $query_env) as [$p, $_]
+                ( _e($args[0]; []; $query_env) as [$p, $_v]
                 # TODO: try/catch error
-                | if $p == [null] then error("invalid path expression") else . end
+                | if $p | length > 0 and first == null then
+                    # TODO: include path and value?
+                    error("invalid path expression")
+                  else .
+                  end
                 | [[null], $p]
                 )
               elif $name == "acos/0"        then [[null], acos]
@@ -1703,11 +1707,11 @@ def eval_ast($query; $path; $env; undefined_func):
               )
             end;
           _f({})
-        | [[], .]
+        | [[null], .]
         );
 
       def _array:
-        ( [ []
+        ( [ [null]
           # .query only set if there was a query
           , [ _e($query.term.array.query // empty; []; $query_env) as [$_, $v]
             | $v
@@ -1900,7 +1904,7 @@ def eval_ast($query; $path; $env; undefined_func):
       if $type then
         ( . as $input
         | try
-            if $type == "TermTypeNull"       then [[], null]
+            if $type == "TermTypeNull"       then [[], null] # should be [null] also? jq bug?
             elif $type == "TermTypeNumber"   then [[null], ($query.term.number | tonumber)]
             elif $type == "TermTypeString"   then _string
             elif $type == "TermTypeFormat"   then _format
@@ -2397,6 +2401,8 @@ def any(cond): any(.[]; cond);
 def any: any(.);
 
 def del(p): delpaths([path(p)]);
+
+def paths: path(..) | select(. != []);
 
 def _format_text: tostring;
 def _format_json: tojson;

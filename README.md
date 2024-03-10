@@ -156,11 +156,12 @@ Note that the tests are meant to be used with jq 1.7.1.
   - [x] `length` (passthrough)
   - [x] `limit($n; f)`
   - [x] `map(f)`
-  - [x] `match($val)`
   - [x] `match($regex; $flags)` (passthrough)
+  - [x] `match($val)`
   - [x] `max`, `max_by(f)`
   - [x] `min`, `min_by(f)`
   - [x] `nth($n; f); nth($n)`
+  - [x] `paths`
   - [x] `range($to)`, `range($from; $to)`, `range($from; $to; $by)`
   - [x] `recurse`, `recurse(f)`
   - [x] `repeat`
@@ -250,7 +251,7 @@ Note that the tests are meant to be used with jq 1.7.1.
 
 ```sh
 $ ./jqjq --run-tests < ../jq/tests/jq.test | grep passed
-307 of 449 tests passed
+308 of 449 tests passed
 ```
 
 Note that expected test values are based on stedolan's jq. If you run with a different jq implementation like gojq some tests might fail because of different error messages, support for arbitrary precision integers etc.

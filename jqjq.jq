@@ -996,16 +996,16 @@ def parse:
         ]
       );
 
-    # try <query>
-    # try <query> catch <query>
-    # TODO: query should not allow |?
+    # try <query1>
+    # try <query1> catch <query1>
+    # <query1> is a query not allow infix operators
     def _try:
       ( _keyword("try")
-      | _p("query") as [$rest, $body]
+      | _p("query1") as [$rest, $body]
       | $rest
       | _optional(
           ( _keyword("catch")
-          | _p("query")
+          | _p("query1")
           )
         ) as [$rest, $catch_]
       | $rest
@@ -1054,12 +1054,13 @@ def parse:
 
     ( .# debug({_p: $type})
     | if $type == "query" then
-        # query1, used by _op_prec_climb, exist to fix infinite recursion
         _op_prec_climb(0; false)
       elif $type == "keyval_query" then
         # keyval query only allows | operator
         _op_prec_climb(0; .pipe | not)
       elif $type == "query1" then
+        # used by _op_prec_climb, exist to fix infinite recursion
+        # does not include infix operators
         ( _p("func_defs") as [$rest, $func_defs]
         | $rest
         | ( if length == 0 then

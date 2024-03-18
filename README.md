@@ -332,7 +332,7 @@ When evaluating the AST eval function get the current AST node, path and environ
 
 - [stedolan](https://github.com/stedolan) for jq and got me interested in generator/backtracking based languages.
 - [pkoppstein](https://github.com/pkoppstein) for writing about [jq and PEG parsing](https://github.com/stedolan/jq/wiki/Parsing-Expression-Grammars).
-- [itchyny](https://github.com/itchyny) for jqjq fixes and [gojq](https://github.com/itchyny/gojq) from which is learned a lot and is also from where most of jqjq's AST design comes from. Sharing AST design made it easier to compare parser output (ex via [fq's `_query_fromstring`](https://github.com/wader/fq)). gojq also fixes some confusing jq bugs and has better error messages which saves a lot of time.
+- [itchyny](https://github.com/itchyny) for jqjq fixes and [gojq](https://github.com/itchyny/gojq) from which i learned a lot and is also from where most of jqjq's AST design comes from. Sharing AST design made it easier to compare parser output (ex via [fq's `_query_fromstring`](https://github.com/wader/fq)). gojq also fixes some confusing jq bugs and has better error messages which saves a lot of time.
 - Michael Färber [@01mf02](https://github.com/01m) for [jaq](https://github.com/01mf02/jaq) and where I also learned about precedence climbing.
 - Thalia Archibald [@thaliaarchi](https://github.com/thaliaarchi) for correctness fixes, builtins, more CLI arguments, fancy and colorful output and more.
 

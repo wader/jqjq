@@ -358,11 +358,15 @@ def parse:
               )
             ) as [$rest, $key_vals]
           | $rest
-          | _optional(
-              # TODO: _one() etc?
-              ( _consume(.comma)
-              | [., null]
-              )
+          | ( if .[0].rcurly then
+                # keep it to make repeat finish and consumed it below
+                [$rest, null]
+              else
+                # or there must be a comma
+                ( _consume(.comma)
+                | [., null]
+                )
+              end
             ) as [$rest, $_]
           | [$rest, $key_vals]
           )
@@ -448,11 +452,15 @@ def parse:
                 )
               ) as [$rest, $key_patterns]
             | $rest
-            | _optional(
-                # TODO: _one() etc?
-                ( _consume(.comma)
-                | [., null]
-                )
+            | ( if .[0].rcurly then
+                  # keep it to make repeat finish and consumed it below
+                  [$rest, null]
+                else
+                  # or there must be a comma
+                  ( _consume(.comma)
+                  | [., null]
+                  )
+                end
               ) as [$rest, $_]
             | [$rest, $key_patterns]
             )

@@ -1209,3 +1209,14 @@ null
 (.a | eval(".a, .b.c")) = 123
 null
 {"a":{"a":123,"b":{"c":123}}}
+
+# TODO: better parse tests
+# comma required between object pairs
+try eval("{a b}") catch "failed"
+null
+"failed"
+
+# comma required between patterns
+try eval(". as {$a $b} | .") catch "failed"
+null
+"failed"

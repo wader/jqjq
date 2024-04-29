@@ -147,6 +147,7 @@ def lex:
       // _re("^-";      {dash: .})
       // _re("^\\*";    {star: .})
       // _re("^//";     {slash_slash: .})
+      // _re("^\\?\\?"; {qmark_qmark: .})
       // _re("^/";      {slash: .})
       // _re("^%";      {percent: .})
       // _re("^\\(";    {lparen: ., string_stack: ($string_stack + ["("])})
@@ -205,6 +206,7 @@ def parse:
         # TODO: understand why jq has left associativity for "," but right seems to give correct parse tree
         elif .comma then          {prec: 1, name: ",",   assoc: "right"}
         elif .slash_slash then    {prec: 2, name: "//",  assoc: "right"}
+        elif .qmark_qmark then    {prec: 2, name: "??",  assoc: "right"}
         elif .equal then          {prec: 3, name: "=",   assoc: "none"}
         elif .pipe_equal then     {prec: 3, name: "|=",  assoc: "none"}
         elif .equal_plus then     {prec: 3, name: "+=",  assoc: "none"}
@@ -1057,7 +1059,7 @@ def parse:
         _op_prec_climb(0; false)
       elif $type == "keyval_query" then
         # keyval query only allows | operator
-        _op_prec_climb(0; .pipe | not)
+        _op_prec_climb(0; .comma)
       elif $type == "query1" then
         # used by _op_prec_climb, exist to fix infinite recursion
         # does not include infix operators
@@ -1964,7 +1966,8 @@ def eval_ast($query; $path; $env; undefined_func):
               . == "*=" or
               . == "/=" or
               . == "%=" or
-              . == "//" then
+              . == "//" or
+              . == "??" then
             # transform <lhr> <op> <rhs> to _assign/_update(lhr; "<op>"; rhs)
             _e(
               { term:
@@ -1978,7 +1981,8 @@ def eval_ast($query; $path; $env; undefined_func):
                           , "*=": "_update"
                           , "/=": "_update"
                           , "%=": "_update"
-                          , "//": "_alt"
+                          , "//": "_alt_trueish"
+                          , "??": "_alt_nullish"
                           }[$op]
                       , args:
                           [ $left
@@ -2043,7 +2047,7 @@ def _update(lhs; $op; rhs):
 
 # used to implement lhs // rhs
 # TODO: rewrite mess, use label/break once added?
-def _alt(lhs; $op; rhs):
+def _alt(lhs; $op; rhs; f):
   ( \"__jqjq_alt_break\" as $b
   | try
       ( foreach (
@@ -2054,7 +2058,7 @@ def _alt(lhs; $op; rhs):
           ) as $v (
           0;
           if $v[0] == \"lhs\" then
-            if $v[1] then . + 1
+            if $v[1] | f then . + 1
             else empty
             end
           elif $v[0] == \"end\" then
@@ -2072,6 +2076,9 @@ def _alt(lhs; $op; rhs):
       else error
       end
   );
+def _alt_trueish(lhs; $op; rhs): _alt(lhs; $op; rhs; .);
+def _alt_nullish(lhs; $op; rhs): _alt(lhs; $op; rhs; . != null);
+
 
 def _is_array: type == \"array\";
 def _is_boolean: type == \"boolean\";

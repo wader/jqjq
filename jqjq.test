@@ -118,6 +118,16 @@ null
 null
 {"a": 1}
 
+# trailing comma
+{a: 1,}
+null
+{"a": 1}
+
+# priority
+{a: 1, a: 2}
+null
+{"a": 2}
+
 {a}
 {"a": 1}
 {"a": 1}

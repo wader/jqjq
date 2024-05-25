@@ -2518,12 +2518,21 @@ def builtin_undefined_func($globals; $builtins_env):
   );
 
 def eval($expr; $globals; $builtins_env):
-  eval_ast(
-    $expr | lex | parse;
-    [];
-    $builtins_env;
-    builtin_undefined_func($globals; $builtins_env)
-  )[1]; # [path, value]
+  ( eval_ast(
+      $expr | lex | parse;
+      [];
+      $builtins_env;
+      builtin_undefined_func($globals; $builtins_env)
+    ) as [$path, $value]
+  # if we have a path make eval be a valid path expression by using getpath
+  # otherwise just return the value
+  # TODO: does not work with jq yet because issue with bind patterns
+  # $ gojq -cn -L . 'include "jqjq"; {} | {a:1} | eval(".a") += 1'
+  # {"a":2}
+  | if $path == [null] then $value
+    else getpath($path)
+    end
+  );
 def eval($expr):
   eval($expr; {}; _builtins_env);
 

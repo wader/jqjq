@@ -2529,7 +2529,7 @@ def eval($expr; $globals; $builtins_env):
   # TODO: does not work with jq yet because issue with bind patterns
   # $ gojq -cn -L . 'include "jqjq"; {} | {a:1} | eval(".a") += 1'
   # {"a":2}
-  | if $path == [null] then $value
+  | if $path | . == [] or . == [null] then $value
     else getpath($path)
     end
   );
@@ -2849,7 +2849,6 @@ def jqjq($args; $env):
     elif $opts.parse     then $opts.filter | lex | parse, "\n"
     elif $opts.repl      then _repl($opts)
     elif $opts.run_tests then input | _run_tests
-    else
-      _filter($opts)
+    else _filter($opts)
     end
   );

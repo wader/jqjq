@@ -6,7 +6,7 @@ Why? It started when researching how to write decoders in jq for [fq](https://gi
 
 It's also a great way to show that jq is a very expressive, capable and neat language!
 
-You can play around with it using this [jqplay snippet](https://jqplay.org/s/g_WjmS9eZar).
+There is a [jqplay snippet with jqjq](https://jqplay.org/s/UFgMYu7qvym) if you wan't play around.
 
 ### Use via `jqjq` wrapper
 

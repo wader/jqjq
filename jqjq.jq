@@ -2356,9 +2356,9 @@ def _strindices($i):
   | [range(length) | select($s[.:] | startswith($i))]
   );
 def indices($i):
-  if type == \"array\" and ($i|type) == \"array\" then .[$i]
-  elif type == \"array\" then .[[$i]]
-  elif type == \"string\" and ($i | type) == \"string\" then _strindices($i)
+  if _is_array and ($i | _is_array) then .[$i]
+  elif _is_array then .[[$i]]
+  elif _is_string and ($i | _is_string) then _strindices($i)
   else .[$i]
   end;
 def index($i):  indices($i) | .[0];

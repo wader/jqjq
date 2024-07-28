@@ -2596,11 +2596,10 @@ def jqjq($args; $env):
           | . as $expr
           | null
           | try
-              (
-                ( eval($expr; {"$ENV": $env}; $builtins_env)
+              ( ( eval($expr; {"$ENV": $env}; $builtins_env)
                 | dump($opts)
                 )
-                , if $opts.raw_no_lf then "\n" else empty end
+              , if $opts.raw_no_lf then "\n" else empty end
               )
             catch
               "error: \(.)\n"

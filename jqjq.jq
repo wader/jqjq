@@ -1720,13 +1720,12 @@ def eval_ast($query; $path; $env; undefined_func):
         );
 
       def _array:
-        ( [ [null]
-          # .query only set if there was a query
-          , [ _e($query.term.array.query // empty; []; $query_env) as [$_, $v]
-            | $v
-            ]
+        [ [null]
+        # .query only set if there was a query
+        , [ _e($query.term.array.query // empty; []; $query_env) as [$_, $v]
+          | $v
           ]
-        );
+        ];
 
       # transform into array of [<cond>, <then>] ast pairs and fill in last else.
       # jq if works by evaluating pairs in order with same input, for each truthiness output of

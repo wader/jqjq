@@ -1081,6 +1081,35 @@ bsearch(0,2,4)
 1
 -4
 
+# first, first/1, last, last/1
+.[] | [[first], [first(.[])], [last], [last(.[])]]
+[[],[1],[1,2,3]]
+[[null],[],[null],[null]]
+[[1],[1],[1],[1]]
+ [[1],[1],[3],[3]]
+
+# nth
+.[] | [nth(0,2,4)]
+[[],[1],[1,2,3]]
+[null,null,null]
+[1,null,null]
+[1,3,null]
+
+nth(-1)
+[]
+null
+
+# nth/1
+.[] | [nth(0,2,4; .[])]
+[[],[1],[1,2,3]]
+[]
+[1]
+[1,3]
+
+try nth(-1; empty) catch .
+null
+"nth doesn't support negative indices"
+
 # shadowing a passed-through intrinsic
 def type: 42; type
 null

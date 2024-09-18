@@ -306,6 +306,7 @@ When evaluating the AST eval function get the current AST node, path and environ
 - Rewrite AST before eval, currently `if` and some others do rewrite (optional parts etc) while evaluating.
 - Rethink invalid path handling, current `[null]` is used as sentinel value.
 - `{a:123} | .a |= empty` should remove the key.
+- Lookup ident and bindings during parse, ex `def f(no_used): 123; f(does_not_exist)` and `def f: $does_not_exist, does_not_exist; 123` should fail.
 
 ### Useful references
 

@@ -38,7 +38,7 @@ def lex:
         end
       );
 
-   gsub(
+    gsub(
       ( "(?<surrogate>(\\\\u[dD][89a-fA-F][0-9a-fA-F]{2}){2})|"
       + "(?<codepoint>\\\\u[0-9a-fA-F]{4})|"
       + "(?<escape>\\\\.)"

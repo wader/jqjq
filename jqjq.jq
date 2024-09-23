@@ -2311,12 +2311,10 @@ def last: .[-1];
 def nth($n; f):
   if $n < 0 then error(\"nth doesn't support negative indices\")
   else
-    # turn f into a limited [<index>, <value>] stream and the
-    # select will make sure to only output the $n-nth value if it exists
     foreach limit($n+1; f) as $v (
-      [-1, null];
-      [.[0]+1, $v];
-      select(.[0] == $n)[1]
+      -1;
+      .+1;
+      select(. == $n) | $v
     )
   end;
 def nth($n): .[$n];

@@ -80,7 +80,7 @@ def lex:
     def _re($re; f):
       ( . as {$remain, $string_stack}
       | $remain
-      | match($re; "m").string
+      | match($re; "").string
       | f as $token
       | { result: ($token | del(.string_stack))
         , remain: $remain[length:]

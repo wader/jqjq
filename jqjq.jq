@@ -153,8 +153,8 @@ def lex:
       // _re("^\\)";    {rparen: ., string_stack: ($string_stack[0:-1])})
       // _re("^\\[";    {lsquare: .})
       // _re("^\\]";    {rsquare: .})
-      // _re("^{";      {lcurly: .})
-      // _re("^}";      {rcurly: .})
+      // _re("^\\{";    {lcurly: .})
+      // _re("^\\}";    {rcurly: .})
       // _re("^\\.\\."; {dotdot: .})
       // _re("^\\.";    {dot: .})
       // _re("^\\?";    {qmark: .})
@@ -173,7 +173,7 @@ def lex:
   [_lex];
 
 def parse:
-  def _consume(f): select(.[0] | f) | .[1:];
+  def _consume(f): select(length > 0 and (.[0] | f)) | .[1:];
   def _optional(f):
     ( f
     // [., null]
@@ -200,7 +200,8 @@ def parse:
     # filter is used to disable operators, ex in keyval query
     def _op_prec_climb($p; filter):
       def _ops:
-        if filter then false
+        if . == null then false
+        elif filter then false
         elif .pipe then           {prec: 0, name: "|",   assoc: "right"}
         # TODO: understand why jq has left associativity for "," but right seems to give correct parse tree
         elif .comma then          {prec: 1, name: ",",   assoc: "right"}
@@ -249,7 +250,9 @@ def parse:
               # if functions was defined for the left side they should be
               # move to the op itself to also be available on the right side
               # ex: def f: 123; 1 + f
+              | . as $hack
               | $t as {$func_defs}
+              | $hack
               | _f(
                   ( { op: $next_op.name
                     , left: ($t | del(.func_defs))
@@ -956,7 +959,9 @@ def parse:
 
     # "abc \(123)"
     def _string_query:
-      ( .[0] as {$string_start}
+      ( . as $hack
+      | .[0] as {$string_start}
+      | $hack
       | _consume(.string_start)
       | _repeat(
           ( select(length > 0 ) # make sure there is something
@@ -965,7 +970,9 @@ def parse:
           )
         ) as [$rest, $queries]
       | $rest
+      | . as $hack
       | .[0] as {$string_end}
+      | $hack
       | _consume(.string_end)
       | [ .
         , { term:
@@ -991,7 +998,9 @@ def parse:
 
     # @format "abc"
     def _format_string:
-      ( .[0] as {$at_ident}
+      ( . as $hack
+      | .[0] as {$at_ident}
+      | $hack
       | _consume(.at_ident)
       | _string as [$rest, $string]
       | [ $rest
@@ -1060,7 +1069,7 @@ def parse:
         ]
       );
 
-    ( .# debug({_p: $type})
+    (  debug({_p: $type, dot: .})
     | if $type == "query" then
         _op_prec_climb(0; false)
       elif $type == "keyval_query" then
@@ -1264,8 +1273,12 @@ def func_defs_to_env($env):
 
 def eval_ast($query; $path; $env; undefined_func):
   def _e($query; $path; $env):
-    ( .#| debug({c: ., $query, $path, $env})
-    | $query as
+    ( debug({c: ., $query, $path, $env})
+    | . as $hack
+    | ( $query
+      | if .term == null then .term = {} end
+      | if .term.suffix_list == null then .term.suffix_list = [{}] end
+      ) as
         { term:
             { type: $type
             , suffix_list: [{$optional}]
@@ -1273,6 +1286,7 @@ def eval_ast($query; $path; $env; undefined_func):
         , $op
         , $func_defs
         }
+    | $hack
     | ( ( ($func_defs // [])
         | func_defs_to_env($env)
         )
@@ -1282,6 +1296,7 @@ def eval_ast($query; $path; $env; undefined_func):
       def _e_index($index; $query_path; $query_input; $opt):
         try
           ( . as $input
+          | . as $hack
           | $index as
               { $name
               , $str
@@ -1289,6 +1304,7 @@ def eval_ast($query; $path; $env; undefined_func):
               , $start
               , end: $end_
               }
+          | $hack
           | if $name then [($query_path + [$name]), $input[$name]]
             elif $str then [($query_path + [$str.str]), $input[$str.str]]
             elif $is_slice then
@@ -1490,7 +1506,9 @@ def eval_ast($query; $path; $env; undefined_func):
             | def _f($env):
                 if length == 0 then $env
                 else
-                  ( .[0] as [$name, $ast]
+                  ( . as $hack
+                  | .[0] as [$name, $ast]
+                  | $hack
                   | .[1:] as $rest
                   | $input
                   | _e($ast; []; $query_env) as [$_, $v]
@@ -1516,10 +1534,10 @@ def eval_ast($query; $path; $env; undefined_func):
                 ( a0 as $a0
                 | [[null], has($a0)]
                 )
-              elif $name == "delpaths/1" then
-                ( a0 as $a0
-                | [[null], delpaths($a0)]
-                )
+              # elif $name == "delpaths/1" then
+              #   ( a0 as $a0
+              #   | [[null], delpaths($a0)]
+              #   )
               elif $name == "explode/0"  then [[null], explode]
               elif $name == "implode/0"  then [[null], implode]
               elif $name == "tonumber/0" then [[null], tonumber]
@@ -1536,19 +1554,19 @@ def eval_ast($query; $path; $env; undefined_func):
                 | error($a0)
                 )
               elif $name == "halt_error/1" then [[null], halt_error(a0)]
-              elif $name == "getpath/1" then
-                ( a0 as $a0
-                | [ $path+$a0
-                  , getpath($a0)
-                  ]
-                )
-              elif $name == "setpath/2" then
-                ( a0 as $a0
-                | a1 as $a1
-                | [ []
-                  , setpath($a0; $a1)
-                  ]
-                )
+              # elif $name == "getpath/1" then
+              #   ( a0 as $a0
+              #   | [ $path+$a0
+              #     , getpath($a0)
+              #     ]
+              #   )
+              # elif $name == "setpath/2" then
+              #   ( a0 as $a0
+              #   | a1 as $a1
+              #   | [ []
+              #     , setpath($a0; $a1)
+              #     ]
+              #   )
               elif $name == "path/1" then
                 ( _e($args[0]; []; $query_env) as [$p, $_v]
                 # TODO: try/catch error
@@ -1577,7 +1595,7 @@ def eval_ast($query; $path; $env; undefined_func):
               elif $name == "expm1/0"       then [[null], expm1]
               elif $name == "fabs/0"        then [[null], fabs]
               elif $name == "floor/0"       then [[null], floor]
-              elif $name == "gamma/0"       then [[null], gamma]
+              # elif $name == "gamma/0"       then [[null], gamma]
               elif $name == "j0/0"          then [[null], j0]
               elif $name == "j1/0"          then [[null], j1]
               elif $name == "lgamma/0"      then [[null], lgamma]
@@ -1706,7 +1724,9 @@ def eval_ast($query; $path; $env; undefined_func):
         | def _f($obj):
             if length == 0 then $obj
             else
-              ( .[0] as [$key_ast, $val_ast]
+              ( . as $hack
+              | .[0] as [$key_ast, $val_ast]
+              | $hack
               | .[1:] as $rest
               | $input
               | _e($key_ast; []; $query_env) as [$_, $k]
@@ -1755,7 +1775,9 @@ def eval_ast($query; $path; $env; undefined_func):
           ]
         | def _f:
             # does not have base case as we know last else will be true
-            ( .[0] as [$cond, $then_]
+            ( . as $hack
+            | .[0] as [$cond, $then_]
+            | $hack
             | ( $input
               | _e($cond; $path; $query_env)
               ) as [$_, $v]
@@ -1894,7 +1916,9 @@ def eval_ast($query; $path; $env; undefined_func):
         );
 
       def _e_suffix_list($input; $path):
-        ( $query as {term: {$suffix_list}}
+        ( . as $hack
+        | $query as {term: {$suffix_list}}
+        | $hack
         | def _f($suffix_list):
             if ($suffix_list | length) == 0 then .
             # .a.b?? case, just skip extra optional "?"
@@ -1941,9 +1965,13 @@ def eval_ast($query; $path; $env; undefined_func):
           end
         )
       elif $op then
-        ( $query as {$left, $right}
-        | def _l: _e($left; $path; $query_env);
-          def _r: _e($right; $path; $query_env);
+        ( . as $hack
+        | $query as {$left, $right}
+        | $hack
+        | debug({$op, dot: .})
+        # TODO: does not work without ... | debug hmm
+        | def _l: _e($left; $path; $query_env) | debug({l: .});
+          def _r: _e($right; $path; $query_env) | debug({r: .});
           if $op == "," then _l, _r
           elif $op == "|" then
             ( _e($left; $path; $query_env) as [$p, $v]
@@ -2536,10 +2564,12 @@ def eval($expr; $globals; $builtins_env):
   # TODO: does not work with jq yet because issue with bind patterns
   # $ gojq -cn -L . 'include "jqjq"; {} | {a:1} | eval(".a") += 1'
   # {"a":2}
-  | if $path | . == [] or . == [null] then $value
-    else getpath($path)
-    end
-  );
+    | $value
+    );
+  # | if $path | . == [] or . == [null] then $value
+  #   else getpath($path)
+  #   end
+  # );
 def eval($expr):
   eval($expr; {}; _builtins_env);
 

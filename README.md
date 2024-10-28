@@ -242,8 +242,7 @@ Note that the tests are meant to be used with jq 1.7.1.
   - [x] gojq
   - [x] jqjq
     - Used to work but runs out of memory on my laptop
-  - [ ] jaq
-    - Fails on missing destructing support
+  - [x] jaq
   - [ ] xq
     - Fails on missing `debug`, maths, jqjq `lex` returns empty (regexp issues?)
 - [x] Bugs

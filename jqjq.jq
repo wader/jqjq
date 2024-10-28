@@ -153,8 +153,8 @@ def lex:
       // _re("^\\)";    {rparen: ., string_stack: ($string_stack[0:-1])})
       // _re("^\\[";    {lsquare: .})
       // _re("^\\]";    {rsquare: .})
-      // _re("^{";      {lcurly: .})
-      // _re("^}";      {rcurly: .})
+      // _re("^\\{";    {lcurly: .})
+      // _re("^\\}";    {rcurly: .})
       // _re("^\\.\\."; {dotdot: .})
       // _re("^\\.";    {dot: .})
       // _re("^\\?";    {qmark: .})
@@ -173,7 +173,9 @@ def lex:
   [_lex];
 
 def parse:
-  def _consume(f): select(.[0] | f) | .[1:];
+  # TODO: jaq null index
+  # TODO: maybe a consume helper that returns first? ala [$rest, $v]?
+  def _consume(f): select(length > 0 and (.[0] | f)) | .[1:];
   def _optional(f):
     ( f
     // [., null]
@@ -200,7 +202,9 @@ def parse:
     # filter is used to disable operators, ex in keyval query
     def _op_prec_climb($p; filter):
       def _ops:
-        if filter then false
+        # TODO: jaq: nice way? don't even call _ops for null case?
+        if . == null then false
+        elif filter then false
         elif .pipe then           {prec: 0, name: "|",   assoc: "right"}
         # TODO: understand why jq has left associativity for "," but right seems to give correct parse tree
         elif .comma then          {prec: 1, name: ",",   assoc: "right"}
@@ -956,7 +960,9 @@ def parse:
 
     # "abc \(123)"
     def _string_query:
-      ( .[0] as {$string_start}
+      # TODO: jaq null index (consume checks length and outoput [value, rest]?)
+      ( select(length > 0)
+      | .[0] as {$string_start}
       | _consume(.string_start)
       | _repeat(
           ( select(length > 0 ) # make sure there is something
@@ -1060,7 +1066,7 @@ def parse:
         ]
       );
 
-    ( .# debug({_p: $type})
+    ( . #debug({_p: $type, dot: .})
     | if $type == "query" then
         _op_prec_climb(0; false)
       elif $type == "keyval_query" then
@@ -1267,8 +1273,12 @@ def func_defs_to_env($env):
 
 def eval_ast($query; $path; $env; undefined_func):
   def _e($query; $path; $env):
-    ( .#| debug({c: ., $query, $path, $env})
-    | $query as
+    ( . # debug({c: ., $query, $path, $env})
+    | ( $query
+      # TODO: jaq: destruct null index
+      | if .term == null then .term = {} end
+      | if .term.suffix_list == null then .term.suffix_list = [{}] end
+      ) as
         { term:
             { type: $type
             , suffix_list: [{$optional}]
@@ -1417,7 +1427,17 @@ def eval_ast($query; $path; $env; undefined_func):
 
       # .name
       def _index:
-        _e_index($query.term.index; $path; .; $query.term.suffix_list[0].optional);
+        _e_index(
+          $query.term.index;
+          $path;
+          .;
+          # TODO: jaq null index
+          ( $query.term.suffix_list
+          | if . then .[0].optional
+            else false
+            end
+          )
+        );
 
       def _func:
         def _fromjson:
@@ -1454,8 +1474,9 @@ def eval_ast($query; $path; $env; undefined_func):
         | $query.term.func as {$name, $args}
         | func_name($name; $args) as $name
         | $query_env[$name] as $e
-        | if $e | has("value") then [[null], $e.value]
-          elif $e.body then
+        # TODO: jaq null index and null has()
+        | if $e != null and ($e | has("value")) then [[null], $e.value]
+          elif $e != null and $e.body then
             ( ($e.args // []) as $func_args
             | ($args // []) as $call_args
             | ( $func_args
@@ -1519,10 +1540,10 @@ def eval_ast($query; $path; $env; undefined_func):
                 ( a0 as $a0
                 | [[null], has($a0)]
                 )
-              elif $name == "delpaths/1" then
-                ( a0 as $a0
-                | [[null], delpaths($a0)]
-                )
+              # elif $name == "delpaths/1" then
+              #   ( a0 as $a0
+              #   | [[null], delpaths($a0)]
+              #   )
               elif $name == "explode/0"  then [[null], explode]
               elif $name == "implode/0"  then [[null], implode]
               elif $name == "tonumber/0" then [[null], tonumber]
@@ -1539,19 +1560,20 @@ def eval_ast($query; $path; $env; undefined_func):
                 | error($a0)
                 )
               elif $name == "halt_error/1" then [[null], halt_error(a0)]
-              elif $name == "getpath/1" then
-                ( a0 as $a0
-                | [ $path+$a0
-                  , getpath($a0)
-                  ]
-                )
-              elif $name == "setpath/2" then
-                ( a0 as $a0
-                | a1 as $a1
-                | [ []
-                  , setpath($a0; $a1)
-                  ]
-                )
+              # TODO: jaq: setpath/getpath missing 
+              # elif $name == "getpath/1" then
+              #   ( a0 as $a0
+              #   | [ $path+$a0
+              #     , getpath($a0)
+              #     ]
+              #   )
+              # elif $name == "setpath/2" then
+              #   ( a0 as $a0
+              #   | a1 as $a1
+              #   | [ []
+              #     , setpath($a0; $a1)
+              #     ]
+              #   )
               elif $name == "path/1" then
                 ( _e($args[0]; []; $query_env) as [$p, $_v]
                 # TODO: try/catch error
@@ -1903,7 +1925,7 @@ def eval_ast($query; $path; $env; undefined_func):
             # .a.b?? case, just skip extra optional "?"
             elif $suffix_list[0].optional then _f($suffix_list[1:])
             else
-              ( $suffix_list[1].optional as $opt
+              ( ($suffix_list[1] // {}).optional as $opt # TOOO: jaq null index
               | $suffix_list[if $opt then 2 else 1 end:] as $n
               | _e_suffix($suffix_list[0]; $path; $input; $opt)
               | _f($n)
@@ -2541,10 +2563,12 @@ def eval($expr; $globals; $builtins_env):
   # TODO: does not work with jq yet because issue with bind patterns
   # $ gojq -cn -L . 'include "jqjq"; {} | {a:1} | eval(".a") += 1'
   # {"a":2}
-  | if $path | . == [] or . == [null] then $value
-    else getpath($path)
-    end
-  );
+    | $value
+    );
+  # | if $path | . == [] or . == [null] then $value
+  #   else getpath($path)
+  #   end
+  # );
 def eval($expr):
   eval($expr; {}; _builtins_env);
 
@@ -2924,7 +2948,10 @@ def jqjq($args; $env):
         )
       ];
     def _f:
-      def _to_unslurped: map(tojson) | join(",");
+      # TODO: jaq: [] | join("") -> null
+      # TODO: jaq: join works with more than strings
+      def _join($s): if . == [] then "" else join($s) end;
+      def _to_unslurped: map(tojson) | _join(",");
       ( _builtins_env as $builtins_env
       | _from_jqtest[]
       | . as $c

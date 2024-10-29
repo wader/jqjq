@@ -2547,8 +2547,8 @@ def eval($expr):
 
 def die: "jqjq: \(.)\n" | halt_error(2);
 
-# parses a CLI option just like jq
-def parse_option:
+# parses CLI options just like jq
+def parse_options:
   def option($short; $long; on_option):
     ( if .args.is_short then
         if $short != null and (.args.curr | startswith($short)) then
@@ -2563,51 +2563,100 @@ def parse_option:
       end
     | on_option
     );
-  .args.curr as $curr_arg |
-  def TODO:
-    ( if .args.is_short then "-\($curr_arg[:1])"
-      else "--\($curr_arg)"
-      end
-    | "Option not implemented: \(.)" | die
+  def parse_option:
+    .args.curr as $curr_arg |
+    def TODO:
+      ( if .args.is_short then "-\($curr_arg[:1])"
+        else "--\($curr_arg)"
+        end
+      | "Option not implemented: \(.)" | die
+      );
+    (  option("s"; "slurp"; .slurp = true)
+    // option("r"; "raw-output"; .raw_output = true)
+    // option(null; "raw-output0"; (.raw_output, .raw_no_lf, .raw_output0) = true)
+    // option("j"; "join-output"; (.raw_output, .raw_no_lf) = true)
+    // option("c"; "compact-output"; TODO)
+    // option("C"; "color-output"; .color_output = true)
+    // option("M"; "monochrome-ouput"; .no_color_output = true)
+    // option("a"; "ascii-output"; .ascii_output = true)
+    // option(null; "unbuffered"; .unbuffered_output = true)
+    // option("S"; "sort-keys"; .sorted_output = true)
+    // option("R"; "raw-input"; .raw_input = true)
+    // option("n"; "null-input"; .null_input = true)
+    // option("f"; "from-file"; .from_file = true)
+    // option("L"; null;
+        if .args.curr != null then
+          ( .lib_search_paths += [.args.curr]
+          | .args.curr = null
+          )
+        elif .args.rest | length >= 1 then
+          ( .lib_search_paths += [.args.rest[0]]
+          | .args.rest = .args.rest[1:]
+          )
+        else
+          "-L takes a parameter: (e.g. -L /search/path or -L/search/path)" | die
+        end
+      )
+    // option("b"; "binary"; .binary_input_output = true)
+    // option(null; "tab"; TODO)
+    // option(null; "indent"; TODO)
+    // option(null; "seq"; .seq = true)
+    // option(null; "stream"; .parse_streaming = true)
+    // option(null; "stream-errors"; (.parse_streaming, .parse_stream_errors) = true)
+    // option("e"; "exit-status"; .exit_status = true)
+    // option(null; "args"; .args.further_are_strings = true | .args.further_are_json = false)
+    // option(null; "jsonargs"; .args.further_are_strings = false | .args.further_are_json = true)
+    // option(null; "arg"; TODO)
+    // option(null; "argjson"; TODO)
+    // option(null; "rawfile"; TODO)
+    // option(null; "slurpfile"; TODO)
+    // option(null; "debug-dump-disasm"; .debug_dump_disasm = true)
+    // option(null; "debug-trace=all"; .debug_trace_all = true)
+    // option(null; "debug-trace"; .debug_trace = true)
+    // option("h"; "help"; .action = "help")
+    // option("V"; "version"; .action = "version")
+    // option(null; "build-configuration"; .action = "build-configuration")
+    // option(null; "run-tests"; .action = "run-tests")
+    //
+      ( if .args.is_short then "-\(.args.curr[:1])" else "--\(.args.curr)" end
+      | "Unknown option: \(.)" | die
+      )
     );
-  (  option("s"; "slurp"; .slurp = true)
-  // option("r"; "raw-output"; .raw_output = true)
-  // option(null; "raw-output0"; (.raw_output, .raw_no_lf, .raw_output0) = true)
-  // option("j"; "join-output"; (.raw_output, .raw_no_lf) = true)
-  // option("c"; "compact-output"; TODO)
-  // option("C"; "color-output"; .color_output = true)
-  // option("M"; "monochrome-ouput"; .no_color_output = true)
-  // option("a"; "ascii-output"; .ascii_output = true)
-  // option(null; "unbuffered"; .unbuffered_output = true)
-  // option("S"; "sort-keys"; .sorted_output = true)
-  // option("R"; "raw-input"; .raw_input = true)
-  // option("n"; "null-input"; .provide_null = true)
-  // option("f"; "from-file"; .from_file = true)
-  // option("L"; null; TODO)
-  // option("b"; "binary"; .binary_input_output = true)
-  // option(null; "tab"; TODO)
-  // option(null; "indent"; TODO)
-  // option(null; "seq"; .seq = true)
-  // option(null; "stream"; .parse_streaming = true)
-  // option(null; "stream-errors"; (.parse_streaming, .parse_stream_errors) = true)
-  // option("e"; "exit-status"; .exit_status = true)
-  // option(null; "args"; TODO)
-  // option(null; "jsonargs"; TODO)
-  // option(null; "arg"; TODO)
-  // option(null; "argjson"; TODO)
-  // option(null; "rawfile"; TODO)
-  // option(null; "slurpfile"; TODO)
-  // option(null; "debug-dump-disasm"; .debug_dump_disasm = true)
-  // option(null; "debug-trace=all"; .debug_trace_all = true)
-  // option(null; "debug-trace"; .debug_trace = true)
-  // option("h"; "help"; .action = "help")
-  // option("V"; "version"; .action = "version")
-  // option(null; "build-configuration"; .action = "build-configuration")
-  // option(null; "run-tests"; .action = "run-tests")
-  //
-    ( if .args.is_short then "-\(.args.curr[:1])" else "--\(.args.curr)" end
-    | "Unknown option: \(.)" | die
-    )
+  def parse_options_in_arg:
+    parse_option | if .args.curr != null then parse_options_in_arg end;
+  def parse_arg:
+    ( .args.rest[0] as $arg
+    | .args.rest = .args.rest[1:]
+    | if .args.done or ($arg | test("^-[\\-a-zA-Z]") | not) then
+        if .program == null then
+          .program = $arg
+        elif .args.further_are_strings then
+          .positional_args += [$arg]
+        elif .args.further_are_json then
+          try (.positional_args += [$arg | fromjson])
+          catch ("invalid JSON text passed to --jsonargs: \(.)\n" | die)
+        else
+          .files += [$arg]
+        end
+      elif $arg == "--" then
+        .args.done = true
+      else
+        ( if $arg | startswith("--") then
+            .args.curr = $arg[2:] | .args.is_short = false
+          else
+            .args.curr = $arg[1:] | .args.is_short = true
+          end
+        | parse_options_in_arg
+        )
+      end
+    );
+  def parse_args:
+    if .args.rest | length > 0 then
+      parse_arg | parse_args
+    else del(.args)
+    end;
+  ( { args: { rest: . } }
+  | parse_args
   );
 
 # entrypoint for jqjq wrapper

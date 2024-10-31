@@ -2590,14 +2590,19 @@ def parse_options:
       catch
         ("--indent takes a number or -1 for tab" | die)
     end;
-  def parse_option:
-    .args.curr as $curr_arg |
-    def TODO:
-      ( if .args.is_short then "-\($curr_arg[:1])"
-        else "--\($curr_arg)"
+  def handle_arg($option; $value_name):
+    if .args.rest | length < 2 then
+      "--\($option) takes two parameters (e.g. --\($option) varname \($value_name))" | die
+    else
+      ( .args.rest[0] as $key | .args.rest[1] as $value
+      | .args.rest = .args.rest[2:]
+      | if .program_args.named | has($key) | not then
+          # jq parses values only of the first occurrence of each key
+          .program_args.named[$key] = {type: $option, $value}
         end
-      | "Option not implemented: \(.)" | die
-      );
+      )
+    end;
+  def parse_option:
     (  option("s"; "slurp"; .slurp = true)
     // option("r"; "raw-output"; .raw_output = true)
     // option(null; "raw-output0"; (.raw_output, .raw_no_lf, .raw_output0) = true)
@@ -2621,10 +2626,10 @@ def parse_options:
     // option("e"; "exit-status"; .exit_status = true)
     // option(null; "args"; .args.further_are_strings = true | .args.further_are_json = false)
     // option(null; "jsonargs"; .args.further_are_strings = false | .args.further_are_json = true)
-    // option(null; "arg"; TODO)
-    // option(null; "argjson"; TODO)
-    // option(null; "rawfile"; TODO)
-    // option(null; "slurpfile"; TODO)
+    // option(null; "arg"; handle_arg("arg"; "value"))
+    // option(null; "argjson"; handle_arg("argjson"; "text"))
+    // option(null; "rawfile"; handle_arg("rawfile"; "filename"))
+    // option(null; "slurpfile"; handle_arg("slurpfile"; "filename"))
     // option(null; "debug-dump-disasm"; .debug_dump_disasm = true)
     // option(null; "debug-trace=all"; .debug_trace_all = true)
     // option(null; "debug-trace"; .debug_trace = true)
@@ -2646,9 +2651,9 @@ def parse_options:
         if .program == null then
           .program = $arg
         elif .args.further_are_strings then
-          .positional_args += [$arg]
+          .program_args.positional += [$arg]
         elif .args.further_are_json then
-          try (.positional_args += [$arg | fromjson])
+          try (.program_args.positional += [$arg | fromjson])
           catch ("invalid JSON text passed to --jsonargs: \(.)\n" | die)
         else
           .files += [$arg]
@@ -2671,6 +2676,10 @@ def parse_options:
     else del(.args)
     end;
   ( { args: { rest: . }
+    , program_args:
+        { positional: []
+        , named: {}
+        }
     , indent: 2
     , print_pretty: true
     }

@@ -2563,6 +2563,33 @@ def parse_options:
       end
     | on_option
     );
+  def handle_library_path:
+    if .args.curr != null then
+      ( .lib_search_paths += [.args.curr]
+      | .args.curr = null
+      )
+    elif .args.rest | length >= 1 then
+      ( .lib_search_paths += [.args.rest[0]]
+      | .args.rest = .args.rest[1:]
+      )
+    else
+      "-L takes a parameter: (e.g. -L /search/path or -L/search/path)" | die
+    end;
+  def handle_indent:
+    if .args.rest | length < 1 then
+      "--indent takes one parameter" | die
+    else
+      try
+        ( (.args.rest[0] | tonumber) as $indent
+        | .args.rest = .args.rest[1:]
+        # allow indentation over 7 spaces, unlike jq
+        | if $indent | . != trunc or . < -1 then error end
+        | .indent = ($indent | if . == -1 then "tab" end)
+        | .print_pretty = true
+        )
+      catch
+        ("--indent takes a number or -1 for tab" | die)
+    end;
   def parse_option:
     .args.curr as $curr_arg |
     def TODO:
@@ -2575,7 +2602,7 @@ def parse_options:
     // option("r"; "raw-output"; .raw_output = true)
     // option(null; "raw-output0"; (.raw_output, .raw_no_lf, .raw_output0) = true)
     // option("j"; "join-output"; (.raw_output, .raw_no_lf) = true)
-    // option("c"; "compact-output"; TODO)
+    // option("c"; "compact-output"; .indent = 0 | .print_pretty = false)
     // option("C"; "color-output"; .color_output = true)
     // option("M"; "monochrome-ouput"; .no_color_output = true)
     // option("a"; "ascii-output"; .ascii_output = true)
@@ -2584,22 +2611,10 @@ def parse_options:
     // option("R"; "raw-input"; .raw_input = true)
     // option("n"; "null-input"; .null_input = true)
     // option("f"; "from-file"; .from_file = true)
-    // option("L"; null;
-        if .args.curr != null then
-          ( .lib_search_paths += [.args.curr]
-          | .args.curr = null
-          )
-        elif .args.rest | length >= 1 then
-          ( .lib_search_paths += [.args.rest[0]]
-          | .args.rest = .args.rest[1:]
-          )
-        else
-          "-L takes a parameter: (e.g. -L /search/path or -L/search/path)" | die
-        end
-      )
+    // option("L"; null; handle_library_path)
     // option("b"; "binary"; .binary_input_output = true)
-    // option(null; "tab"; TODO)
-    // option(null; "indent"; TODO)
+    // option(null; "tab"; .indent = "tab" | .print_pretty = true)
+    // option(null; "indent"; handle_indent)
     // option(null; "seq"; .seq = true)
     // option(null; "stream"; .parse_streaming = true)
     // option(null; "stream-errors"; (.parse_streaming, .parse_stream_errors) = true)
@@ -2655,7 +2670,10 @@ def parse_options:
       parse_arg | parse_args
     else del(.args)
     end;
-  ( { args: { rest: . } }
+  ( { args: { rest: . }
+    , indent: 2
+    , print_pretty: true
+    }
   | parse_args
   );
 

@@ -239,9 +239,9 @@ Note that the tests are meant to be used with jq 1.7.1.
   - Non-standard CLI options
     - [x] `--jq`
     - [x] `--lex`
-    - [x] `--no-builtins`
     - [x] `--parse`
     - [x] `--repl`
+    - [x] `--no-builtins`
 - Host jq
   - [x] jq
   - [x] gojq

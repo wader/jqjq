@@ -2624,8 +2624,8 @@ def parse_options:
     // option(null; "stream"; .parse_streaming = true)
     // option(null; "stream-errors"; (.parse_streaming, .parse_stream_errors) = true)
     // option("e"; "exit-status"; .exit_status = true)
-    // option(null; "args"; .args.further_are_strings = true | .args.further_are_json = false)
-    // option(null; "jsonargs"; .args.further_are_strings = false | .args.further_are_json = true)
+    // option(null; "args"; .args.rest_are_positional = "arg")
+    // option(null; "jsonargs"; .args.rest_are_positional = "argjson")
     // option(null; "arg"; handle_arg("arg"; "value"))
     // option(null; "argjson"; handle_arg("argjson"; "text"))
     // option(null; "rawfile"; handle_arg("rawfile"; "filename"))
@@ -2650,11 +2650,8 @@ def parse_options:
     | if .args.done or ($arg | test("^-[\\-a-zA-Z]") | not) then
         if .program == null then
           .program = $arg
-        elif .args.further_are_strings then
-          .program_args.positional += [$arg]
-        elif .args.further_are_json then
-          try (.program_args.positional += [$arg | fromjson])
-          catch ("invalid JSON text passed to --jsonargs: \(.)\n" | die)
+        elif .args.rest_are_positional != null then
+          .program_args.positional += [{type: .args.rest_are_positional, value: $arg}]
         else
           .files += [$arg]
         end

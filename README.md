@@ -228,13 +228,14 @@ Note that the tests are meant to be used with jq 1.7.1.
   - [x] `--join-output` / `-j`
   - [x] `--color-output` / `-C`
   - [x] `--monochrome-output` / `-M`
+  - [x] `--tab`
+  - [x] `--indent n`
   - [ ] `-L directory`
   - [ ] `--arg name value`
   - [ ] `--rawfile name filename`
   - [x] `--run-tests`
   - [ ] `--run-tests [filename]`
   - [x] `--`
-  - [ ] Combined short options
   - [ ] More...
   - Non-standard CLI options
     - [x] `--jq`

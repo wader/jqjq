@@ -2602,6 +2602,14 @@ def parse_options:
         end
       )
     end;
+  def handle_jq:
+    if .args.rest | length < 1 then
+      "--jq takes one parameter" | die
+    else
+      ( .jq = .args.rest[0]
+      | .args.rest = .args.rest[1:]
+      )
+    end;
   def parse_option:
     (  option("s"; "slurp"; .slurp = true)
     // option("r"; "raw-output"; .raw_output = true)
@@ -2637,6 +2645,9 @@ def parse_options:
     // option("V"; "version"; .action = "version")
     // option(null; "build-configuration"; .action = "build-configuration")
     // option(null; "run-tests"; .action = "run-tests")
+    # jqjq extensions:
+    // option(null; "jq"; handle_jq)
+    // option(null; "repl"; .mode = "repl")
     //
       ( if .args.is_short then "-\(.args.curr[:1])" else "--\(.args.curr)" end
       | "Unknown option: \(.)" | die
@@ -2683,6 +2694,25 @@ def parse_options:
     , print_pretty: true
     }
   | parse_args
+  );
+
+def invoke_client_jqjq:
+  def sh_escape:
+    if . == "" or test("['\" $\n\\\\]") then
+      "'" + gsub("'"; "'\\''") + "'"
+    end;
+  ( . as $args
+  | parse_options
+  | [ (.jq // "jq" | sh_escape)
+    , if .action == "run-tests" then "-nsRr"
+      elif .mode == "repl" then "-njR"
+      else "-nj"
+      end
+    , "-L", "\"$(dirname \"$(realpath \"${BASH_SOURCE[0]}\")\")\""
+    , "'include \"jqjq\"; jqjq($ARGS.positional; $ENV)'"
+    , "--args", "--", ($args[] | sh_escape)
+    ]
+  | join(" ")
   );
 
 # entrypoint for jqjq wrapper

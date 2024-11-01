@@ -1,21 +1,8 @@
 #!/usr/bin/env bash
-# wrapper for jqjq cli entrypoint
-# shellcheck disable=SC2016
-
-JQ="jq"
-JQJQ_PATH="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
-ARGS=("$@")
-
-JQ_ARGS=("--join-output" "--null-input")
-# some arguments require to run jq in different input/output mode
-while [ "$1" != "" ]; do
-    case "$1" in
-      --jq) shift; JQ="$1";;
-      --run-tests) JQ_ARGS+=("--raw-input" "--slurp"); JQ_ARGS[0]="--raw-output";;
-      --repl) JQ_ARGS+=("--raw-input");;
-      --) break;;
-    esac
-    shift
-done
-
-exec "$JQ" -L "$JQJQ_PATH" "${JQ_ARGS[@]}" --args 'include "jqjq"; jqjq($ARGS.positional; $ENV)' -- "${ARGS[@]}"
+eval "$(
+  jq \
+    -nr \
+    -L "$(dirname "$(realpath "${BASH_SOURCE[0]}")")" \
+    'include "jqjq"; $ARGS.positional | invoke_client_jqjq' \
+    --args -- "$@"
+)"

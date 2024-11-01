@@ -2549,6 +2549,7 @@ def eval($expr):
   eval($expr; {}; _builtins_env);
 
 def die: "jqjq: \(.)\n" | halt_error(2);
+def TODO: "not implemented: \(.)" | die;
 
 # parses CLI options just like jq
 def parse_options:
@@ -2626,7 +2627,7 @@ def parse_options:
     # // option("S"; "sort-keys"; .sorted_output = true)
     # // option("R"; "raw-input"; .raw_input = true)
     // option("n"; "null-input"; .null_input = true)
-    # // option("f"; "from-file"; .from_file = true)
+    // option("f"; "from-file"; .from_file = true)
     # // option("L"; null; handle_library_path)
     # // option("b"; "binary"; .binary_input_output = true)
     // option(null; "tab"; .indent = "tab" | .print_pretty = true)
@@ -2635,12 +2636,12 @@ def parse_options:
     # // option(null; "stream"; .parse_streaming = true)
     # // option(null; "stream-errors"; (.parse_streaming, .parse_stream_errors) = true)
     # // option("e"; "exit-status"; .exit_status = true)
-    # // option(null; "args"; .args.rest_are_positional = "arg")
-    # // option(null; "jsonargs"; .args.rest_are_positional = "argjson")
-    # // option(null; "arg"; handle_arg("arg"; "value"))
-    # // option(null; "argjson"; handle_arg("argjson"; "text"))
-    # // option(null; "rawfile"; handle_arg("rawfile"; "filename"))
-    # // option(null; "slurpfile"; handle_arg("slurpfile"; "filename"))
+    // option(null; "args"; .args.rest_are_positional = "arg")
+    // option(null; "jsonargs"; .args.rest_are_positional = "argjson")
+    // option(null; "arg"; handle_arg("arg"; "value"))
+    // option(null; "argjson"; handle_arg("argjson"; "text"))
+    // option(null; "rawfile"; handle_arg("rawfile"; "filename"))
+    // option(null; "slurpfile"; handle_arg("slurpfile"; "filename"))
     # // option(null; "debug-dump-disasm"; .debug_dump_disasm = true)
     # // option(null; "debug-trace=all"; .debug_trace_all = true)
     # // option(null; "debug-trace"; .debug_trace = true)
@@ -2716,6 +2717,13 @@ def invoke_client_jqjq:
       end
     , "-L", "\"$(dirname \"$(realpath \"${BASH_SOURCE[0]}\")\")\""
     , "'include \"jqjq\"; jqjq($ARGS.positional; $ENV)'"
+    , ( [ if .from_file then .program? else empty end
+        , .files[]?
+        , (.program_args.named[]? | select(.type | . == "rawfile" or . == "slurpfile").value)
+        ]
+      | unique[]
+      | "--rawfile", "file:\(sh_escape)", sh_escape
+      )
     , "--args", "--", ($args[] | sh_escape)
     ]
   | join(" ")
@@ -2751,14 +2759,39 @@ def jqjq($args; $env):
     );
 
   def _parse_opts($opts; $env):
+    def get_file:
+      $ARGS.named["file:\(.)"] // ("file \(.) not provided by host" | die);
     ( $opts
-      + { colors: _parse_colors($opts; $env)
-        , stream_sep: (
-            ( if $opts.raw_no_lf then "" else "\n" end
-            | if $opts.raw_output0 then . + "\u0000" end
+    | if .program == null and .mode != "repl" then "display usage" | TODO end
+    | if .from_file then .program |= get_file end
+    | .files |= map(get_file)?
+    | .program_args.positional |= map(
+        ( .type as $type
+        | .value
+        | if $type == "argjson" then
+            try fromjson catch ("invalid JSON text passed to --jsonargs: \(.)\n" | die)
+          end
+        )
+      )
+    | .program_args.named |= with_entries(
+        ( .key as $key | .value.type as $type
+        | .value |= (
+            ( .value
+            | if $type == "argjson" then
+                try fromjson catch ("invalid JSON text passed to --argjson: \(.)\n" | die)
+              elif $type == "rawfile" then get_file
+              elif $type == "slurpfile" then "--slurpfile" | TODO
+              end
             )
           )
-        }
+        )
+      )
+    | .colors = _parse_colors($opts; $env)
+    | .stream_sep = (
+        ( if $opts.raw_no_lf then "" else "\n" end
+        | if $opts.raw_output0 then . + "\u0000" end
+        )
+      )
     );
 
   def _repl($opts):
@@ -2952,12 +2985,15 @@ def jqjq($args; $env):
         else inputs
         end;
       _parse_opts($opts; $env) as $opts
+    | ( $opts.program_args.named | with_entries(.key |= ("$" + .))
+      + { "$ENV": $env } # $ENV has precedence over args
+      ) as $globals
     | ( if $opts.no_builtins then {}
         else _builtins_env
         end
       ) as $builtins_env
     | _inputs
-    | eval($opts.program; {"$ENV": $env}; $builtins_env)
+    | eval($opts.program; $globals; $builtins_env)
     | dump($opts)
     );
 
@@ -2982,6 +3018,12 @@ def jqjq($args; $env):
     + "  --monochrome-output / -M  Disable colored output\n"
     + "  --tab                     Use tabs for indentation\n"
     + "  --indent n                Use n spaces for indentation\n"
+    + "  --from-file / -f          Load filter from a file\n"
+    + "  --arg name value          Set $name to the string value\n"
+    + "  --argjson name value      Set $name to the JSON value\n"
+    + "  --rawfile name file       set $name to string contents of file\n"
+    + "  --args                    Consume arguments as positional strings\n"
+    + "  --jsonargs                Consume arguments as positional JSON\n"
     + "  --run-tests               Run jq tests from stdin\n"
     );
 

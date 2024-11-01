@@ -230,9 +230,14 @@ Note that the tests are meant to be used with jq 1.7.1.
   - [x] `--monochrome-output` / `-M`
   - [x] `--tab`
   - [x] `--indent n`
+  - [x] `--from-file` / `-f`
   - [ ] `-L directory`
-  - [ ] `--arg name value`
-  - [ ] `--rawfile name filename`
+  - [x] `--arg name value`
+  - [x] `--argjson name text`
+  - [x] `--rawfile name filename`
+  - [ ] `--slurpfile name filename`
+  - [x] `--args`
+  - [x] `--jsonargs`
   - [x] `--run-tests`
   - [ ] `--run-tests [filename]`
   - [x] `--`

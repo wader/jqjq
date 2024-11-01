@@ -2945,7 +2945,6 @@ def jqjq($args; $env):
 
   # TODO: raw output
   # TODO: refactor env undefined_func_error code
-  # TODO: indented json output?
   def _filter($opts):
     ( def _inputs:
         if $opts.null_input then null

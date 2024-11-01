@@ -2643,7 +2643,9 @@ def parse_options:
       )
     );
   def parse_options_in_arg:
-    parse_option | if .args.curr != null then parse_options_in_arg end;
+    ( parse_option
+    | if .args.curr != null and .action == null then parse_options_in_arg end
+    );
   def parse_arg:
     ( .args.rest[0] as $arg
     | .args.rest = .args.rest[1:]
@@ -2668,7 +2670,7 @@ def parse_options:
       end
     );
   def parse_args:
-    if .args.rest | length > 0 then
+    if (.args.rest | length > 0) and .action == null then
       parse_arg | parse_args
     else del(.args)
     end;

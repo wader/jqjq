@@ -136,6 +136,7 @@ Note that the tests are meant to be used with jq 1.7.1.
   - [x] `delpaths($paths)` (passthrough)
   - [x] `empty` (passthrough)
   - [x] `endswith($s)`
+  - [x] `env`
   - [x] `error($v)` (passthrough)
   - [x] `error` (passthrough)
   - [x] `explode` (passthrough)

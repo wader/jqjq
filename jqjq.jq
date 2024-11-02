@@ -2493,6 +2493,8 @@ def builtin_undefined_func($globals; $builtins_env):
       else
         undefined_func_error
       end
+    elif $f.name == "env/0" then
+      [[null], $globals["$ENV"]]
     elif $f.name == "input/0" then
       [[null], input]
     elif $f.name == "inputs/0" then

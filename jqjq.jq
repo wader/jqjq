@@ -2551,6 +2551,36 @@ def eval($expr):
 def die: "jqjq: \(.)\n" | halt_error(2);
 def TODO: "not implemented: \(.)" | die;
 
+def usage:
+  ( "jqjq - jq implementation of jq\n"
+  + "Usage: jqjq [OPTIONS] [--] [EXPR]\n"
+  + "\n"
+  + "Options:\n"
+  + "  --jq PATH                 jq implementation to run with\n"
+  + "  --lex                     Lex EXPR\n"
+  + "  --parse                   Lex then parse EXPR\n"
+  + "  --repl                    REPL\n"
+  + "  --no-builtins             Don't include builtins\n"
+  + "\n"
+  + "  --null-input / -n         Null input\n"
+  + "  --slurp / -s              Slurp inputs into an array\n"
+  + "  --compact-output / -c     Output each object on one line\n"
+  + "  --raw-output / -r         Output strings raw with newline\n"
+  + "  --raw-output0             Output strings raw with NUL\n"
+  + "  --join-output             Output strings raw\n"
+  + "  --color-output / -C       Force colored output\n"
+  + "  --monochrome-output / -M  Disable colored output\n"
+  + "  --tab                     Use tabs for indentation\n"
+  + "  --indent n                Use n spaces for indentation\n"
+  + "  --from-file / -f          Load filter from a file\n"
+  + "  --arg name value          Set $name to the string value\n"
+  + "  --argjson name value      Set $name to the JSON value\n"
+  + "  --rawfile name file       set $name to string contents of file\n"
+  + "  --args                    Consume arguments as positional strings\n"
+  + "  --jsonargs                Consume arguments as positional JSON\n"
+  + "  --run-tests               Run jq tests from stdin\n"
+  );
+
 # parses CLI options just like jq
 def parse_options:
   def option($short; $long; on_option):
@@ -2762,7 +2792,7 @@ def jqjq($args; $env):
     def get_file:
       $ARGS.named["file:\(.)"] // ("file \(.) not provided by host" | die);
     ( $opts
-    | if .program == null and .mode != "repl" then "display usage" | TODO end
+    | if .program == null and .mode != "repl" then usage | halt_error(2) end
     | if .from_file then .program |= get_file end
     | .files |= map(get_file)?
     | .program_args.positional |= map(
@@ -2997,38 +3027,8 @@ def jqjq($args; $env):
     | dump($opts)
     );
 
-  def _help:
-    ( "jqjq - jq implementation of jq\n"
-    + "Usage: jqjq [OPTIONS] [--] [EXPR]\n"
-    + "\n"
-    + "Options:\n"
-    + "  --jq PATH                 jq implementation to run with\n"
-    + "  --lex                     Lex EXPR\n"
-    + "  --parse                   Lex then parse EXPR\n"
-    + "  --repl                    REPL\n"
-    + "  --no-builtins             Don't include builtins\n"
-    + "\n"
-    + "  --null-input / -n         Null input\n"
-    + "  --slurp / -s              Slurp inputs into an array\n"
-    + "  --compact-output / -c     Output each object on one line\n"
-    + "  --raw-output / -r         Output strings raw with newline\n"
-    + "  --raw-output0             Output strings raw with NUL\n"
-    + "  --join-output             Output strings raw\n"
-    + "  --color-output / -C       Force colored output\n"
-    + "  --monochrome-output / -M  Disable colored output\n"
-    + "  --tab                     Use tabs for indentation\n"
-    + "  --indent n                Use n spaces for indentation\n"
-    + "  --from-file / -f          Load filter from a file\n"
-    + "  --arg name value          Set $name to the string value\n"
-    + "  --argjson name value      Set $name to the JSON value\n"
-    + "  --rawfile name file       set $name to string contents of file\n"
-    + "  --args                    Consume arguments as positional strings\n"
-    + "  --jsonargs                Consume arguments as positional JSON\n"
-    + "  --run-tests               Run jq tests from stdin\n"
-    );
-
   ( ($args | parse_options) as $opts
-  | if $opts.action == "help"        then _help
+  | if $opts.action == "help"        then usage
     elif $opts.mode == "lex"         then $opts.program | lex, "\n"
     elif $opts.mode == "parse"       then $opts.program | lex | parse, "\n"
     elif $opts.mode == "repl"        then _repl($opts)

@@ -230,6 +230,7 @@ Note that the tests are meant to be used with jq 1.7.1.
   - [x] `--monochrome-output` / `-M`
   - [x] `--tab`
   - [x] `--indent n`
+  - [x] `--unbuffered`
   - [x] `--from-file` / `-f`
   - [ ] `-L directory`
   - [x] `--arg name value`

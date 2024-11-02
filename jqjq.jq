@@ -2572,6 +2572,7 @@ def usage:
   + "  --monochrome-output / -M  Disable colored output\n"
   + "  --tab                     Use tabs for indentation\n"
   + "  --indent n                Use n spaces for indentation\n"
+  + "  --unbuffered              Use unbuffered output with the host jq\n"
   + "  --from-file / -f          Load filter from a file\n"
   + "  --arg name value          Set $name to the string value\n"
   + "  --argjson name value      Set $name to the JSON value\n"
@@ -2653,7 +2654,7 @@ def parse_options:
     // option("C"; "color-output"; .color_output = true)
     // option("M"; "monochrome-ouput"; .no_color_output = true)
     # // option("a"; "ascii-output"; .ascii_output = true)
-    # // option(null; "unbuffered"; .unbuffered_output = true)
+    // option(null; "unbuffered"; .unbuffered_output = true)
     # // option("S"; "sort-keys"; .sorted_output = true)
     # // option("R"; "raw-input"; .raw_input = true)
     // option("n"; "null-input"; .null_input = true)
@@ -2744,6 +2745,11 @@ def invoke_client_jqjq:
     , if .action == "run-tests" then "-nsRr"
       elif .mode == "repl" then "-njR"
       else "-nj"
+      end
+    , if .unbuffered_output and
+          (.jq == null or (.jq | test("(^|[/\\\\])(gojq|jaq)[^/\\\\]*$") | not)) then
+        "--unbuffered"
+      else empty
       end
     , "-L", "\"$(dirname \"$(realpath \"${BASH_SOURCE[0]}\")\")\""
     , "'include \"jqjq\"; jqjq($ARGS.positional; $ENV)'"

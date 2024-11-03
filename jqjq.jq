@@ -3022,7 +3022,9 @@ def jqjq($args; $env):
         end;
       _parse_opts($opts; $env) as $opts
     | ( $opts.program_args.named | with_entries(.key |= ("$" + .))
-      + { "$ENV": $env } # $ENV has precedence over args
+      + { "$ENV": $env # $ENV has precedence over args
+        , "$ARGS": $opts.program_args
+        }
       ) as $globals
     | ( if $opts.no_builtins then {}
         else _builtins_env

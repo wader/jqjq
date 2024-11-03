@@ -38,18 +38,6 @@ $ ./jqjq --repl
 # run 01mf02's adaptation of itchyny's bf.jq running fib.bf
 $ ./jqjq -n "\"$(cat fib.bf)\" | $(cat bf.jq)"
 "1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233"
-
-$ ./jqjq -h
-jqjq - jq implementation of jq
-Usage: jqjq [OPTIONS] [--] [EXPR]
-  --jq PATH        jq implementation to run with
-  --lex            Lex EXPR
-  --no-builtins    No builtins
-  --null-input,-n  Null input
-  --parse          Lex and parse EXPR
-  --repl           REPL
-  --run-tests      Run jq tests from stdin
-  --slurp,-s       Slurp inputs into an array
 ```
 
 ### Use with `jq`

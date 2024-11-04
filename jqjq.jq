@@ -1169,10 +1169,13 @@ def _tojson_stream($opts):
   def _color($id):
     if $opts.colors != null then
       $opts.colors[$id], ., "\u001b[0m"
-    else . end;
-  ( ($opts.indent // 0) as $indent
-  | (if $indent > 0 then ["\n", " "] else ["", ""] end) as [$newline, $space]
-  | ($indent * " ") as $indent
+    else .
+    end;
+  ( ( if $opts.indent == 0 then ["", "", ""]
+      elif $opts.indent == "tab" then ["\t", " ", "\n"]
+      else [$opts.indent * " ", " ", "\n"]
+      end
+    ) as [$indent, $space, $newline]
   | def _f($prefix):
       ( type as $t
       | if $t == "null" then "null" | _color(_c_null)
@@ -1222,7 +1225,7 @@ def _tojson_stream($opts):
       );
     _f($newline)
   );
-def _tojson: [_tojson_stream({})] | join("");
+def _tojson: [_tojson_stream({indent: 0})] | join("");
 
 def dump($opts):
   ( if $opts.raw_output and type == "string" then
@@ -2545,6 +2548,224 @@ def eval($expr; $globals; $builtins_env):
 def eval($expr):
   eval($expr; {}; _builtins_env);
 
+def die: "jqjq: \(.)\n" | halt_error(2);
+def TODO: "not implemented: \(.)" | die;
+
+def usage:
+  ( "jqjq - jq implementation of jq\n"
+  + "Usage: jqjq [OPTIONS] [--] [EXPR]\n"
+  + "\n"
+  + "Options:\n"
+  + "  --jq PATH                 jq implementation to run with\n"
+  + "  --lex                     Lex EXPR\n"
+  + "  --parse                   Lex then parse EXPR\n"
+  + "  --repl                    REPL\n"
+  + "  --no-builtins             Don't include builtins\n"
+  + "\n"
+  + "  --null-input / -n         Null input\n"
+  + "  --slurp / -s              Slurp inputs into an array\n"
+  + "  --compact-output / -c     Output each object on one line\n"
+  + "  --raw-output / -r         Output strings raw with newline\n"
+  + "  --raw-output0             Output strings raw with NUL\n"
+  + "  --join-output             Output strings raw\n"
+  + "  --color-output / -C       Force colored output\n"
+  + "  --monochrome-output / -M  Disable colored output\n"
+  + "  --tab                     Use tabs for indentation\n"
+  + "  --indent n                Use n spaces for indentation\n"
+  + "  --unbuffered              Use unbuffered output with the host jq\n"
+  + "  --from-file / -f          Load filter from a file\n"
+  + "  --arg name value          Set $name to the string value\n"
+  + "  --argjson name value      Set $name to the JSON value\n"
+  + "  --rawfile name file       set $name to string contents of file\n"
+  + "  --args                    Consume arguments as positional strings\n"
+  + "  --jsonargs                Consume arguments as positional JSON\n"
+  + "  --run-tests               Run jq tests from stdin\n"
+  );
+
+# parses CLI options just like jq
+def parse_options:
+  def option($short; $long; on_option):
+    ( if .args.is_short then
+        if $short != null and (.args.curr | startswith($short)) then
+          .args.curr |= (.[$short | length:] | if length == 0 then null end)
+        else empty
+        end
+      else
+        if $long != null and .args.curr == $long then
+          .args.curr = null
+        else empty
+        end
+      end
+    | on_option
+    );
+  def handle_library_path:
+    if .args.curr != null then
+      ( .lib_search_paths += [.args.curr]
+      | .args.curr = null
+      )
+    elif .args.rest | length >= 1 then
+      ( .lib_search_paths += [.args.rest[0]]
+      | .args.rest = .args.rest[1:]
+      )
+    else
+      "-L takes a parameter: (e.g. -L /search/path or -L/search/path)" | die
+    end;
+  def handle_indent:
+    if .args.rest | length < 1 then
+      "--indent takes one parameter" | die
+    else
+      try
+        ( (.args.rest[0] | tonumber) as $indent
+        | .args.rest = .args.rest[1:]
+        # allow indentation over 7 spaces, unlike jq
+        | if $indent | . != trunc or . < -1 then error end
+        | .indent = ($indent | if . == -1 then "tab" end)
+        | .print_pretty = true
+        )
+      catch
+        ("--indent takes a number or -1 for tab" | die)
+    end;
+  def handle_arg($option; $value_name):
+    if .args.rest | length < 2 then
+      "--\($option) takes two parameters (e.g. --\($option) varname \($value_name))" | die
+    else
+      ( .args.rest[0] as $key | .args.rest[1] as $value
+      | .args.rest = .args.rest[2:]
+      | if .program_args.named | has($key) | not then
+          # jq parses values only of the first occurrence of each key
+          .program_args.named[$key] = {type: $option, $value}
+        end
+      )
+    end;
+  def handle_jq:
+    if .args.rest | length < 1 then
+      "--jq takes one parameter" | die
+    else
+      ( .jq = .args.rest[0]
+      | .args.rest = .args.rest[1:]
+      )
+    end;
+  def parse_option:
+    (  option("s"; "slurp"; .slurp = true)
+    // option("r"; "raw-output"; .raw_output = true)
+    // option(null; "raw-output0"; (.raw_output, .raw_no_lf, .raw_output0) = true)
+    // option("j"; "join-output"; (.raw_output, .raw_no_lf) = true)
+    // option("c"; "compact-output"; .indent = 0 | .print_pretty = false)
+    // option("C"; "color-output"; .color_output = true)
+    // option("M"; "monochrome-ouput"; .no_color_output = true)
+    # // option("a"; "ascii-output"; .ascii_output = true)
+    // option(null; "unbuffered"; .unbuffered_output = true)
+    # // option("S"; "sort-keys"; .sorted_output = true)
+    # // option("R"; "raw-input"; .raw_input = true)
+    // option("n"; "null-input"; .null_input = true)
+    // option("f"; "from-file"; .from_file = true)
+    # // option("L"; null; handle_library_path)
+    # // option("b"; "binary"; .binary_input_output = true)
+    // option(null; "tab"; .indent = "tab" | .print_pretty = true)
+    // option(null; "indent"; handle_indent)
+    # // option(null; "seq"; .seq = true)
+    # // option(null; "stream"; .parse_streaming = true)
+    # // option(null; "stream-errors"; (.parse_streaming, .parse_stream_errors) = true)
+    # // option("e"; "exit-status"; .exit_status = true)
+    // option(null; "args"; .args.rest_are_positional = "arg")
+    // option(null; "jsonargs"; .args.rest_are_positional = "argjson")
+    // option(null; "arg"; handle_arg("arg"; "value"))
+    // option(null; "argjson"; handle_arg("argjson"; "text"))
+    // option(null; "rawfile"; handle_arg("rawfile"; "filename"))
+    // option(null; "slurpfile"; handle_arg("slurpfile"; "filename"))
+    # // option(null; "debug-dump-disasm"; .debug_dump_disasm = true)
+    # // option(null; "debug-trace=all"; .debug_trace_all = true)
+    # // option(null; "debug-trace"; .debug_trace = true)
+    // option("h"; "help"; .action = "help")
+    # // option("V"; "version"; .action = "version")
+    # // option(null; "build-configuration"; .action = "build-configuration")
+    // option(null; "run-tests"; .action = "run-tests")
+    # jqjq extensions:
+    // option(null; "jq"; handle_jq)
+    // option(null; "repl"; .mode = "repl")
+    // option(null; "lex"; .mode = "lex")
+    // option(null; "parse"; .mode = "parse")
+    // option(null; "no-builtins"; .no_builtins = true)
+    //
+      ( if .args.is_short then "-\(.args.curr[:1])" else "--\(.args.curr)" end
+      | "Unknown option: \(.)" | die
+      )
+    );
+  def parse_options_in_arg:
+    ( parse_option
+    | if .args.curr != null and .action == null then parse_options_in_arg end
+    );
+  def parse_arg:
+    ( .args.rest[0] as $arg
+    | .args.rest = .args.rest[1:]
+    | if .args.done or ($arg | test("^-[\\-a-zA-Z]") | not) then
+        if .program == null then
+          .program = $arg
+        elif .args.rest_are_positional != null then
+          .program_args.positional += [{type: .args.rest_are_positional, value: $arg}]
+        else
+          .files += [$arg]
+        end
+      elif $arg == "--" then
+        .args.done = true
+      else
+        ( if $arg | startswith("--") then
+            .args.curr = $arg[2:] | .args.is_short = false
+          else
+            .args.curr = $arg[1:] | .args.is_short = true
+          end
+        | parse_options_in_arg
+        )
+      end
+    );
+  def parse_args:
+    if (.args.rest | length > 0) and .action == null then
+      parse_arg | parse_args
+    else del(.args)
+    end;
+  ( { args: { rest: . }
+    , program_args:
+        { positional: []
+        , named: {}
+        }
+    , indent: 2
+    , print_pretty: true
+    }
+  | parse_args
+  );
+
+def invoke_client_jqjq:
+  # instead of @sh to not always quote
+  def sh_escape:
+    if . == "" or test("['\" $\n\\\\]") then
+      "'" + gsub("'"; "'\\''") + "'"
+    end;
+  ( . as $args
+  | parse_options
+  | [ (.jq // "jq" | sh_escape)
+    , if .action == "run-tests" then "-nsRr"
+      elif .mode == "repl" then "-njR"
+      else "-nj"
+      end
+    , if .unbuffered_output and
+          (.jq == null or (.jq | test("(^|[/\\\\])(gojq|jaq)[^/\\\\]*$") | not)) then
+        "--unbuffered"
+      else empty
+      end
+    , "-L", "\"$(dirname \"$(realpath \"${BASH_SOURCE[0]}\")\")\""
+    , "'include \"jqjq\"; jqjq($ARGS.positional; $ENV)'"
+    , ( [ if .from_file then .program? else empty end
+        , .files[]?
+        , (.program_args.named[]? | select(.type | . == "rawfile" or . == "slurpfile").value)
+        ]
+      | unique[]
+      | "--rawfile", "file:\(sh_escape)", sh_escape
+      )
+    , "--args", "--", ($args[] | sh_escape)
+    ]
+  | join(" ")
+  );
+
 # entrypoint for jqjq wrapper
 # what argument jq will run with depends as bit on some arguments, --repl, --run-tests
 # etc, see wrapper script
@@ -2567,7 +2788,7 @@ def jqjq($args; $env):
         )
       else $default
       end
-    | if $opts.monochrome_output or
+    | if $opts.no_color_output or
           (($opts.color_output | not) and ($env.NO_COLOR | . != null and . != "")) then
         null
       end
@@ -2575,15 +2796,39 @@ def jqjq($args; $env):
     );
 
   def _parse_opts($opts; $env):
+    def get_file:
+      $ARGS.named["file:\(.)"] // ("file \(.) not provided by host" | die);
     ( $opts
-      + { colors: _parse_colors($opts; $env)
-        , indent: (if $opts.compact_output then 0 else 2 end)
-        , stream_sep: (
-            ( if $opts.raw_no_lf then "" else "\n" end
-            | if $opts.raw_output0 then . + "\u0000" end
+    | if .program == null and .mode != "repl" then usage | halt_error(2) end
+    | if .from_file then .program |= get_file end
+    | .files |= map(get_file)?
+    | .program_args.positional |= map(
+        ( .type as $type
+        | .value
+        | if $type == "argjson" then
+            try fromjson catch ("invalid JSON text passed to --jsonargs: \(.)\n" | die)
+          end
+        )
+      )
+    | .program_args.named |= with_entries(
+        ( .key as $key | .value.type as $type
+        | .value |= (
+            ( .value
+            | if $type == "argjson" then
+                try fromjson catch ("invalid JSON text passed to --argjson: \(.)\n" | die)
+              elif $type == "rawfile" then get_file
+              elif $type == "slurpfile" then "--slurpfile" | TODO
+              end
             )
           )
-        }
+        )
+      )
+    | .colors = _parse_colors($opts; $env)
+    | .stream_sep = (
+        ( if $opts.raw_no_lf then "" else "\n" end
+        | if $opts.raw_output0 then . + "\u0000" end
+        )
+      )
     );
 
   def _repl($opts):
@@ -2770,7 +3015,6 @@ def jqjq($args; $env):
 
   # TODO: raw output
   # TODO: refactor env undefined_func_error code
-  # TODO: indented json output?
   def _filter($opts):
     ( def _inputs:
         if $opts.null_input then null
@@ -2778,85 +3022,26 @@ def jqjq($args; $env):
         else inputs
         end;
       _parse_opts($opts; $env) as $opts
+    | ( $opts.program_args.named | with_entries(.key |= ("$" + .))
+      + { "$ENV": $env # $ENV has precedence over args
+        , "$ARGS": $opts.program_args
+        }
+      ) as $globals
     | ( if $opts.no_builtins then {}
         else _builtins_env
         end
       ) as $builtins_env
     | _inputs
-    | eval($opts.filter; {"$ENV": $env}; $builtins_env)
+    | eval($opts.program; $globals; $builtins_env)
     | dump($opts)
     );
 
-  def _parse_args:
-    def _f:
-      ( .[0] as $a
-      | if length == 0 then empty
-        elif $a == "-h" or $a == "--help"              then {help: true}, (.[1:] | _f)
-        elif $a == "--jq"                              then {jq: .[1]}, (.[2:] | _f)
-        elif $a == "--lex"                             then {lex: true}, (.[1:] | _f)
-        elif $a == "--no-builtins"                     then {no_builtins: true}, (.[1:] | _f)
-        elif $a == "--parse"                           then {parse: true}, (.[1:] | _f)
-        elif $a == "--repl"                            then {repl: true}, (.[1:] | _f)
-        elif $a == "-n" or $a == "--null-input"        then {null_input: true}, (.[1:] | _f)
-        elif $a == "-s" or $a == "--slurp"             then {slurp: true}, (.[1:] | _f)
-        elif $a == "-c" or $a == "--compact-output"    then {compact_output: true}, (.[1:] | _f)
-        elif $a == "-r" or $a == "--raw-output"        then {raw_output: true}, (.[1:] | _f)
-        elif $a == "--raw-output0"                     then ( { raw_output: true
-                                                              , raw_no_lf: true
-                                                              , raw_output0: true
-                                                              }
-                                                            , (.[1:] | _f)
-                                                            )
-        elif $a == "-j" or $a == "--join-output"       then ( { raw_output: true
-                                                              , raw_no_lf: true
-                                                              }
-                                                            , (.[1:] | _f)
-                                                            )
-        elif $a == "-C" or $a == "--color-output"      then {color_output: true}, (.[1:] | _f)
-        elif $a == "-M" or $a == "--monochrome-output" then {monochrome_output: true}, (.[1:] | _f)
-        elif $a == "--run-tests"                       then {run_tests: true}, (.[1:] | _f)
-        elif $a == "--"                                then {filter: .[1]}, (.[2:] | _f)
-        elif $a | startswith("-")                      then error("unknown argument: \($a)")
-        else {filter: $a}, (.[1:] | _f)
-        end
-      );
-    ( [_f]
-    | add
-    );
-
-  def _help:
-    ( "jqjq - jq implementation of jq\n"
-    + "Usage: jqjq [OPTIONS] [--] [EXPR]\n"
-    + "\n"
-    + "Options:\n"
-    + "  --jq PATH                 jq implementation to run with\n"
-    + "  --lex                     Lex EXPR\n"
-    + "  --no-builtins             Don't include builtins\n"
-    + "  --parse                   Lex then parse EXPR\n"
-    + "  --repl                    REPL\n"
-    + "\n"
-    + "  --null-input / -n         Null input\n"
-    + "  --slurp / -s              Slurp inputs into an array\n"
-    + "  --compact-output / -c     Output each object on one line\n"
-    + "  --raw-output / -r         Output strings raw with newline\n"
-    + "  --raw-output0             Output strings raw with NUL\n"
-    + "  --join-output             Output strings raw\n"
-    + "  --color-output / -C       Force colored output\n"
-    + "  --monochrome-output / -M  Disable colored output\n"
-    + "  --run-tests               Run jq tests from stdin\n"
-    );
-
-  ( ( { filter: "."
-      , null_input: false
-      , no_builtins: false
-      }
-    + ($args | _parse_args)
-    ) as $opts
-  | if $opts.help        then _help
-    elif $opts.lex       then $opts.filter | lex, "\n"
-    elif $opts.parse     then $opts.filter | lex | parse, "\n"
-    elif $opts.repl      then _repl($opts)
-    elif $opts.run_tests then input | _run_tests
+  ( ($args | parse_options) as $opts
+  | if $opts.action == "help"        then usage
+    elif $opts.mode == "lex"         then $opts.program | lex, "\n"
+    elif $opts.mode == "parse"       then $opts.program | lex | parse, "\n"
+    elif $opts.mode == "repl"        then _repl($opts)
+    elif $opts.action == "run-tests" then input | _run_tests
     else _filter($opts)
     end
   );

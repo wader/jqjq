@@ -38,18 +38,6 @@ $ ./jqjq --repl
 # run 01mf02's adaptation of itchyny's bf.jq running fib.bf
 $ ./jqjq -n "\"$(cat fib.bf)\" | $(cat bf.jq)"
 "1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233"
-
-$ ./jqjq -h
-jqjq - jq implementation of jq
-Usage: jqjq [OPTIONS] [--] [EXPR]
-  --jq PATH        jq implementation to run with
-  --lex            Lex EXPR
-  --no-builtins    No builtins
-  --null-input,-n  Null input
-  --parse          Lex and parse EXPR
-  --repl           REPL
-  --run-tests      Run jq tests from stdin
-  --slurp,-s       Slurp inputs into an array
 ```
 
 ### Use with `jq`
@@ -228,20 +216,27 @@ Note that the tests are meant to be used with jq 1.7.1.
   - [x] `--join-output` / `-j`
   - [x] `--color-output` / `-C`
   - [x] `--monochrome-output` / `-M`
+  - [x] `--tab`
+  - [x] `--indent n`
+  - [x] `--unbuffered`
+  - [x] `--from-file` / `-f`
   - [ ] `-L directory`
-  - [ ] `--arg name value`
-  - [ ] `--rawfile name filename`
+  - [x] `--arg name value`
+  - [x] `--argjson name text`
+  - [x] `--rawfile name filename`
+  - [ ] `--slurpfile name filename`
+  - [x] `--args`
+  - [x] `--jsonargs`
   - [x] `--run-tests`
   - [ ] `--run-tests [filename]`
   - [x] `--`
-  - [ ] Combined short options
   - [ ] More...
   - Non-standard CLI options
     - [x] `--jq`
     - [x] `--lex`
-    - [x] `--no-builtins`
     - [x] `--parse`
     - [x] `--repl`
+    - [x] `--no-builtins`
 - Host jq
   - [x] jq
   - [x] gojq
@@ -257,7 +252,7 @@ Note that the tests are meant to be used with jq 1.7.1.
 
 ```sh
 $ ./jqjq --run-tests < ../jq/tests/jq.test | grep passed
-311 of 462 tests passed
+312 of 469 tests passed
 ```
 
 Note that expected test values are based on stedolan's jq. If you run with a different jq implementation like gojq some tests might fail because of different error messages, support for arbitrary precision integers etc.
@@ -290,7 +285,7 @@ Environment is an object with current functions and bindings. Functions have the
 
 When evaluating the AST eval function get the current AST node, path and environment and will output zero, one or more arrays with the pair `[<path>, <value>]`. Path can be `[null]` if the evaluation produced a "new" value etc so that path tracking is not possible.
 
-### Problems, issues and unknowns
+### Problems, TODOs, issues and unknowns
 
 - Better error messages.
 - The "environment" pass around is not very efficient and also it makes support recursion a bit awkward (called function is injected in the env at call time).
@@ -308,6 +303,10 @@ When evaluating the AST eval function get the current AST node, path and environ
 - Rethink invalid path handling, current `[null]` is used as sentinel value.
 - `{a:123} | .a |= empty` should remove the key.
 - Lookup ident and bindings during parse, ex `def f(no_used): 123; f(does_not_exist)` and `def f: $does_not_exist, does_not_exist; 123` should fail.
+- Add a AST re-write stage between parse and eval? some rewrite done during eval can probably happen before
+- Test arguments, env, `$ENV`/`$ARGS` somehow? extend the test format?
+- Refactor to share more between filter mode and REPL (globals etc)
+- Move lookup of env, args etc to `builtin_undefined_func`
 
 ### Useful references
 

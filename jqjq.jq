@@ -2677,7 +2677,7 @@ def parse_options:
         else empty
         end
       else
-        if $long != null and .args.curr == $long then
+        if .args.curr == $long then
           .args.curr = null
         else empty
         end
@@ -2745,7 +2745,7 @@ def parse_options:
     # // option("R"; "raw-input"; .raw_input = true)
     // option("n"; "null-input"; .null_input = true)
     // option("f"; "from-file"; .from_file = true)
-    # // option("L"; null; handle_library_path)
+    # // option("L"; "library-path"; handle_library_path)
     # // option("b"; "binary"; .binary_input_output = true)
     // option(null; "tab"; .indent = "tab" | .print_pretty = true)
     // option(null; "indent"; handle_indent)

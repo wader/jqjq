@@ -2768,8 +2768,9 @@ def invoke_client_jqjq:
   | parse_options
   | [ (.jq // "jq" | sh_escape)
     , if .action == "run-tests" then "-nsRr"
-      elif .mode == "repl" then "-njR"
-      else "-nj"
+    # TODO: jaq: -j does not imply -r
+      elif .mode == "repl" then "-njrR"
+      else "-njr"
       end
     , if .unbuffered_output and
           (.jq == null or (.jq | test("(^|[/\\\\])(gojq|jaq)[^/\\\\]*$") | not)) then

@@ -1670,8 +1670,7 @@ def eval_ast($query; $path; $env; undefined_func):
       # based on an earlier object, for that output combination
       def _object:
         ( . as $input
-        | $query.term.object as {$key_vals}
-        | $key_vals
+        | $query.term.object.key_vals
         | map(
             ( def _term_str:
                 { term:
@@ -1685,7 +1684,11 @@ def eval_ast($query; $path; $env; undefined_func):
                   | if startswith("$") then .[1:] else . end
                   | _term_str
                   )
-                , ( $kv.val.queries[0]
+                , ( # TOOD: jaq: null index
+                    ( $kv.val
+                    | values
+                    | .queries[0]
+                    )
                   //
                     ( $kv.key
                     | if startswith("$") then
@@ -1708,7 +1711,11 @@ def eval_ast($query; $path; $env; undefined_func):
                 ( [ ( $kv.key_string.str
                     | _term_str
                     )
-                  , ( $kv.val.queries[0]
+                  , ( # TODO: jaq: null index
+                      ( $kv.val
+                      | values
+                      | .queries[0]
+                      )
                     //
                       { term:
                           { type: "TermTypeIndex"

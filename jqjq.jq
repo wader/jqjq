@@ -2087,15 +2087,23 @@ def _alt(lhs; $op; rhs):
           0;
           if $v[0] == \"lhs\" then
             if $v[1] then . + 1
-            else empty
+            else .
             end
           elif $v[0] == \"end\" then
             if . > 0 then error($b)
-            else empty
+            else .
             end
           else .
           end;
-          $v
+          # TODO: jaq: foreach empty update backtracks
+          if $v[0] == \"lhs\" then
+            if $v[1] then $v
+            else empty
+            end
+          elif $v[0] == \"end\" then
+            empty
+          else $v
+          end
         )
       | .[1]
       )

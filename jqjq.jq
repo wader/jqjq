@@ -979,7 +979,8 @@ def parse:
             , queries:
                 [ {term: {str: $string_start, type: "TermTypeString"}}
                 , ( $queries[]
-                  | if .term.type == "TermTypeString" then .
+                  # TODO: jaq: null index
+                  | if .term and .term.type == "TermTypeString" then .
                     else {term: {query: ., type: "TermTypeQuery"}}
                     end
                   )

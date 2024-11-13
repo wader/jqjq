@@ -1273,6 +1273,39 @@ def func_defs_to_env($env):
   );
 
 def eval_ast($query; $path; $env; undefined_func):
+  def _setpath($path; $v):
+    def _f($p):
+      if $p | length == 0 then
+        $v
+      else
+        ( $p[0] as $p0
+        | ($p0 | type) as $t
+        #| debug({type: type, $t, $p0, $t, dot: .})
+        | if . == null then
+            if $t == "number" then
+              [range($p0+1) | null]
+            else {}
+            end
+          end
+        | if (type == "object" and $t == "string") or
+            (type == "array" and $t == "number") then
+            .[$p0] |= _f($p[1:])
+          else
+            error("cannot index \(type) with \($t) \($p0)")
+          end
+        )
+      end;
+    _f($path);
+
+  def _getpath($path):
+    reduce $path[] as $p (
+      .;
+      #debug({dot: ., $p}) |
+      if . == null then null
+      else .[$p]
+      end
+    );
+
   def _e($query; $path; $env):
     ( . # debug({c: ., $query, $path, $env})
     | ( $query
@@ -1295,14 +1328,20 @@ def eval_ast($query; $path; $env; undefined_func):
       # eval a index, is also used by _e_suffix
       def _e_index($index; $query_path; $query_input; $opt):
         try
-          ( . as $input
-          | $index as
+          ( $index as
               { $name
               , $str
               , $is_slice
               , $start
               , end: $end_
               }
+          | ( # TODO: jaq: allow null index
+              if . == null then
+                if $name then if $name | type == "string" then {} else [] end
+                elif $str then {}
+                end
+              end
+            ) as $input
           | if $name then [($query_path + [$name]), $input[$name]]
             elif $str then [($query_path + [$str.str]), $input[$str.str]]
             elif $is_slice then
@@ -1322,7 +1361,10 @@ def eval_ast($query; $path; $env; undefined_func):
               ( $query_input
               | _e($start; []; $query_env) as [$_, $v]
               | [ ($query_path + [$v])
-                , $input[$v]
+                , # TODO: jaq: allow null index
+                  ( $input
+                  | if . != null then .[$v] end
+                  )
                 ]
               )
             else . # TODO: error?
@@ -1561,20 +1603,19 @@ def eval_ast($query; $path; $env; undefined_func):
                 | error($a0)
                 )
               elif $name == "halt_error/1" then [[null], halt_error(a0)]
-              # TODO: jaq: setpath/getpath missing 
-              # elif $name == "getpath/1" then
-              #   ( a0 as $a0
-              #   | [ $path+$a0
-              #     , getpath($a0)
-              #     ]
-              #   )
-              # elif $name == "setpath/2" then
-              #   ( a0 as $a0
-              #   | a1 as $a1
-              #   | [ []
-              #     , setpath($a0; $a1)
-              #     ]
-              #   )
+              elif $name == "getpath/1" then
+                ( a0 as $a0
+                | [ $path+$a0
+                  , _getpath($a0)
+                  ]
+                )
+              elif $name == "setpath/2" then
+                ( a0 as $a0
+                | a1 as $a1
+                | [ []
+                  , _setpath($a0; $a1)
+                  ]
+                )
               elif $name == "path/1" then
                 ( _e($args[0]; []; $query_env) as [$p, $_v]
                 # TODO: try/catch error

@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - "master"
+  pull_request:
+
+jobs:
+  test-jq:
+    name: Run tests with jq
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: |
+          curl -sOLJ 'https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64'
+          chmod a+x jq-linux-amd64
+          make test-jq JQ=./jq-linux-amd64
+
+  test-jqjq-jq:
+    name: Run tests with jqjq using jq
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      # does PATH tricks so that jq that runs invoke_client_jqjq is same jq
+      - run: |
+          curl -sOLJ 'https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64'
+          mv jq-linux-amd64 jq
+          chmod a+x jq
+          PATH="$PWD:$PATH" make test-jqjq JQ=jq
+
+  test-jqjq-gojq:
+    name: Run tests with jqjq using gojq
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: |
+          curl -sOLJ 'https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64'
+          mv jq-linux-amd64 jq
+          chmod a+x jq
+          curl -Ls 'https://github.com/itchyny/gojq/releases/download/v0.12.16/gojq_v0.12.16_linux_amd64.tar.gz' | tar xz
+          mv gojq*/gojq gojq
+          PATH="$PWD:$PATH" make test-jqjq JQ=gojq

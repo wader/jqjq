@@ -694,9 +694,9 @@ try error(null) catch .
 123
 null
 
-try (1+"a") catch .
+try (1+"a") catch if . == "number (1) and string (\"a\") cannot be added" or . == "cannot add: number (1) and string (\"a\")" then "expected add error" else . end
 null
-"number (1) and string (\"a\") cannot be added"
+"expected add error"
 
 (1+"a")?
 null

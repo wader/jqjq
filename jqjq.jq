@@ -2737,7 +2737,7 @@ def parse_options:
 def invoke_client_jqjq:
   # instead of @sh to not always quote
   def sh_escape:
-    if . == "" or test("['\" $\n\\\\]") then
+    if . == "" or test("['\" $\n\\\\()]") then
       "'" + gsub("'"; "'\\''") + "'"
     end;
   ( . as $args

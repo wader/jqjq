@@ -1306,6 +1306,15 @@ def eval_ast($query; $path; $env; undefined_func):
       end
     );
 
+  def _delpaths($paths):
+    def _delpath($p):
+      if $p == [] then empty
+      elif has($p[0]) then .[$p[0]] |= _delpath($p[1:])
+      else .
+      end;
+    reduce ($paths | unique | reverse)[] as $p
+      (.; _delpath($p));
+
   def _e($query; $path; $env):
     ( . # debug({c: ., $query, $path, $env})
     | ( $query
@@ -1583,10 +1592,10 @@ def eval_ast($query; $path; $env; undefined_func):
                 ( a0 as $a0
                 | [[null], has($a0)]
                 )
-              # elif $name == "delpaths/1" then
-              #   ( a0 as $a0
-              #   | [[null], delpaths($a0)]
-              #   )
+              elif $name == "delpaths/1" then
+                ( a0 as $a0
+                | [[null], _delpaths($a0)]
+                )
               elif $name == "explode/0"  then [[null], explode]
               elif $name == "implode/0"  then [[null], implode]
               elif $name == "tonumber/0" then [[null], tonumber]

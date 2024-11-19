@@ -2832,7 +2832,7 @@ def invoke_client_jqjq:
     end;
   ( . as $args
   | parse_options
-  | [ (.jq // "jq" | sh_escape)
+  | [ (.jq // env.JQ // "jq" | sh_escape)
     , if .action == "run-tests" then "-nsRr"
       elif .mode == "repl" then "-njR"
       else "-nj"

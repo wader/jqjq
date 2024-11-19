@@ -41,3 +41,17 @@ jobs:
           curl -Ls 'https://github.com/itchyny/gojq/releases/download/v0.12.16/gojq_v0.12.16_linux_amd64.tar.gz' | tar xz
           mv gojq*/gojq gojq
           PATH="$PWD:$PATH" make test-jqjq JQ=gojq
+
+  test-jqjq-jaq:
+    name: Run tests with jqjq using jaq
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: |
+          curl -sOLJ 'https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64'
+          mv jq-linux-amd64 jq
+          chmod a+x jq
+          curl -sOLJ 'https://github.com/01mf02/jaq/releases/download/v2.0.0-epsilon/jaq-x86_64-unknown-linux-gnu'
+          mv jaq-x86_64-unknown-linux-gnu jaq
+          chmod a+x jaq
+          PATH="$PWD:$PATH" make test-jqjq JQ=jaq

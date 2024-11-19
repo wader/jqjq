@@ -3100,7 +3100,7 @@ def jqjq($args; $env):
       )
     | if .end then
         ( "\(.oks) of \(.oks + .errors) tests passed"
-        , if .errors > 0 then null | halt_error(1) else empty end
+        , if .errors > 0 then "" | halt_error(1) else empty end
         )
       elif .line then .line
       else empty

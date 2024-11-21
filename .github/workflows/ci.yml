@@ -15,7 +15,7 @@ jobs:
       - run: |
           curl -sOLJ 'https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64'
           chmod a+x jq-linux-amd64
-          make test-jq JQ=./jq-linux-amd64
+          JQ=./jq-linux-amd64 make test-jq
 
   test-jqjq-jq:
     name: Run tests with jqjq using jq
@@ -24,9 +24,8 @@ jobs:
       - uses: actions/checkout@v3
       - run: |
           curl -sOLJ 'https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64'
-          mv jq-linux-amd64 jq
-          chmod a+x jq
-          PATH="$PWD:$PATH" JQ=jq make test-jqjq
+          chmod a+x jq-linux-amd64
+          JQ=./jq-linux-amd64 make test-jqjq
 
   test-jqjq-gojq:
     name: Run tests with jqjq using gojq
@@ -36,7 +35,7 @@ jobs:
       - run: |
           curl -Ls 'https://github.com/itchyny/gojq/releases/download/v0.12.16/gojq_v0.12.16_linux_amd64.tar.gz' | tar xz
           mv gojq*/gojq gojq
-          PATH="$PWD:$PATH" JQ=gojq make test-jqjq
+          JQ=./gojq make test-jqjq
 
   test-jqjq-jaq:
     name: Run tests with jqjq using jaq
@@ -45,6 +44,5 @@ jobs:
       - uses: actions/checkout@v3
       - run: |
           curl -sOLJ 'https://github.com/01mf02/jaq/releases/download/v2.0.0-epsilon/jaq-x86_64-unknown-linux-gnu'
-          mv jaq-x86_64-unknown-linux-gnu jaq
-          chmod a+x jaq
-          PATH="$PWD:$PATH" JQ=jaq make test-jqjq
+          chmod a+x jaq-x86_64-unknown-linux-gnu
+          JQ=./jaq-x86_64-unknown-linux-gnu make test-jqjq

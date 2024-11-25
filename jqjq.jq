@@ -2735,9 +2735,9 @@ def parse_options:
   );
 
 def invoke_client_jqjq:
-  # instead of @sh to not always quote
+  # instead of @sh to not always quote (as per quoting rules of ${var@Q})
   def sh_escape:
-    if . == "" or test("['\" $\n\\\\()]") then
+    if . == "" or test("[^[A-Za-z0-9%+\\-./:=@_]]") then
       "'" + gsub("'"; "'\\''") + "'"
     end;
   ( . as $args

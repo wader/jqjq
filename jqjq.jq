@@ -1344,7 +1344,7 @@ def eval_ast($query; $path; $env; undefined_func):
               , $start
               , end: $end_
               }
-          | ( # TODO: jaq: allow null index
+          | ( # jaq: for null provide object or array
               if . == null then
                 if $name then if $name | type == "string" then {} else [] end
                 elif $str then {}
@@ -1370,7 +1370,7 @@ def eval_ast($query; $path; $env; undefined_func):
               ( $query_input
               | _e($start; []; $query_env) as [$_, $v]
               | [ ($query_path + [$v])
-                , # TODO: jaq: allow null index
+                , # jaq: only index if non-null
                   ( $input
                   | if . != null then .[$v] end
                   )
@@ -1483,9 +1483,9 @@ def eval_ast($query; $path; $env; undefined_func):
           $query.term.index;
           $path;
           .;
-          # TODO: jaq null index
+          # TODO: jaq: make ast more explicit?
           ( $query.term.suffix_list
-          | if . then .[0].optional
+          | if . != null then .[0].optional
             else false
             end
           )

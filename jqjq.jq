@@ -202,9 +202,7 @@ def parse:
     # filter is used to disable operators, ex in keyval query
     def _op_prec_climb($p; filter):
       def _ops:
-        # TODO: jaq: nice way? don't even call _ops for null case?
-        if . == null then false
-        elif filter then false
+        if filter then            null
         elif .pipe then           {prec: 0, name: "|",   assoc: "right"}
         # TODO: understand why jq has left associativity for "," but right seems to give correct parse tree
         elif .comma then          {prec: 1, name: ",",   assoc: "right"}
@@ -229,14 +227,14 @@ def parse:
         elif .star then           {prec: 8, name: "*",   assoc: "left"}
         elif .slash then          {prec: 8, name: "/",   assoc: "left"}
         elif .percent then        {prec: 8, name: "%",   assoc: "left"}
-        else false
+        else null
         end;
 
       ( _p("query1") as [$rest, $t]
       | $rest
       | def _f($t):
           ( .[0] as $next # peek next
-          | ($next | _ops) as $next_op
+          | ($next | if . != null then _ops end) as $next_op
           | if $next_op and $next_op.prec >= $p then
               ( .[1:] # consume
               | ( if $next_op.assoc == "right" then

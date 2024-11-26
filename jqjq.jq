@@ -970,7 +970,6 @@ def parse:
             , queries:
                 [ {term: {str: $string_start, type: "TermTypeString"}}
                 , ( $queries[]
-                  # TODO: jaq: null index
                   | if .term and .term.type == "TermTypeString" then .
                     else {term: {query: ., type: "TermTypeQuery"}}
                     end
@@ -1474,7 +1473,6 @@ def eval_ast($query; $path; $env; undefined_func):
           $query.term.index;
           $path;
           .;
-          # TODO: jaq: make ast more explicit?
           ( $query.term.suffix_list
           | if . != null then .[0].optional
             else false
@@ -1517,7 +1515,7 @@ def eval_ast($query; $path; $env; undefined_func):
         | $query.term.func as {$name, $args}
         | func_name($name; $args) as $name
         | $query_env[$name] as $e
-        # TODO: jaq null index and null has()
+        # jaq: null | has() is an error
         | if $e != null and ($e | has("value")) then [[null], $e.value]
           elif $e != null and $e.body then
             ( ($e.args // []) as $func_args
@@ -1726,7 +1724,7 @@ def eval_ast($query; $path; $env; undefined_func):
                   | if startswith("$") then .[1:] else . end
                   | _term_str
                   )
-                , ( # TOOD: jaq: null index
+                , ( # TODO: jaq: null index
                     ( $kv.val
                     | values
                     | .queries[0]

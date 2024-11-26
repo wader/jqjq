@@ -11,13 +11,11 @@ null
 null
 
 # number
-123, 1.23, 0.123, .123, .123e1, 1.23e1, 2E3, 1.23e+1, 1.23E-2
+123, 1.23, 0.123, 1.23e1, 2E3, 1.23e+1, 1.23E-2
 null
 123
 1.23
 0.123
-0.123
-1.23
 12.3
 2000
 12.3
@@ -694,7 +692,7 @@ try error(null) catch .
 123
 null
 
-try (1+"a") catch if . == "number (1) and string (\"a\") cannot be added" or . == "cannot add: number (1) and string (\"a\")" then "expected add error" else . end
+try (1+"a") catch if . == "number (1) and string (\"a\") cannot be added" or . == "cannot add: number (1) and string (\"a\")" or . == "cannot calculate 1 + \"a\"" then "expected add error" else . end
 null
 "expected add error"
 

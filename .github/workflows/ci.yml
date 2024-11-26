@@ -15,19 +15,17 @@ jobs:
       - run: |
           curl -sOLJ 'https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64'
           chmod a+x jq-linux-amd64
-          make test-jq JQ=./jq-linux-amd64
+          JQ=./jq-linux-amd64 make test-jq
 
   test-jqjq-jq:
     name: Run tests with jqjq using jq
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      # does PATH tricks so that jq that runs invoke_client_jqjq is same jq
       - run: |
           curl -sOLJ 'https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64'
-          mv jq-linux-amd64 jq
-          chmod a+x jq
-          PATH="$PWD:$PATH" make test-jqjq JQ=jq
+          chmod a+x jq-linux-amd64
+          JQ=./jq-linux-amd64 make test-jqjq
 
   test-jqjq-gojq:
     name: Run tests with jqjq using gojq
@@ -35,9 +33,16 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: |
-          curl -sOLJ 'https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64'
-          mv jq-linux-amd64 jq
-          chmod a+x jq
           curl -Ls 'https://github.com/itchyny/gojq/releases/download/v0.12.16/gojq_v0.12.16_linux_amd64.tar.gz' | tar xz
           mv gojq*/gojq gojq
-          PATH="$PWD:$PATH" make test-jqjq JQ=gojq
+          JQ=./gojq make test-jqjq
+
+  test-jqjq-jaq:
+    name: Run tests with jqjq using jaq
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: |
+          curl -sOLJ 'https://github.com/01mf02/jaq/releases/download/v2.0.0-epsilon/jaq-x86_64-unknown-linux-gnu'
+          chmod a+x jaq-x86_64-unknown-linux-gnu
+          JQ=./jaq-x86_64-unknown-linux-gnu make test-jqjq

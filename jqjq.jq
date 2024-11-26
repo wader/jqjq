@@ -173,9 +173,10 @@ def lex:
   [_lex];
 
 def parse:
-  # TODO: jaq null index
-  # TODO: maybe a consume helper that returns first? ala [$rest, $v]?
-  def _consume(f): select(length > 0 and (.[0] | f)) | .[1:];
+  def _consume(f):
+    ( select(length > 0 and (.[0] | f))
+    | [.[1:], .[0]]
+    );
   def _optional(f):
     ( f
     // [., null]
@@ -194,7 +195,7 @@ def parse:
       else [$c, []]
       end
     );
-  def _keyword($name): _consume(.ident == $name);
+  def _keyword($name): _consume(.ident == $name)[0];
 
   def _p($type):
     # based on:
@@ -272,11 +273,10 @@ def parse:
       );
 
     def _scalar($type; c; f):
-      ( . as [$first]
-      | _consume(c)
-      | [ .
+      ( _consume(c) as [$rest, $v]
+      | [ $rest
         , { term:
-              ( $first
+              ( $v
               | f
               | .type = $type
               )
@@ -292,7 +292,7 @@ def parse:
     # "name": <term>
     # <subquery>: <term>
     def _object:
-      ( _consume(.lcurly)
+      ( _consume(.lcurly)[0]
       | _repeat(
           # TODO:
           # string interpolated key
@@ -301,7 +301,7 @@ def parse:
           # multi query val:
           #    term | ...
           ( ( def _colon_val:
-                ( _consume(.colon)
+                ( _consume(.colon)[0]
                 # keyval_query only allows | operator (, is separator)
                 | _p("keyval_query") as [$rest, $val]
                 | $rest
@@ -313,12 +313,12 @@ def parse:
               (
                 # {a} -> {a: .a}
                 # {a: ...} -> {a: ...}
-                ( .[0] as $ident
-                | _consume(.ident)
+                ( _consume(.ident) as [$rest, {$ident}]
+                | $rest
                 | _optional(_colon_val) as [$rest, $val]
                 | $rest
                 | [ .
-                  , { key: $ident.ident
+                  , { key: $ident
                     , val: $val
                     }
                   ]
@@ -339,10 +339,9 @@ def parse:
                 )
               //
                 # {$a} -> {a: $a}
-                ( .[0] as $binding
-                | _consume(.binding)
-                | [ .
-                  , {key: $binding.binding}
+                ( _consume(.binding) as [$rest, {$binding}]
+                | [ $rest
+                  , {key: $binding}
                   ]
                 )
               //
@@ -365,8 +364,8 @@ def parse:
                 [$rest, null]
               else
                 # or there must be a comma
-                ( _consume(.comma)
-                | [., null]
+                ( _consume(.comma) as [$rest, $_]
+                | [$rest, null]
                 )
               end
             ) as [$rest, $_]
@@ -374,8 +373,8 @@ def parse:
           )
         ) as [$rest, $key_vals]
       | $rest
-      | _consume(.rcurly)
-      | [ .
+      | _consume(.rcurly) as [$rest, $_]
+      | [ $rest
         , { term:
               { type: "TermTypeObject"
               , object:
@@ -394,10 +393,10 @@ def parse:
     # (query): pattern
     # [pattern, ...]
     def _pattern:
-      ( ( _consume(.lcurly)
+      ( ( _consume(.lcurly)[0]
         | _repeat(
             ( ( def _colon_pattern:
-                  ( _consume(.colon)
+                  ( _consume(.colon)[0]
                   | _p("pattern") as [$rest, $pattern]
                   | $rest
                   | [ .
@@ -407,12 +406,12 @@ def parse:
                 (
                   # {a} -> {a: .a}
                   # {a: ...} -> {a: ...}
-                  ( .[0] as $ident
-                  | _consume(.ident)
+                  ( _consume(.ident) as [$rest, {$ident}]
+                  | $rest
                   | _optional(_colon_pattern) as [$rest, $val]
                   | $rest
                   | [ .
-                    , { key: $ident.ident
+                    , { key: $ident
                       , val: $val
                       }
                     ]
@@ -433,10 +432,9 @@ def parse:
                   )
                 //
                   # {$a} -> {a: $a}
-                  ( .[0] as $binding
-                  | _consume(.binding)
-                  | [ .
-                    , {key: $binding.binding}
+                  ( _consume(.binding) as [$rest, {$binding}]
+                  | [ $rest
+                    , {key: $binding}
                     ]
                   )
                 //
@@ -459,8 +457,8 @@ def parse:
                   [$rest, null]
                 else
                   # or there must be a comma
-                  ( _consume(.comma)
-                  | [., null]
+                  ( _consume(.comma) as [$rest, $_]
+                  | [$rest, null]
                   )
                 end
               ) as [$rest, $_]
@@ -468,47 +466,47 @@ def parse:
             )
           ) as [$rest, $key_patterns]
         | $rest
-        | _consume(.rcurly)
-        | [ .
+        | _consume(.rcurly) as [$rest, $_]
+        | [ $rest
           , {object: $key_patterns}
           ]
         )
       //
-        ( _consume(.lsquare)
+        ( _consume(.lsquare) as [$rest, $_]
+        | $rest
         | _repeat(
             ( _p("pattern") as [$rest, $pattern]
             | $rest
             | _optional(
                 # TODO: _one() etc?
-                ( _consume(.comma)
-                | [., null]
+                ( _consume(.comma) as [$rest, $_]
+                | [$rest, null]
                 )
               ) as [$rest, $_]
             | [$rest, $pattern]
             )
           ) as [$rest, $pattern]
         | $rest
-        | _consume(.rsquare)
-        | [ .
+        | _consume(.rsquare) as [$rest, $_]
+        | [ $rest
           , {array: $pattern}
           ]
         )
       //
-        ( .[0] as $binding
-        | _consume(.binding)
-        | [ .
-          , {name: $binding.binding}
+        ( _consume(.binding) as [$rest, {$binding}]
+        | [ $rest
+          , {name: $binding}
           ]
         )
       );
 
     # (<query>)
     def _subquery:
-      ( _consume(.lparen)
+      ( _consume(.lparen)[0]
       | _p("query") as [$rest, $query]
       | $rest
-      | _consume(.rparen)
-      | [ .
+      | _consume(.rparen) as [$rest, $_]
+      | [ $rest
         , { term:
               { type: "TermTypeQuery"
               , query: $query
@@ -520,28 +518,28 @@ def parse:
     # ident
     # ident(<query>[;...])
     def _func:
-      ( . as [$first]
-      | _consume(.ident)
-      | ( _consume(.lparen)
+      ( _consume(.ident) as [$rest, {$ident}]
+      | $rest
+      | ( _consume(.lparen)[0]
         | _repeat(
             ( _p("query") as [$rest, $arg]
             | $rest
             | _optional(
                 # TODO: _one() etc?
-                ( _consume(.semicolon)
-                | [., null]
+                ( _consume(.semicolon) as [$rest, $_]
+                | [$rest, null]
                 )
               ) as [$rest, $_]
             | [$rest, $arg]
             )
           ) as [$rest, $args]
         | $rest
-        | _consume(.rparen)
+        | _consume(.rparen)[0]
         | [ .
           , { term:
                 { type: "TermTypeFunc"
                 , func:
-                    { name: $first.ident
+                    { name: $ident
                     , args: $args
                     }
                 }
@@ -553,7 +551,7 @@ def parse:
           , { term:
                 { type: "TermTypeFunc"
                 , func:
-                    {name: $first.ident}
+                    {name: $ident}
                 }
             }
           ]
@@ -561,13 +559,12 @@ def parse:
 
     # $name
     def _binding:
-      ( . as [$first]
-      | _consume(.binding)
-      | [ .
+      ( _consume(.binding) as [$rest, {$binding}]
+      | [ $rest
         , { term:
               { type: "TermTypeFunc"
               , func:
-                  {name: $first.binding}
+                  {name: $binding}
               }
           }
         ]
@@ -575,11 +572,11 @@ def parse:
 
     # [<query>]
     def _array:
-      ( _consume(.lsquare)
+      ( _consume(.lsquare)[0]
       | _optional(_p("query")) as [$rest, $query]
       | $rest
-      | _consume(.rsquare)
-      | [ .
+      | _consume(.rsquare) as [$rest, $_]
+      | [ $rest
         , { term:
               { type: "TermTypeArray"
               , array:
@@ -597,13 +594,13 @@ def parse:
       | _keyword("as")
       | _p("pattern") as [$rest, $pattern]
       | $rest
-      | _consume(.lparen)
+      | _consume(.lparen)[0]
       | _p("query") as [$rest, $start]
       | $rest
-      | _consume(.semicolon)
+      | _consume(.semicolon)[0]
       | _p("query") as [$rest, $update]
       | $rest
-      | _consume(.rparen)
+      | _consume(.rparen)[0]
       | [ .
         , { term:
             { type: "TermTypeReduce"
@@ -626,19 +623,21 @@ def parse:
       | _keyword("as")
       | _p("pattern") as [$rest, $pattern]
       | $rest
-      | _consume(.lparen)
+      | _consume(.lparen)[0]
       | _p("query") as [$rest, $start]
       | $rest
-      | _consume(.semicolon)
+      | _consume(.semicolon)[0]
       | _p("query") as [$rest, $update]
       | $rest
       | _optional(
-          ( _consume(.semicolon)
+          ( _consume(.semicolon) as [$rest, $_]
+          | $rest
           | _p("query")
           )
         ) as [$rest, $extract]
       | $rest
-      | _consume(.rparen)
+      | _consume(.rparen) as [$rest, $_]
+      | $rest
       | [ .
         , { term:
             { type: "TermTypeForeach"
@@ -711,46 +710,45 @@ def parse:
     def _func_defs:
       _repeat(
         ( _keyword("def")
-        | . as [{ident: $name}]
-        | _consume(.ident)
-        | ( ( _consume(.lparen)
+        | _consume(.ident) as [$rest, $ident]
+        | $rest
+        | ( ( _consume(.lparen)[0]
             | _repeat(
-                ( .[0] as $arg
-                | ( ( _consume(.ident)
-                    | [., $arg.ident]
+                ( ( ( _consume(.ident) as [$rest, {$ident}]
+                    | [$rest, $ident]
                     )
                   //
-                    ( _consume(.binding)
-                    | [., $arg.binding]
+                    ( _consume(.binding) as [$rest, {$binding}]
+                    | [$rest, $binding]
                     )
                   ) as [$rest, $arg]
                 | $rest
-                | ( _consume(.semicolon)
+                | ( _consume(.semicolon)[0]
                   // .
                   )
                 | [., $arg]
                 )
               ) as [$rest, $args]
             | $rest
-            | _consume(.rparen)
-            | _consume(.colon)
+            | _consume(.rparen)[0]
+            | _consume(.colon)[0]
             | _p("query") as [$rest, $body]
             | $rest
-            | _consume(.semicolon)
-            | [ .
-              , { name: $name
+            | _consume(.semicolon) as [$rest, $_]
+            | [ $rest
+              , { name: $ident.ident
                 , args: $args
                 , body: $body
                 }
               ]
             )
           //
-            ( _consume(.colon)
+            ( _consume(.colon)[0]
             | _p("query") as [$rest, $body]
             | $rest
-            | _consume(.semicolon)
-            | [ .
-              , { name: $name
+            | _consume(.semicolon) as [$rest, $_]
+            | [ $rest
+              , { name: $ident.ident
                 , body: $body
                 }
               ]
@@ -772,29 +770,29 @@ def parse:
         # [] iter
         ( _optional(
             # TODO: _one() etc?
-            ( _consume(.dot)
-            | [., null]
+            ( _consume(.dot) as [$rest, $_]
+            | [$rest, null]
             )
           ) as [$rest, $_]
         | $rest
-        | _consume(.lsquare)
-        | _consume(.rsquare)
-        | [., {iter: true}]
+        | _consume(.lsquare)[0]
+        | _consume(.rsquare) as [$rest, $_]
+        | [$rest, {iter: true}]
         )
       //
         # [...] query
         ( _optional(
             # TODO: _one() etc?
-            ( _consume(.dot)
-            | [., null]
+            ( _consume(.dot) as [$rest, $_]
+            | [$rest, null]
             )
           ) as [$rest, $_]
         | $rest
-        | _consume(.lsquare)
+        | _consume(.lsquare)[0]
         | _p("query") as [$rest, $start]
         | $rest
-        | _consume(.rsquare)
-        | [ .
+        | _consume(.rsquare) as [$rest, $_]
+        | [ $rest
           , { index:
                 {start: $start}
             }
@@ -804,15 +802,15 @@ def parse:
         # [...:...]
         # [:...]
         # [...:]
-        ( _consume(.lsquare)
+        ( _consume(.lsquare)[0]
         | _optional(_p("query")) as [$rest, $start]
         | $rest
-        | _consume(.colon)
+        | _consume(.colon)[0]
         | _optional(_p("query")) as [$rest, $end_]
         | $rest
-        | _consume(.rsquare)
+        | _consume(.rsquare)[0]
         # fail if both missing
-        | if $start == null and $end_ == null then empty else . end
+        | if $start == null and $end_ == null then empty end
         | [ .
           , { index:
                 ( {is_slice: true}
@@ -824,17 +822,16 @@ def parse:
         )
       //
         # .name index
-        ( .[0] as $index
-        | _consume(.index)
-        | [ .
+        ( _consume(.index) as [$rest, {$index}]
+        | [ $rest
           , { index:
-                {name: $index.index}
+                {name: $index}
             }
           ]
         )
       //
         # ."name" index
-        ( _consume(.dot)
+        ( _consume(.dot)[0]
         | _p("string") as [$rest, $string]
         | $rest
         | [ .
@@ -847,8 +844,8 @@ def parse:
         )
       //
         # ? optional (try)
-        ( _consume(.qmark)
-        | [ .
+        ( _consume(.qmark) as [$rest, $_]
+        | [ $rest
           , {optional: true}
           ]
         )
@@ -856,7 +853,7 @@ def parse:
         ( _keyword("as")
         | _p("pattern") as [$rest, $pattern]
         | $rest
-        | _consume(.pipe)
+        | _consume(.pipe)[0]
         | _p("query") as [$rest, $body]
         | $rest
         | [ .
@@ -871,8 +868,8 @@ def parse:
 
     # .
     def _identity:
-      ( _consume(.dot)
-      | [ .
+      ( _consume(.dot) as [$rest, $_]
+      | [ $rest
         , { term:
               {type: "TermTypeIdentity"}
           }
@@ -885,12 +882,12 @@ def parse:
     # ."name"
     # TODO: share with _suffix? tricky because of leading dot
     def _index:
-      ( ( _consume(.dot)
-        | _consume(.lsquare)
+      ( ( _consume(.dot)[0]
+        | _consume(.lsquare)[0]
         | _p("query") as [$rest, $query]
         | $rest
-        | _consume(.rsquare)
-        | [ .
+        | _consume(.rsquare) as [$rest, $_]
+        | [ $rest
           , { term:
                 { type: "TermTypeIndex"
                 , index:
@@ -900,14 +897,14 @@ def parse:
           ]
         )
       //
-        ( _consume(.dot)
-        | _consume(.lsquare)
+        ( _consume(.dot)[0]
+        | _consume(.lsquare)[0]
         | _optional(_p("query")) as [$rest, $start]
         | $rest
-        | _consume(.colon)
+        | _consume(.colon)[0]
         | _optional(_p("query")) as [$rest, $end_]
         | $rest
-        | _consume(.rsquare)
+        | _consume(.rsquare)[0]
         # fail is both missing
         | if $start == null and $end_ == null then empty else . end
         | [ .
@@ -923,20 +920,19 @@ def parse:
           ]
         )
       //
-        ( .[0] as $index
-        | _consume(.index)
-        | [ .
+        ( _consume(.index) as [$rest, {$index}]
+        | [ $rest
           , { term:
                 { type: "TermTypeIndex"
                 , index:
-                    {name: $index.index}
+                    {name: $index}
                 }
             }
           ]
         )
       //
         # ."name" index
-        ( _consume(.dot)
+        ( _consume(.dot)[0]
         | _p("string") as [$rest, $string]
         | $rest
         | [ .
@@ -958,10 +954,8 @@ def parse:
 
     # "abc \(123)"
     def _string_query:
-      # TODO: jaq null index (consume checks length and outoput [value, rest]?)
-      ( select(length > 0)
-      | .[0] as {$string_start}
-      | _consume(.string_start)
+      ( _consume(.string_start) as [$rest, {$string_start}]
+      | $rest
       | _repeat(
           ( select(length > 0 ) # make sure there is something
           | _p("query")
@@ -969,9 +963,8 @@ def parse:
           )
         ) as [$rest, $queries]
       | $rest
-      | .[0] as {$string_end}
-      | _consume(.string_end)
-      | [ .
+      | _consume(.string_end) as [$rest, {$string_end}]
+      | [ $rest
         , { term:
             { type: "TermTypeString"
             , queries:
@@ -996,8 +989,8 @@ def parse:
 
     # @format "abc"
     def _format_string:
-      ( .[0] as {$at_ident}
-      | _consume(.at_ident)
+      ( _consume(.at_ident) as [$rest, {$at_ident}]
+      | $rest
       | _string as [$rest, $string]
       | [ $rest
         , { term:
@@ -1036,7 +1029,7 @@ def parse:
 
     # +<term> etc
     def _unary_op(f; $op):
-      ( _consume(f)
+      ( _consume(f)[0]
       | _p("term") as [$rest, $term]
       | $rest
       | [ .
@@ -1054,8 +1047,8 @@ def parse:
     # ..
     # transform .. into recurse call
     def _recurse:
-      ( _consume(.dotdot)
-      | [ .
+      ( _consume(.dotdot) as [$rest, $_]
+      | [ $rest
         , { term:
               { type: "TermTypeFunc"
               , func:

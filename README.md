@@ -35,6 +35,12 @@ $ ./jqjq --repl
 "JQJQ"
 > ^D
 
+# run with gojq or jaq
+$ ./jqjq --jq gojq -n 1+2
+3
+$ ./jqjq --jq jaq -n 1+2
+3
+
 # run 01mf02's adaptation of itchyny's bf.jq running fib.bf
 $ ./jqjq -n "\"$(cat fib.bf)\" | $(cat bf.jq)"
 "1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233"
@@ -56,7 +62,12 @@ $ gojq -cn -L . 'include "jqjq"; {a:0, b:1} | eval(".a, .b") += 1'
 
 ### Run tests
 
-`make test`
+```sh
+# run jqjq's tests with jq and jqjq (via jq)
+$ make test
+# run jqjq's tests with jqjq (via jaq)
+$ JQ=jaq make test-jqjq
+````
 
 Note that the tests are meant to be used with jq 1.7.1.
 

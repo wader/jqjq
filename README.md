@@ -1,13 +1,17 @@
 # jqjq
 
-jq implementation of [jq](https://github.com/stedolan/jq)
+jqjq is a jq implementation in [jq](https://github.com/stedolan/jq).
 
-Why? It started when researching how to write decoders in jq for [fq](https://github.com/wader/fq) which ended up involving some AST rewriting and walking and then it escalated a bit.
+It started out researching how to write format decoders in jq for [fq](https://github.com/wader/fq) which ended up involving some AST fiddling and then escalated from a joke into a fun and educational project.
+But it's also a nice way to show off jq as a very expressive, capable and neat language!
 
-It's also a great way to show that jq is a very expressive, capable and neat language!
+It can currently run with
+[jq](https://github.com/stedolan/jq),
+[gojq](https://github.com/itchyny/gojq),
+[jaq](https://github.com/01mf02/jaq) and
+[jqjq](https://github.com/wader/jqjq).
 
-There is a [jqplay snippet with jqjq](https://jqplay.org/s/HwbMS8mHAEwElhI) if you want to play around.
-
+This [jqplay demo snippet](https://jqplay.org/s/pqSQCZnSkPyFqhm) can be used to play around with it.
 
 ### Use via `jqjq` wrapper
 

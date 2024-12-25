@@ -97,8 +97,8 @@ def lex:
       | _re("^\\s+"; {whitespace: .})
       // _re("^#[^\n]*"; {comment: .})
       // _re("^\\.[_a-zA-Z][_a-zA-Z0-9]*"; {index: .[1:]})
-      // _re("^[_a-zA-Z][_a-zA-Z0-9]*"; {ident: .})
       // _re("^@[_a-zA-Z][_a-zA-Z0-9]*"; {at_ident: .})
+      // _re("^[_a-zA-Z][_a-zA-Z0-9]*"; {ident: .})
       // _re("^\\$[_a-zA-Z][_a-zA-Z0-9]*"; {binding: .})
       # 1.23, .123, 123e2, 1.23e2, 123E2, 1.23e+2, 1.23E-2 or 123
       // _re("^(?:[0-9]+\\.[0-9]+|[0-9]+)(?:[eE][-\\+]?[0-9]+)?"; {number: .})
@@ -705,12 +705,15 @@ def parse:
       );
 
     # def a: ...;
-    # def a(f) ...;
-    # def a(f; $v) ...;
+    # def a(f): ...;
+    # def a(f; $v): ...;
     def _func_defs:
       _repeat(
         ( _keyword("def")
-        | _consume(.ident) as [$rest, $ident]
+        | ( _consume(.at_ident)
+          // _consume(.ident)
+          ) as [$rest, $tok]
+        | ($tok.ident // $tok.at_ident) as $name
         | $rest
         | ( ( _consume(.lparen)[0]
             | _repeat(
@@ -736,7 +739,7 @@ def parse:
             | $rest
             | _consume(.semicolon) as [$rest, $_]
             | [ $rest
-              , { name: $ident.ident
+              , { name: $name
                 , args: $args
                 , body: $body
                 }
@@ -748,7 +751,7 @@ def parse:
             | $rest
             | _consume(.semicolon) as [$rest, $_]
             | [ $rest
-              , { name: $ident.ident
+              , { name: $name
                 , body: $body
                 }
               ]
@@ -1414,11 +1417,11 @@ def eval_ast($query; $path; $env; undefined_func):
         end;
 
       def _string:
-        _string($query; "_format_text");
+        _string($query; "tostring");
 
       def _format:
-        # @name -> _format_name
-        _string($query.term.str; "_format_\($query.term.format[1:])");
+        # @name "abc \(.def)" -> "abc \(.def | @name)"
+        _string($query.term.str; $query.term.format);
 
       # .
       def _identity:
@@ -2500,8 +2503,8 @@ def del(p): delpaths([path(p)]);
 
 def paths: path(..) | select(. != []);
 
-def _format_text: tostring;
-def _format_json: tojson;
+def @text: tostring;
+def @json: tojson;
 
 def _utf8_bytes:
   [ explode[]
@@ -2538,7 +2541,7 @@ def _utf8_bytes:
     end
   ];
 
-def _format_uri:
+def @uri:
   gsub(\"(?<c>[^A-Za-z0-9-_\\\\.~])\";
     ( # A (65) - 10 = 55
       def _hex: . + if . < 10 then 48 else 55 end;

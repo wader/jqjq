@@ -128,6 +128,7 @@ Note that the tests are meant to be used with jq 1.7.1.
 - [x] `path(f)` Output paths for `f`
 - [x] `input`, `inputs`
 - [ ] Builtins / standard library
+  - [x] `ascii_upcase`, `ascii_downcase`
   - [x] `add`
   - [x] `all`, `all(cond)`, `all(gen; cond)`
   - [x] `any`, `any(cond)`, `any(gen; cond)`

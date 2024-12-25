@@ -1162,6 +1162,16 @@ map([paths])
 {}
 []
 
+# ascii_upcase
+ascii_upcase
+"123`abcdefghijklmnopqstuvxyz{"
+"123`ABCDEFGHIJKLMNOPQSTUVXYZ{"
+
+# ascii_downcase
+ascii_downcase
+"123@ABCDEFGHIJKLMNOPQSTUVXYZ["
+"123@abcdefghijklmnopqstuvxyz["
+
 # SKIP_JQ
 # test below does not work with standard jq because of missing features or
 # they test jqjq specific things

@@ -2552,6 +2552,14 @@ def _format_uri:
     )
   );
 
+def _ascii_map($l; $u; f):
+  ( explode
+  | map(if . >= $l and . <= $u then f end)
+  | implode
+  );
+def ascii_upcase: _ascii_map(97; 122; .-32);
+def ascii_downcase: _ascii_map(65; 90; .+32);
+
 ";
 
 def _builtins_env:

@@ -2596,7 +2596,7 @@ def builtin_undefined_func($globals; $builtins_env):
       | eval_ast(
           $f.args[0];
           [];
-          $builtins_env;
+          $f.env;
           builtin_undefined_func($globals; $builtins_env)
         ) as [$_path, $expr]
       | $f.input

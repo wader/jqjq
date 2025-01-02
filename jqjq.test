@@ -1257,3 +1257,18 @@ null
 try eval(". as {$a $b} | .") catch "failed"
 null
 "failed"
+
+# eval expr arg as normal
+"1+2" as $a | eval($a)
+null
+3
+
+# also nested
+"\"1+2\" as $b | eval($b)" as $a | eval($a)
+null
+3
+
+# and env don't leak into eval (maybe should be an option?)
+try 3 as $e | eval("$e") catch .
+null
+"undefined function $e"

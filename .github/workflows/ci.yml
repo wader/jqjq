@@ -33,7 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: |
-          curl -Ls 'https://github.com/itchyny/gojq/releases/download/v0.12.16/gojq_v0.12.16_linux_amd64.tar.gz' | tar xz
+          curl -Ls 'https://github.com/itchyny/gojq/releases/download/v0.12.17/gojq_v0.12.17_linux_amd64.tar.gz' | tar xz
           mv gojq*/gojq gojq
           JQ=./gojq make test-jqjq
 
@@ -43,6 +43,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: |
-          curl -sOLJ 'https://github.com/01mf02/jaq/releases/download/v2.0.0-epsilon/jaq-x86_64-unknown-linux-gnu'
+          curl -sOLJ 'https://github.com/01mf02/jaq/releases/download/v2.0.1/jaq-x86_64-unknown-linux-gnu'
           chmod a+x jaq-x86_64-unknown-linux-gnu
           JQ=./jaq-x86_64-unknown-linux-gnu make test-jqjq

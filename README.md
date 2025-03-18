@@ -59,8 +59,10 @@ $ jq -n -L . 'include "jqjq"; eval("def f: 1,8; [f,f] | map(.+105) | implode")'
 $ jq -L . 'include "jqjq"; eval("(.+.) | map(.+105) | implode")' <<< '[1,8]'
 "jqjq"
 
-# can be used as path expression (only gojq for now because of jq issue)
+# can be used as path expression (only gojq and jaq for now because of jq issues like https://github.com/jqlang/jq/issues/3128)
 $ gojq -cn -L . 'include "jqjq"; {a:0, b:1} | eval(".a, .b") += 1'
+{"a":1,"b":2}
+$ jaq -cn -L . 'include "jqjq"; {a:0, b:1} | eval(".a, .b") += 1'
 {"a":1,"b":2}
 ```
 

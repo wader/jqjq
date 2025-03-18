@@ -19,6 +19,22 @@ def _internal_error($v): {_internal_error: $v} | error;
 def _is_internal_error: type == "object" and has("_internal_error");
 def _unwrap_internal_error: ._internal_error;
 
+# reimplementation of getpath/1 for jaq
+def _getpath($path):
+  if . == null or ($path | length) == 0 then .
+  else .[$path[0]] | _getpath($path[1:])
+  end;
+
+# reimplementation of delpaths/1 for jaq
+def _delpaths($paths):
+  def _delpath($p):
+    if $p == [] then empty
+    elif has($p[0]) then .[$p[0]] |= _delpath($p[1:])
+    else .
+    end;
+  reduce ($paths | unique | reverse)[] as $p
+    (.; _delpath($p));
+
 # TODO: keep track of position?
 # TODO: error on unbalanced string stack?
 # string_stack is used to keep track of matching ( ) and \( <-> )" or ) (
@@ -1289,24 +1305,6 @@ def eval_ast($query; $path; $env; undefined_func):
         )
       end;
     _f($path);
-
-  def _getpath($path):
-    reduce $path[] as $p (
-      .;
-      #debug({dot: ., $p}) |
-      if . == null then null
-      else .[$p]
-      end
-    );
-
-  def _delpaths($paths):
-    def _delpath($p):
-      if $p == [] then empty
-      elif has($p[0]) then .[$p[0]] |= _delpath($p[1:])
-      else .
-      end;
-    reduce ($paths | unique | reverse)[] as $p
-      (.; _delpath($p));
 
   def _e($query; $path; $env):
     ( . # debug({c: ., $query, $path, $env})
@@ -2629,12 +2627,10 @@ def eval($expr; $globals; $builtins_env):
   # TODO: does not work with jq yet because issue with bind patterns
   # $ gojq -cn -L . 'include "jqjq"; {} | {a:1} | eval(".a") += 1'
   # {"a":2}
-    | $value
-    );
-  # | if $path | . == [] or . == [null] then $value
-  #   else getpath($path)
-  #   end
-  # );
+  | if $path | . == [] or . == [null] then $value
+    else _getpath($path)
+    end
+  );
 def eval($expr):
   eval($expr; {}; _builtins_env);
 

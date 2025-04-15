@@ -2090,6 +2090,123 @@ def eval_ast($query; $path; $env; undefined_func):
 def eval_ast($ast):
   eval_ast($ast; []; {}; undefined_func_error);
 
+def ast_tostring:
+  def _pattern:
+    if .name then .name
+    elif .array then "[\([.array[] | _pattern] | join(", "))]"
+    elif .object then "{\([.object[] | "\(.key)\(if .val then ": \(.val | _pattern)" else "" end)"] | join(", "))}"
+    else error("unsupported type of pattern: \(.)")
+    end;
+  def _f:
+    def _index:
+      ".\(
+        if .start then
+          "[\(.start | _f)\(if .end then ":\(.end | _f)" else "" end)]"
+        elif .name then .name
+        elif .str then .str.str | tojson
+        else error("unsupported type of index: \(.)")
+        end
+      )";
+    . as {term: {type: $type}, $op, $func_defs}
+    | if $type then .term |
+        "\(
+          if $func_defs then [
+            $func_defs.[]
+            | "def \(.name)\(
+              if .args then "(\(.args | join(", ")))"
+              else ""
+              end
+            ): \(.body | _f); "
+          ] | join("")
+          else ""
+          end
+        )\(
+          if $type == "TermTypeNull" then "null"
+          elif $type == "TermTypeNumber" then .number | tostring
+          elif $type == "TermTypeString" then
+            if .str then
+              .str | tojson
+            else 
+              [
+                .queries.[] | _f |
+                if .[0:1] == "\""
+                  then .[1:-1]
+                  else "\\\(.)"
+                end
+              ] | join("") | "\"\(.)\""
+            end
+          elif $type == "TermTypeTrue" then "true"
+          elif $type == "TermTypeFalse" then "false"
+          elif $type == "TermTypeIdentity" then "."
+          elif $type == "TermTypeUnary" then .unary | "\(.op)\({term: .term} | _f)"
+          elif $type == "TermTypeIndex" then .index | _index
+          elif $type == "TermTypeFunc" then "\(.func.name)\(
+            if .func.args then
+              [.func.args.[] | _f] | join(", ") | "(\(.))"
+            else
+              ""
+            end
+          )"
+          elif $type == "TermTypeObject" then
+            ( .object.key_vals
+            | "{\(
+              [ .[] |
+                "\(
+                  if .key then .key
+                  elif .key_string then .key_string.str | tojson
+                  else .key_query | _f
+                  end
+                )\(
+                  if .val then 
+                    ": \([.val.queries.[] | _f] | join(", "))"
+                  else ""
+                  end
+                )"
+              ] | join(", ")
+            )}" )
+          elif $type == "TermTypeArray" then  "[\(.array.query | _f)]"
+          elif $type == "TermTypeIf" then .if |
+            "if \(.cond | _f) then \(.then | _f) \(
+              if .elif then [
+                .elif.[] |
+                "elif \(.cond | _f) then \(.then | _f) "
+              ] | join("")
+              else ""
+              end
+            )else \(.else | _f) end"
+          elif $type == "TermTypeReduce" then .reduce |
+            "reduce \({term: .term} | _f) as \(.pattern | _pattern) (\(.start | _f);\(.update | _f))"
+          elif $type == "TermTypeForeach" then .foreach |
+            "foreach \({term: .term} | _f) as \(.pattern | _pattern) (\(.start | _f);\(.update | _f)\(
+              if .extract then ";\(.extract | _f)" else "" end
+            ))"
+          elif $type == "TermTypeQuery" then "(\(.query | _f))"
+          elif $type == "TermTypeFormat" then "\(.format) \(.str)" 
+          elif $type == "TermTypeTry" then .try |
+            "try \(.body | _f)\(if .catch then " catch \(.catch | _f)" else "" end)" 
+          else error("unsupported term: \(.)")
+          end
+        )\(
+          if .suffix_list then
+            [
+              .suffix_list[] |
+              if .index then .index | _index
+              elif .bind then .bind | "as \([.patterns[] | _pattern] | join(", ")) | \(.body | _f)"
+              elif .iter then "[]"
+              elif .optional then "?"
+              else error("unsupported suffix type: \(.)")
+              end
+            ] | join("")
+          else ""
+          end
+        )"
+      elif $op then
+        (if $op | . == "," then "" else " " end) as $pad
+        | "\(.left | _f)\($pad)\($op) \(.right | _f)"
+      else error("unsupported query: \(.)")
+      end;
+  [_f] | join("");
+
 def _builtins_src: "
 def debug(msgs): (msgs | debug | empty), .;
 def halt_error: halt_error(5);

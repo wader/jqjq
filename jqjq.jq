@@ -2113,7 +2113,7 @@ def ast_tostring:
           if $func_defs then [
             $func_defs.[]
             | "def \(.name)\(
-              if .args then "(\(.args | join(", ")))"
+              if .args then "(\(.args | join("; ")))"
               else ""
               end
             ): \(.body | _f); "
@@ -2142,7 +2142,7 @@ def ast_tostring:
           elif $type == "TermTypeIndex" then .index | _index
           elif $type == "TermTypeFunc" then "\(.func.name)\(
             if .func.args then
-              [.func.args.[] | _f] | join(", ") | "(\(.))"
+              [.func.args.[] | _f] | join("; ") | "(\(.))"
             else
               ""
             end
@@ -2762,6 +2762,7 @@ def usage:
   + "  --jq PATH                 jq implementation to run with\n"
   + "  --lex                     Lex EXPR\n"
   + "  --parse                   Lex then parse EXPR\n"
+  + "  --serialize               Expect an AST in EXPR and serialize it as jq\n"
   + "  --repl                    REPL\n"
   + "  --no-builtins             Don't include builtins\n"
   + "\n"
@@ -2888,6 +2889,7 @@ def parse_options:
     // option(null; "repl"; .mode = "repl")
     // option(null; "lex"; .mode = "lex")
     // option(null; "parse"; .mode = "parse")
+    // option(null; "serialize"; .mode = "serialize")
     // option(null; "no-builtins"; .no_builtins = true)
     //
       ( if .args.is_short then "-\(.args.curr[:1])" else "--\(.args.curr)" end
@@ -3066,7 +3068,7 @@ def jqjq($args; $env):
     , "\n" # input interrupted so no line entered
     );
 
-  def _run_tests:
+  def _run_tests($testSerialize):
     # read jq test format:
     # # comment
     # expr
@@ -3151,7 +3153,10 @@ def jqjq($args; $env):
       | "line \(.line): \(.input | tojson) | \(.expr) -> \(.output | _to_unslurped)" as $test_name
       | . as $test
       | try
-          ( ($test.expr | lex | parse) as $ast
+          ( (
+              ($test.expr | lex | parse)
+              | if $testSerialize then ast_tostring | lex| parse else . end
+            ) as $ast
           | $test.input
           | [ eval_ast(
                 $ast;
@@ -3246,8 +3251,10 @@ def jqjq($args; $env):
   | if $opts.action == "help"        then usage
     elif $opts.mode == "lex"         then $opts.program | lex, "\n"
     elif $opts.mode == "parse"       then $opts.program | lex | parse, "\n"
+    elif $opts.mode == "serialize"   then $opts.program | ast_tostring, "\n"
     elif $opts.mode == "repl"        then _repl($opts)
-    elif $opts.action == "run-tests" then input | _run_tests
+    elif $opts.action == "run-tests-without-serialize" then input | _run_tests(false)
+    elif $opts.action == "run-tests" then input | (_run_tests(false), _run_tests(true))
     else _filter($opts)
     end
   );

@@ -2094,22 +2094,35 @@ def ast_tostring:
   def _pattern:
     if .name then .name
     elif .array then "[\([.array[] | _pattern] | join(", "))]"
-    elif .object then "{\([.object[] | "\(.key)\(if .val then ": \(.val | _pattern)" else "" end)"] | join(", "))}"
+    elif .object then
+      "{\(
+        [.object[] | "\(
+          if .key then .key else .key_string.str | tojson end
+        )\(
+          if .val then ": \(.val | _pattern)" else "" end
+        )"] |
+        join(", ")
+      )}"
     else error("unsupported type of pattern: \(.)")
     end;
   def _f:
     def _index:
       ".\(
-        if .start then
-          "[\(.start | _f)\(if .end then ":\(.end | _f)" else "" end)]"
+        if .start or .is_slice then
+          "[\(
+            if .start then .start | _f else "" end
+          )\(
+            if .is_slice then ":" else "" end
+          )\(
+            if .end then .end | _f else "" end
+          )]"
         elif .name then .name
         elif .str then .str.str | tojson
         else error("unsupported type of index: \(.)")
         end
       )";
     . as {term: {type: $type}, $op, $func_defs}
-    | if $type then .term |
-        "\(
+    | "\(
           if $func_defs then [
             $func_defs.[]
             | "def \(.name)\(
@@ -2120,7 +2133,9 @@ def ast_tostring:
           ] | join("")
           else ""
           end
-        )\(
+    )\(
+      if $type then .term |
+        "\(
           if $type == "TermTypeNull" then "null"
           elif $type == "TermTypeNumber" then .number | tostring
           elif $type == "TermTypeString" then
@@ -2164,7 +2179,7 @@ def ast_tostring:
                 )"
               ] | join(", ")
             )}" )
-          elif $type == "TermTypeArray" then  "[\(.array.query | _f)]"
+          elif $type == "TermTypeArray" then .array | "[\(if .query then .query | _f else "" end)]"
           elif $type == "TermTypeIf" then .if |
             "if \(.cond | _f) then \(.then | _f) \(
               if .elif then [
@@ -2173,7 +2188,7 @@ def ast_tostring:
               ] | join("")
               else ""
               end
-            )else \(.else | _f) end"
+            )\(if .else then " else \(.else | _f)" else "" end) end"
           elif $type == "TermTypeReduce" then .reduce |
             "reduce \({term: .term} | _f) as \(.pattern | _pattern) (\(.start | _f);\(.update | _f))"
           elif $type == "TermTypeForeach" then .foreach |
@@ -2181,7 +2196,7 @@ def ast_tostring:
               if .extract then ";\(.extract | _f)" else "" end
             ))"
           elif $type == "TermTypeQuery" then "(\(.query | _f))"
-          elif $type == "TermTypeFormat" then "\(.format) \(.str)" 
+          elif $type == "TermTypeFormat" then "\(.format) \(.str | _f)" 
           elif $type == "TermTypeTry" then .try |
             "try \(.body | _f)\(if .catch then " catch \(.catch | _f)" else "" end)" 
           else error("unsupported term: \(.)")
@@ -2191,7 +2206,7 @@ def ast_tostring:
             [
               .suffix_list[] |
               if .index then .index | _index
-              elif .bind then .bind | "as \([.patterns[] | _pattern] | join(", ")) | \(.body | _f)"
+              elif .bind then .bind | " as \([.patterns[] | _pattern] | join(", ")) | \(.body | _f)"
               elif .iter then "[]"
               elif .optional then "?"
               else error("unsupported suffix type: \(.)")
@@ -2204,7 +2219,8 @@ def ast_tostring:
         (if $op | . == "," then "" else " " end) as $pad
         | "\(.left | _f)\($pad)\($op) \(.right | _f)"
       else error("unsupported query: \(.)")
-      end;
+      end
+    )";
   [_f] | join("");
 
 def _builtins_src: "

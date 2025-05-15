@@ -976,7 +976,7 @@ def parse:
       ( _consume(.string_start) as [$rest, {$string_start}]
       | $rest
       | _repeat(
-          ( select(length > 0 ) # make sure there is something
+          ( select(length > 0) # make sure there is something
           | _p("query")
           // _scalar("TermTypeString"; .string_middle; {str: .string_middle})
           )

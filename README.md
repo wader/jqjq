@@ -6,10 +6,10 @@ It started out researching how to write format decoders in jq for [fq](https://g
 But it's also a nice way to show off jq as a very expressive, capable and neat language!
 
 It can currently run with
-[jq](https://github.com/stedolan/jq),
+[jq](https://github.com/stedolan/jq) (1.8 or higher),
 [gojq](https://github.com/itchyny/gojq),
 [jaq](https://github.com/01mf02/jaq) and
-[jqjq](https://github.com/wader/jqjq).
+[jqjq](https://github.com/wader/jqjq) itself.
 
 This [jqplay demo snippet](https://jqplay.org/s/pqSQCZnSkPyFqhm) can be used to play around with it.
 

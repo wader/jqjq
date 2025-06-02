@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: |
-          curl -sOLJ 'https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64'
+          curl -sOLJ 'https://github.com/jqlang/jq/releases/download/jq-1.8.0/jq-linux-amd64'
           chmod a+x jq-linux-amd64
           JQ=./jq-linux-amd64 make test-jq
 
@@ -23,7 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: |
-          curl -sOLJ 'https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64'
+          curl -sOLJ 'https://github.com/jqlang/jq/releases/download/jq-1.8.0/jq-linux-amd64'
           chmod a+x jq-linux-amd64
           JQ=./jq-linux-amd64 make test-jqjq
 
@@ -43,6 +43,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: |
-          curl -sOLJ 'https://github.com/01mf02/jaq/releases/download/v2.0.1/jaq-x86_64-unknown-linux-gnu'
+          curl -sOLJ 'https://github.com/01mf02/jaq/releases/download/v2.2.0/jaq-x86_64-unknown-linux-gnu'
           chmod a+x jaq-x86_64-unknown-linux-gnu
           JQ=./jaq-x86_64-unknown-linux-gnu make test-jqjq

@@ -1196,7 +1196,7 @@ def _tojson_stream($opts):
       $opts.colors[$id], ., "\u001b[0m"
     else .
     end;
-  ( ( if $opts.indent == 0 then ["", "", ""]
+  ( ( if $opts.print_pretty | not then ["", "", ""]
       elif $opts.indent == "tab" then ["\t", " ", "\n"]
       else [$opts.indent * " ", " ", "\n"]
       end

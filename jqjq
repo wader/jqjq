@@ -1,8 +1,1 @@
-#!/usr/bin/env bash
-eval "$(
-  "${JQ:=jq}" \
-    -nr \
-    -L "$(dirname "$(realpath "${BASH_SOURCE[0]}")")" \
-    'include "jqjq"; $ARGS.positional | invoke_client_jqjq' \
-    --args -- "$@"
-)"
+jqjq.jq

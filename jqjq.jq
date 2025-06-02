@@ -1,7 +1,16 @@
+#!/usr/bin/env bash
 # jqjq - jq implementation of jq
 # Copyright (c) 2022 Mattias Wadman
 # MIT License
-#
+# \
+eval "$( \
+  "${JQ:=jq}" \
+    -nr \
+    -L "$(dirname "$(realpath "${BASH_SOURCE[0]}")")" \
+    'include "jqjq"; $ARGS.positional | construct_jqjq_command' \
+    --args -- "$@" \
+)"; exit
+
 # TODO:
 # ".end" lex, require whitespace/end around ident?
 # how test associativity 1|2|3?
@@ -2820,7 +2829,9 @@ def parse_options:
   | parse_args
   );
 
-def invoke_client_jqjq:
+# constructs a bash command which executes jqjq with the host jq and passes all
+# necessary files as named arguments
+def construct_jqjq_command:
   # instead of @sh to not always quote (as per quoting rules of ${var@Q})
   def sh_escape:
     if . == "" or test("[^A-Za-z0-9%+\\-./:=@_]") then

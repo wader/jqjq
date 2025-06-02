@@ -2396,7 +2396,7 @@ def limit($n; f):
 
 def first(f): limit(1; f);
 def first: .[0];
-def last(f): reduce f as $v (null; $v);
+def last(f): reduce f as $v (null; [$v]) | arrays[0];
 def last: .[-1];
 def nth($n; f):
   if $n < 0 then error(\"nth doesn't support negative indices\")

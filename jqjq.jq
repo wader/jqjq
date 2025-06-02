@@ -2875,9 +2875,7 @@ def jqjq($args; $env):
     | if $env | has("JQ_COLORS") then
         # only up to the first 8 color sequences are used
         ( ($env.JQ_COLORS | split(":")[:8]) as $custom
-        # jq limits color sequences to 12 bytes, to fit into 16-byte buffers
-        # with ESC, [, m, and NUL.
-        | if $custom | all(length <= 12 and test("^[0-9;]*$")) then
+        | if $custom | all(test("^[0-9;]*$")) then
             $custom + $default[$custom | length:]
           else
             "Failed to set $JQ_COLORS\n" | stderr | $default

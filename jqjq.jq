@@ -1,7 +1,16 @@
+#!/usr/bin/env bash
 # jqjq - jq implementation of jq
 # Copyright (c) 2022 Mattias Wadman
 # MIT License
-#
+# \
+eval "$( \
+  "${JQ:=jq}" \
+    -nr \
+    -L "$(dirname "$(realpath "${BASH_SOURCE[0]}")")" \
+    'include "jqjq"; $ARGS.positional | construct_jqjq_command' \
+    --args -- "$@" \
+)"; exit
+
 # TODO:
 # ".end" lex, require whitespace/end around ident?
 # how test associativity 1|2|3?
@@ -1187,7 +1196,7 @@ def _tojson_stream($opts):
       $opts.colors[$id], ., "\u001b[0m"
     else .
     end;
-  ( ( if $opts.indent == 0 then ["", "", ""]
+  ( ( if $opts.print_pretty | not then ["", "", ""]
       elif $opts.indent == "tab" then ["\t", " ", "\n"]
       else [$opts.indent * " ", " ", "\n"]
       end
@@ -2677,7 +2686,7 @@ def parse_options:
         else empty
         end
       else
-        if $long != null and .args.curr == $long then
+        if .args.curr == $long then
           .args.curr = null
         else empty
         end
@@ -2745,7 +2754,7 @@ def parse_options:
     # // option("R"; "raw-input"; .raw_input = true)
     // option("n"; "null-input"; .null_input = true)
     // option("f"; "from-file"; .from_file = true)
-    # // option("L"; null; handle_library_path)
+    # // option("L"; "library-path"; handle_library_path)
     # // option("b"; "binary"; .binary_input_output = true)
     // option(null; "tab"; .indent = "tab" | .print_pretty = true)
     // option(null; "indent"; handle_indent)
@@ -2820,7 +2829,9 @@ def parse_options:
   | parse_args
   );
 
-def invoke_client_jqjq:
+# constructs a bash command which executes jqjq with the host jq and passes all
+# necessary files as named arguments
+def construct_jqjq_command:
   # instead of @sh to not always quote (as per quoting rules of ${var@Q})
   def sh_escape:
     if . == "" or test("[^A-Za-z0-9%+\\-./:=@_]") then
@@ -2864,9 +2875,7 @@ def jqjq($args; $env):
     | if $env | has("JQ_COLORS") then
         # only up to the first 8 color sequences are used
         ( ($env.JQ_COLORS | split(":")[:8]) as $custom
-        # jq limits color sequences to 12 bytes, to fit into 16-byte buffers
-        # with ESC, [, m, and NUL.
-        | if $custom | all(length <= 12 and test("^[0-9;]*$")) then
+        | if $custom | all(test("^[0-9;]*$")) then
             $custom + $default[$custom | length:]
           else
             "Failed to set $JQ_COLORS\n" | stderr | $default

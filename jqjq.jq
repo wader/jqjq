@@ -2834,7 +2834,7 @@ def parse_options:
 def construct_jqjq_command:
   # instead of @sh to not always quote (as per quoting rules of ${var@Q})
   def sh_escape:
-    if . == "" or test("[^A-Za-z0-9%+\\-./:=@_]") then
+    if . == "" or test("[^A-Za-z0-9%+\\-./:@_]") then
       "'" + gsub("'"; "'\\''") + "'"
     end;
   ( . as $args

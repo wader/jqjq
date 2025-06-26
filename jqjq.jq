@@ -2842,7 +2842,7 @@ def construct_jqjq_command:
     end;
   ( . as $args
   | parse_options
-  | (.jq // env.JQ // "jq") as $jq
+  | (env.JQ // .jq // "jq") as $jq
   | ($jq | test("(^|[/\\\\])(gojq|jaq)[^/\\\\]*$") | not) as $host_is_jq
   | [ ($jq | sh_escape)
     , if .action == "run-tests" then "-nsRr"

@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env -S bash -euo pipefail
 # jqjq - jq implementation of jq
 # Copyright (c) 2022 Mattias Wadman
 # MIT License

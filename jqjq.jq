@@ -2651,7 +2651,7 @@ def usage:
   + "Usage: jqjq [OPTIONS] [--] [EXPR]\n"
   + "\n"
   + "Options:\n"
-  + "  --jq PATH                 jq implementation to run with\n"
+  + "  --jq PATH                 Host jq implementation to run with\n"
   + "  --lex                     Lex EXPR\n"
   + "  --parse                   Lex then parse EXPR\n"
   + "  --repl                    REPL\n"
@@ -2675,6 +2675,9 @@ def usage:
   + "  --args                    Consume arguments as positional strings\n"
   + "  --jsonargs                Consume arguments as positional JSON\n"
   + "  --run-tests               Run jq tests from stdin\n"
+  + "\n"
+  + "Environment:\n"
+  + "  $JQ                       Host jq implementation to run with\n"
   );
 
 # parses CLI options just like jq
@@ -2839,13 +2842,14 @@ def construct_jqjq_command:
     end;
   ( . as $args
   | parse_options
-  | [ (.jq // env.JQ // "jq" | sh_escape)
+  | (.jq // env.JQ // "jq") as $jq
+  | [ ($jq | sh_escape)
     , if .action == "run-tests" then "-nsRr"
       elif .mode == "repl" then "-njR"
       else "-nj"
       end
-    , if .unbuffered_output and
-          (.jq == null or (.jq | test("(^|[/\\\\])(gojq|jaq)[^/\\\\]*$") | not)) then
+      # do not pass --unbuffered when the host jq is gojq or jaq
+    , if .unbuffered_output and ($jq | test("(^|[/\\\\])(gojq|jaq)[^/\\\\]*$") | not) then
         "--unbuffered"
       else empty
       end

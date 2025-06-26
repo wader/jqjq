@@ -228,6 +228,7 @@ Note that the tests are meant to be used with jq 1.7.1.
   - [x] `--null-input` / `-n`
   - [ ] `--raw-input` / `-R`
   - [x] `--slurp` / `-s`
+  - [x] `--binary` / `-b`
   - [x] `--compact-output` / `-c`
   - [x] `--raw-output` / `-r`
   - [x] `--raw-output0`

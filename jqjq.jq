@@ -2651,7 +2651,7 @@ def usage:
   + "Usage: jqjq [OPTIONS] [--] [EXPR]\n"
   + "\n"
   + "Options:\n"
-  + "  --jq PATH                 jq implementation to run with\n"
+  + "  --jq PATH                 Host jq implementation to run with\n"
   + "  --lex                     Lex EXPR\n"
   + "  --parse                   Lex then parse EXPR\n"
   + "  --repl                    REPL\n"
@@ -2675,6 +2675,9 @@ def usage:
   + "  --args                    Consume arguments as positional strings\n"
   + "  --jsonargs                Consume arguments as positional JSON\n"
   + "  --run-tests               Run jq tests from stdin\n"
+  + "\n"
+  + "Environment:\n"
+  + "  $JQ                       Host jq implementation to run with\n"
   );
 
 # parses CLI options just like jq
@@ -2755,7 +2758,7 @@ def parse_options:
     // option("n"; "null-input"; .null_input = true)
     // option("f"; "from-file"; .from_file = true)
     # // option("L"; "library-path"; handle_library_path)
-    # // option("b"; "binary"; .binary_input_output = true)
+    // option("b"; "binary"; .binary_input_output = true)
     // option(null; "tab"; .indent = "tab" | .print_pretty = true)
     // option(null; "indent"; handle_indent)
     # // option(null; "seq"; .seq = true)
@@ -2834,21 +2837,21 @@ def parse_options:
 def construct_jqjq_command:
   # instead of @sh to not always quote (as per quoting rules of ${var@Q})
   def sh_escape:
-    if . == "" or test("[^A-Za-z0-9%+\\-./:=@_]") then
+    if . == "" or test("[^A-Za-z0-9%+\\-./:@_]") then
       "'" + gsub("'"; "'\\''") + "'"
     end;
   ( . as $args
   | parse_options
-  | [ (.jq // env.JQ // "jq" | sh_escape)
+  | (env.JQ // .jq // "jq") as $jq
+  | ($jq | test("(^|[/\\\\])(gojq|jaq)[^/\\\\]*$") | not) as $host_is_jq
+  | [ ($jq | sh_escape)
     , if .action == "run-tests" then "-nsRr"
       elif .mode == "repl" then "-njR"
       else "-nj"
       end
-    , if .unbuffered_output and
-          (.jq == null or (.jq | test("(^|[/\\\\])(gojq|jaq)[^/\\\\]*$") | not)) then
-        "--unbuffered"
-      else empty
-      end
+      # only jq supports --unbuffered and --binary, not gojq or jaq
+    , if .unbuffered_output and $host_is_jq then "--unbuffered" else empty end
+    , if .binary_input_output and $host_is_jq then "--binary" else empty end
     , "-L", "\"$(dirname \"$(realpath \"${BASH_SOURCE[0]}\")\")\""
     , "'include \"jqjq\"; jqjq($ARGS.positional; $ENV)'"
     , ( [ if .from_file then .program? else empty end

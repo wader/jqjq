@@ -297,7 +297,7 @@ You can use `./jqjq --parse '...'` to lex and parse and see the AST tree.
 
 Eval is done by traversing the AST tree and evaluates each AST node and also keeps track of the current path and environment.
 
-Path is used in jq to keep track of current path to where you are in the input. The tracking can be done as long as you only operate on the input and don't create and output new values. I.e `path(.a[1]), .b` outputs `["a",1]` and `["b"]`. This is also used to implement assignment and some other operators.
+Path is used in jq to keep track of current path to where you are in the input. The tracking can be done as long as you only operate on the input and don't create and output new values. I.e `path(.a[1], .b)` outputs `["a",1]` and `["b"]`. This is also used to implement assignment.
 
 Environment is an object with current functions and bindings. Functions have the key name `<name>/<arity>` and the value is a function AST. Bindings use the key name `$<name>/0` and the value is `{value: <value>}` where value is normal jq value.
 

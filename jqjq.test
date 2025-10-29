@@ -1163,6 +1163,16 @@ map([paths])
 {}
 []
 
+# handle slices in path
+getpath(path(.[1:][1:]))
+[1,2,3]
+[3]
+
+# check for invalid path correctly
+[1,2,3] | .[2]
+null
+3
+
 # ascii_upcase
 ascii_upcase
 "123`abcdefghijklmnopqstuvxyz{"

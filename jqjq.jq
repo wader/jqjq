@@ -1362,7 +1362,12 @@ def eval_ast($query; $path; $env; undefined_func):
                   else $input | length
                   end
                 ) as $ve
-              | [ [null]
+              | [ ( $query_path
+                  + [ { start: if $start then $vs else null end
+                      , end: if $end_ then $ve else null end
+                      }
+                    ]
+                  )
                 , $input[$vs:$ve]
                 ]
               )
@@ -2613,7 +2618,7 @@ def builtin_undefined_func($globals; $builtins_env):
           $builtins_env;
           builtin_undefined_func($globals; $builtins_env)
         ) as [$path, $value]
-      | [ if $path == [null] then $path
+      | [ if $path[0] == null then $path
           else $f.path + $path
           end
         , $value
@@ -2636,7 +2641,7 @@ def eval($expr; $globals; $builtins_env):
   # TODO: does not work with jq yet because issue with bind patterns
   # $ gojq -cn -L . 'include "jqjq"; {} | {a:1} | eval(".a") += 1'
   # {"a":2}
-  | if $path | . == [] or . == [null] then $value
+  | if $path | . == [] or .[0] == null then $value
     else _getpath($path)
     end
   );

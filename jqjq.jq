@@ -120,7 +120,7 @@ def lex:
     else
       ( . as {$string_stack}
       | _re("^\\s+"; {whitespace: .})
-      // _re("^#[^\n]*"; {comment: .})
+      // _re("^#(\\\\\n|[^\n])*"; {comment: .})
       // _re("^\\.[_a-zA-Z][_a-zA-Z0-9]*"; {index: .[1:]})
       // _re("^@[_a-zA-Z][_a-zA-Z0-9]*"; {at_ident: .})
       // _re("^[_a-zA-Z][_a-zA-Z0-9]*"; {ident: .})

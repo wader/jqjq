@@ -22,9 +22,9 @@ $ ./jqjq -n 'def f: 1,8; [f,f] | map(.+105) | implode'
 $ ./jqjq '.+. | map(.+105) | implode' <<< '[1,8]'
 "jqjq"
 
-# eval example above using jqjq in jqjq. will take some time.
-# eval the concatenation of jqjq.jq as a string and the example
-$ ./jqjq "eval($(jq -Rs . jqjq.jq)+.)" <<< '"eval(\"def f: 1,8; [f,f] | map(.+105) | implode\")"'
+# evaluate jqjq in jqjq, will take some time and recently only tested with gojq.
+# eval the concatenation of jqjq.jq as a string and the filter to run
+$ ./jqjq --jq gojq "eval($(jq -Rs . jqjq.jq)+.)" <<< '"eval(\"def f: 1,8; [f,f] | map(.+105) | implode\")"'
 "jqjq"
 
 # jqjq has a REPL

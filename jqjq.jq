@@ -188,12 +188,12 @@ def lex:
     end;
   def _lex:
     ( { remain: .
-      , result: {whitespace: ""}
+      , result: null
       , string_stack: []
       }
     | recurse(_token)
     | .result
-    | select((.whitespace // .comment) | not)
+    | values
     );
   [_lex];
 
@@ -1174,7 +1174,8 @@ def parse:
       else error("unknown type \($type)")
       end
     );
-  ( ( _p("query")
+  ( ( map(select((.whitespace or .comment) | not))
+    | _p("query")
     | if .[0] != [] then error("tokens left: \(.)") else . end
     | .[1]
     )

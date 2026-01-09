@@ -28,12 +28,6 @@ def _internal_error($v): {_internal_error: $v} | error;
 def _is_internal_error: type == "object" and has("_internal_error");
 def _unwrap_internal_error: ._internal_error;
 
-# reimplementation of getpath/1 for jaq
-def _getpath($path):
-  if . == null or ($path | length) == 0 then .
-  else .[$path[0]] | _getpath($path[1:])
-  end;
-
 # reimplementation of delpaths/1 for jaq
 def _delpaths($paths):
   def _delpath($p):
@@ -1615,7 +1609,7 @@ def eval_ast($query; $path; $env; undefined_func):
               elif $name == "getpath/1" then
                 ( a0 as $a0
                 | [ $path+$a0
-                  , _getpath($a0)
+                  , getpath($a0)
                   ]
                 )
               elif $name == "setpath/2" then
@@ -2638,7 +2632,7 @@ def eval($expr; $globals; $builtins_env):
   # $ gojq -cn -L . 'include "jqjq"; {} | {a:1} | eval(".a") += 1'
   # {"a":2}
   | if $path | . == [] or . == [null] then $value
-    else _getpath($path)
+    else getpath($path)
     end
   );
 def eval($expr):
@@ -3023,10 +3017,7 @@ def jqjq($args; $env):
         )
       ];
     def _f:
-      # TODO: jaq: [] | join("") -> null
-      # TODO: jaq: join works with more than strings
-      def _join($s): if . == [] then "" else join($s) end;
-      def _to_unslurped: map(tojson) | _join(",");
+      def _to_unslurped: map(tojson) | join(",");
       ( _builtins_env as $builtins_env
       | _from_jqtest[]
       | . as $c

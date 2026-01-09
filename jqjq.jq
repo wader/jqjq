@@ -102,10 +102,10 @@ def lex:
     );
 
   def _token:
-    def _re($re; f):
+    def _if_match_then(matches; f):
       ( . as {$remain, $string_stack}
       | $remain
-      | match($re; "").string
+      | matches
       | f as $token
       | { result: ($token | del(.string_stack))
         , remain: $remain[length:]
@@ -116,6 +116,8 @@ def lex:
             )
         }
       );
+    def _re($re; f): _if_match_then(match($re; "").string; f);
+    def _const($s; f): _if_match_then(if startswith($s) then $s else empty end; f);
     if .remain == "" then empty
     else
       ( . as {$string_stack}
@@ -151,38 +153,38 @@ def lex:
         )
       # match " <any non-"-or-\> or <\ + any> "
       // _re("^\"(?:[^\"\\\\]|\\\\.)*?\""; .[1:-1] | _unescape | {string: .})
-      // _re("^==";     {equal_equal: .})
-      // _re("^\\|=";   {pipe_equal: .})
-      // _re("^=";      {equal: .})
-      // _re("^!=";     {not_equal: .})
-      // _re("^<=";     {less_equal: .})
-      // _re("^>=";     {greater_equal: .})
-      // _re("^\\+=";   {equal_plus: .})
-      // _re("^-=";     {equal_dash: .})
-      // _re("^\\*=";   {equal_star: .})
-      // _re("^/=";     {equal_slash: .})
-      // _re("^%=";     {equal_percent: .})
-      // _re("^<";      {less: .})
-      // _re("^>";      {greater: .})
-      // _re("^:";      {colon: .})
-      // _re("^;";      {semicolon: .})
-      // _re("^\\|";    {pipe: .})
-      // _re("^,";      {comma: .})
-      // _re("^\\+";    {plus: .})
-      // _re("^-";      {dash: .})
-      // _re("^\\*";    {star: .})
-      // _re("^//";     {slash_slash: .})
-      // _re("^/";      {slash: .})
-      // _re("^%";      {percent: .})
-      // _re("^\\(";    {lparen: ., string_stack: ($string_stack + ["("])})
-      // _re("^\\)";    {rparen: ., string_stack: ($string_stack[0:-1])})
-      // _re("^\\[";    {lsquare: .})
-      // _re("^\\]";    {rsquare: .})
-      // _re("^\\{";    {lcurly: .})
-      // _re("^\\}";    {rcurly: .})
-      // _re("^\\.\\."; {dotdot: .})
-      // _re("^\\.";    {dot: .})
-      // _re("^\\?";    {qmark: .})
+      // _const("=="; {equal_equal: .})
+      // _const("|="; {pipe_equal: .})
+      // _const( "="; {equal: .})
+      // _const("!="; {not_equal: .})
+      // _const("<="; {less_equal: .})
+      // _const(">="; {greater_equal: .})
+      // _const("+="; {equal_plus: .})
+      // _const("-="; {equal_dash: .})
+      // _const("*="; {equal_star: .})
+      // _const("/="; {equal_slash: .})
+      // _const("%="; {equal_percent: .})
+      // _const("<";  {less: .})
+      // _const(">";  {greater: .})
+      // _const(":";  {colon: .})
+      // _const(";";  {semicolon: .})
+      // _const("|";  {pipe: .})
+      // _const(",";  {comma: .})
+      // _const("+";  {plus: .})
+      // _const("-";  {dash: .})
+      // _const("*";  {star: .})
+      // _const("//"; {slash_slash: .})
+      // _const("/";  {slash: .})
+      // _const("%";  {percent: .})
+      // _const("(";  {lparen: ., string_stack: ($string_stack + ["("])})
+      // _const(")";  {rparen: ., string_stack: ($string_stack[0:-1])})
+      // _const("[";  {lsquare: .})
+      // _const("]";  {rsquare: .})
+      // _const("{";  {lcurly: .})
+      // _const("}";  {rcurly: .})
+      // _const(".."; {dotdot: .})
+      // _const(".";  {dot: .})
+      // _const("?";  {qmark: .})
       // error("unknown token: '\(.remain[0:100])'")
       )
     end;

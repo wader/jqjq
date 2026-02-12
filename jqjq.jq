@@ -2212,7 +2212,7 @@ def splits($re; flags):
   | _nwise(2)
   | $s[.[0]:.[1]]
   );
-def splits($re): splits($re; null);
+def splits($re): splits($re; \"\");
 def split($re; flags): [splits($re; flags)];
 
 def _strsplit($delim; $acc):
@@ -2454,17 +2454,17 @@ def rindex($i): indices($i) | .[-1:][0];
 
 def match($val):
   ( ($val | type) as $vt
-  | if $vt == \"string\" then match($val; null)
+  | if $vt == \"string\" then match($val; \"\")
     elif $vt == \"array\" and ($val | length) > 1 then match($val[0]; $val[1])
-    elif $vt == \"array\" and ($val | length) > 0 then match($val[0]; null)
+    elif $vt == \"array\" and ($val | length) > 0 then match($val[0]; \"\")
     else error($vt + \" not a string or array\")
     end
   );
 def test($val):
   ( ($val | type) as $vt
-  | if $vt == \"string\" then test($val; null)
+  | if $vt == \"string\" then test($val; \"\")
     elif $vt == \"array\" and ($val | length) > 1 then test($val[0]; $val[1])
-    elif $vt == \"array\" and ($val | length) > 0 then test($val[0]; null)
+    elif $vt == \"array\" and ($val | length) > 0 then test($val[0]; \"\")
     else error($vt + \" not a string or array\")
     end
   );
@@ -2482,9 +2482,9 @@ def capture(re; mods):
   );
 def capture($val):
   ( ($val | type) as $vt
-  | if $vt == \"string\" then capture($val; null)
+  | if $vt == \"string\" then capture($val; \"\")
     elif $vt == \"array\" and ($val | length) > 1 then capture($val[0]; $val[1])
-    elif $vt == \"array\" and ($val | length) > 0 then capture($val[0]; null)
+    elif $vt == \"array\" and ($val | length) > 0 then capture($val[0]; \"\")
     else error($vt + \" not a string or array\")
     end
   );

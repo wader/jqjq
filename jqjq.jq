@@ -1092,16 +1092,7 @@ def parse:
         # does not include infix operators
         ( _p("func_defs") as [$rest, $func_defs]
         | $rest
-        | ( if length == 0 then
-              [ .
-              , { term:
-                    {type: "TermTypeIdentity"}
-                }
-              ]
-            else
-              _p("term")
-            end
-          ) as [$rest, $query]
+        | _p("term") as [$rest, $query]
         | $query
         | if ($func_defs | length) > 0 then
             .func_defs = $func_defs
@@ -2218,7 +2209,7 @@ def splits($re; flags):
   | _nwise(2)
   | $s[.[0]:.[1]]
   );
-def splits($re): splits($re; null);
+def splits($re): splits($re; \"\");
 def split($re; flags): [splits($re; flags)];
 
 def _strsplit($delim; $acc):
@@ -2460,17 +2451,17 @@ def rindex($i): indices($i) | .[-1:][0];
 
 def match($val):
   ( ($val | type) as $vt
-  | if $vt == \"string\" then match($val; null)
+  | if $vt == \"string\" then match($val; \"\")
     elif $vt == \"array\" and ($val | length) > 1 then match($val[0]; $val[1])
-    elif $vt == \"array\" and ($val | length) > 0 then match($val[0]; null)
+    elif $vt == \"array\" and ($val | length) > 0 then match($val[0]; \"\")
     else error($vt + \" not a string or array\")
     end
   );
 def test($val):
   ( ($val | type) as $vt
-  | if $vt == \"string\" then test($val; null)
+  | if $vt == \"string\" then test($val; \"\")
     elif $vt == \"array\" and ($val | length) > 1 then test($val[0]; $val[1])
-    elif $vt == \"array\" and ($val | length) > 0 then test($val[0]; null)
+    elif $vt == \"array\" and ($val | length) > 0 then test($val[0]; \"\")
     else error($vt + \" not a string or array\")
     end
   );
@@ -2488,9 +2479,9 @@ def capture(re; mods):
   );
 def capture($val):
   ( ($val | type) as $vt
-  | if $vt == \"string\" then capture($val; null)
+  | if $vt == \"string\" then capture($val; \"\")
     elif $vt == \"array\" and ($val | length) > 1 then capture($val[0]; $val[1])
-    elif $vt == \"array\" and ($val | length) > 0 then capture($val[0]; null)
+    elif $vt == \"array\" and ($val | length) > 0 then capture($val[0]; \"\")
     else error($vt + \" not a string or array\")
     end
   );
@@ -2567,6 +2558,8 @@ def _ascii_map($l; $u; f):
 def ascii_upcase: _ascii_map(97; 122; .-32);
 def ascii_downcase: _ascii_map(65; 90; .+32);
 
+# source is not parsed as a module so provide a dummy query to make parser happy
+.
 ";
 
 def _builtins_env:

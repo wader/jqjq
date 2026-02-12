@@ -1273,3 +1273,8 @@ null
 try 3 as $e | eval("$e") catch .
 null
 "undefined function $e"
+
+# regression: Trailing operators are accepted https://github.com/wader/jqjq/issues/40
+try eval("1+") catch test("parse error")
+null
+true

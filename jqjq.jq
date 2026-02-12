@@ -1096,16 +1096,7 @@ def parse:
         # does not include infix operators
         ( _p("func_defs") as [$rest, $func_defs]
         | $rest
-        | ( if length == 0 then
-              [ .
-              , { term:
-                    {type: "TermTypeIdentity"}
-                }
-              ]
-            else
-              _p("term")
-            end
-          ) as [$rest, $query]
+        | _p("term") as [$rest, $query]
         | $query
         | if ($func_defs | length) > 0 then
             .func_defs = $func_defs
@@ -2570,6 +2561,8 @@ def _ascii_map($l; $u; f):
 def ascii_upcase: _ascii_map(97; 122; .-32);
 def ascii_downcase: _ascii_map(65; 90; .+32);
 
+# source is not parsed as a module so provide a dummy query to make parser happy
+.
 ";
 
 def _builtins_env:

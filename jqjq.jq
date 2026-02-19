@@ -20,7 +20,7 @@ eval "$( \
 # Notes:
 # - AST is more or less identical to the one used by gojq to make it easier to test parser
 # - jq bindings $<name>_ is used if <name> is a keyword as jq (not gojq) does not allow it
-# - "string_middle" token is used to distingush between a string that could be an index and
+# - "string_middle" token is used to distinguish between a string that could be an index and
 #   a string that is parts of string interpolation.
 #
 
@@ -223,9 +223,13 @@ def parse:
     # https://www.engr.mun.ca/~theo/Misc/exp_parsing.htm#climbing
     # filter is used to disable operators, ex in keyval query
     def _op_prec_climb($p; filter):
+      # debug({_op_prec_climb: .}) |
       def _ops:
+        # debug({ops: .}) |
         if filter then            null
         elif .pipe then           {prec: 0, name: "|",   assoc: "right"}
+        # TODO: not as keyword?
+        elif .ident == "as" then  {prec: 0, name: "|",   assoc: "right"}
         # TODO: understand why jq has left associativity for "," but right seems to give correct parse tree
         elif .comma then          {prec: 1, name: ",",   assoc: "right"}
         elif .slash_slash then    {prec: 2, name: "//",  assoc: "right"}
@@ -259,6 +263,18 @@ def parse:
           | ($next | if . != null then _ops end) as $next_op
           | if $next_op and $next_op.prec >= $p then
               ( .[1:] # consume
+              #| debug({rest: .})
+              | ( if $next.ident == "as" then
+                    ( _p("pattern") as [$rest, $pattern]
+                    | $rest
+                    | _consume(.pipe) as [$rest, $_]
+                    | [$rest, $pattern]
+                    )
+                  else [., null]
+                  end
+                ) as [$rest, $as_pattern]
+              #| debug({$as_pattern})
+              | $rest
               | ( if $next_op.assoc == "right" then
                     _op_prec_climb($next_op.prec; filter)
                   elif $next_op.assoc == "left" then
@@ -279,6 +295,7 @@ def parse:
                     , left: ($t | del(.func_defs))
                     , right: $t1
                     }
+                  | if $as_pattern then .pattern = $as_pattern end
                   | if $func_defs then
                       .func_defs = $func_defs
                     else .
@@ -873,21 +890,6 @@ def parse:
           , {optional: true}
           ]
         )
-      //
-        ( _keyword("as")
-        | _p("pattern") as [$rest, $pattern]
-        | $rest
-        | _consume(.pipe)[0]
-        | _p("query") as [$rest, $body]
-        | $rest
-        | [ .
-          , { bind:
-                { body: $body
-                , patterns: [$pattern]
-                }
-              }
-          ]
-        )
       );
 
     # .
@@ -1315,6 +1317,7 @@ def eval_ast($query; $path; $env; undefined_func):
             , suffix_list: [{$optional}]
             }
         , $op
+        , $pattern
         , $func_defs
         }
     | ( ( ($func_defs // [])
@@ -1927,17 +1930,7 @@ def eval_ast($query; $path; $env; undefined_func):
       def _e_suffix($suffix; $path; $input; $opt):
         ( . as [$p, $v]
         | $input
-        | if $suffix.bind then
-            # as $name | <body>
-            ( $suffix.bind as {$body, patterns: [$pattern]}
-            | ($pattern | _e_pattern($v)) as $pattern_env
-            | _e(
-                $suffix.bind.body;
-                $path;
-                $query_env + $pattern_env
-              )
-            )
-          elif $suffix.index then
+        | if $suffix.index then
             # .<index>
             try
               ( $v
@@ -2016,9 +2009,18 @@ def eval_ast($query; $path; $env; undefined_func):
           def _r: _e($right; $path; $query_env);
           if $op == "," then _l, _r
           elif $op == "|" then
-            ( _e($left; $path; $query_env) as [$p, $v]
-            | $v
-            | _e($right; $p; $query_env)
+            ( . as $input
+            | _e($left; $path; $query_env) as [$p, $v]
+            | if $pattern then
+                ( ($pattern | _e_pattern($v)) as $pattern_env
+                | _e(
+                   $right;
+                   $path;
+                   $query_env + $pattern_env
+                 )
+                )
+              else $v | _e($right; $p; $query_env)
+              end
             )
           elif $op == "or"  then _l[1] or _r[1] | [[null], .]
           elif $op == "and" then _l[1] and _r[1] | [[null], .]

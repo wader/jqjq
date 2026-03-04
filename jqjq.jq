@@ -1981,7 +1981,7 @@ def eval_ast($query; $path; $env; undefined_func):
 
       if $type then
         ( . as $input
-        | try
+        | def cases:
             if $type == "TermTypeNull"       then [[], null] # should be [null] also? jq bug?
             elif $type == "TermTypeNumber"   then [[null], ($query.term.number | tonumber)]
             elif $type == "TermTypeString"   then _string
@@ -2000,14 +2000,18 @@ def eval_ast($query; $path; $env; undefined_func):
             elif $type == "TermTypeTry"      then _try
             elif $type == "TermTypeUnary"    then _unary
             else _internal_error("unsupported term: \($query)")
-            end
+            end;
+          if $optional or $query.term.suffix_list then
+          (try cases
           catch
             if _is_internal_error then error # forward internal eror
             elif $optional then empty # query?
             else error
-            end
+            end)
         | if $query.term.suffix_list then _e_suffix_list($input; $path)
           else .
+          end
+          else cases
           end
         )
       elif $op then

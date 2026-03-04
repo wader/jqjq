@@ -2158,12 +2158,12 @@ def _alt(lhs; $op; rhs):
       end
   );
 
-def _is_array: type == \"array\";
-def _is_boolean: type == \"boolean\";
-def _is_null: type == \"null\";
+def _is_boolean: . >= false and . <= true;
+def _is_null: . == null;
 def _is_number: type == \"number\";
-def _is_object: type == \"object\";
-def _is_string: type == \"string\";
+def _is_string: . >= \"\" and . < [];
+def _is_array: . >= [] and . < {};
+def _is_object: . >= {};
 def _is_scalar:
   _is_boolean or
   _is_null or

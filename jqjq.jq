@@ -2438,7 +2438,8 @@ def bsearch($target):
 
 def _strindices($i):
   ( . as $s
-  | [range(length) | select($s[.:] | startswith($i))]
+  | ($i | length) as $ilen
+  | [range(length) | if $s[.:.+$ilen] == $i then . else empty end]
   );
 def indices($i):
   if _is_array and ($i | _is_array) then .[$i]

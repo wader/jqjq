@@ -2253,14 +2253,19 @@ def min: min_by(.);
 def max_by(f): _minmax(f; .[0] > .[1]);
 def max: max_by(.);
 
+def while(cond; update):
+  def _f: if cond then ., (update | _f) else empty end;
+  _f;
+
+def until(cond; next):
+  def _f: if cond then . else next | _f end;
+  _f;
+
 def range($from; $to; $by):
-  def _f(stop):
-    if stop then empty
-    else ., (. + $by | _f(stop))
-    end;
-  if $by == 0 then empty
-  elif $by > 0 then $from | _f(. >= $to)
-  else $from | _f(. <= $to)
+  $from
+  | if $by > 0 then while(. < $to; . + $by)
+  elif $by < 0 then while(. > $to; . + $by)
+  else empty
   end;
 def range($from; $to): range($from; $to; 1);
 def range($to): range(0; $to; 1);
@@ -2313,14 +2318,6 @@ def unique: unique_by(.);
 
 def repeat(f):
   def _f: f, _f;
-  _f;
-
-def while(cond; update):
-  def _f: if cond then ., (update | _f) else empty end;
-  _f;
-
-def until(cond; next):
-  def _f: if cond then . else next | _f end;
   _f;
 
 def to_entries:

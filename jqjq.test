@@ -1278,3 +1278,15 @@ null
 try eval("1+") catch test("parse error")
 null
 true
+
+# value eval with path expression and non-path expression
+eval(".a"), eval("{b: 2} | .b")
+{"a": 1}
+1
+2
+
+# path eval with path expression and non-path expression
+path(eval(".a")), try path(eval("{b: 2} | .b")) catch .
+{"a": 1}
+["a"]
+"invalid path expression"

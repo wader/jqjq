@@ -2626,7 +2626,7 @@ def eval($expr; $globals; $builtins_env):
   # TODO: does not work with jq yet because issue with bind patterns
   # $ gojq -cn -L . 'include "jqjq"; {} | {a:1} | eval(".a") += 1'
   # {"a":2}
-  | if $path | . == [] or . == [null] then $value
+  | if $path | . == [] or .[0] == null then $value
     else getpath($path)
     end
   );

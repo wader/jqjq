@@ -1979,37 +1979,42 @@ def eval_ast($query; $path; $env; undefined_func):
           _f($suffix_list)
         );
 
+      def _e_type:
+          if $type == "TermTypeNull"     then [[], null] # should be [null] also? jq bug?
+        elif $type == "TermTypeNumber"   then [[null], ($query.term.number | tonumber)]
+        elif $type == "TermTypeString"   then _string
+        elif $type == "TermTypeFormat"   then _format
+        elif $type == "TermTypeTrue"     then [[null], true]
+        elif $type == "TermTypeFalse"    then [[null], false]
+        elif $type == "TermTypeIdentity" then _identity
+        elif $type == "TermTypeIndex"    then _index
+        elif $type == "TermTypeFunc"     then _func
+        elif $type == "TermTypeObject"   then _object
+        elif $type == "TermTypeArray"    then _array
+        elif $type == "TermTypeIf"       then _if
+        elif $type == "TermTypeReduce"   then _reduce
+        elif $type == "TermTypeForeach"  then _foreach
+        elif $type == "TermTypeQuery"    then _e($query.term.query; $path; $query_env)
+        elif $type == "TermTypeTry"      then _try
+        elif $type == "TermTypeUnary"    then _unary
+        else _internal_error("unsupported term: \($query)")
+        end;
+
       if $type then
-        ( . as $input
-        | try
-            if $type == "TermTypeNull"       then [[], null] # should be [null] also? jq bug?
-            elif $type == "TermTypeNumber"   then [[null], ($query.term.number | tonumber)]
-            elif $type == "TermTypeString"   then _string
-            elif $type == "TermTypeFormat"   then _format
-            elif $type == "TermTypeTrue"     then [[null], true]
-            elif $type == "TermTypeFalse"    then [[null], false]
-            elif $type == "TermTypeIdentity" then _identity
-            elif $type == "TermTypeIndex"    then _index
-            elif $type == "TermTypeFunc"     then _func
-            elif $type == "TermTypeObject"   then _object
-            elif $type == "TermTypeArray"    then _array
-            elif $type == "TermTypeIf"       then _if
-            elif $type == "TermTypeReduce"   then _reduce
-            elif $type == "TermTypeForeach"  then _foreach
-            elif $type == "TermTypeQuery"    then _e($query.term.query; $path; $query_env)
-            elif $type == "TermTypeTry"      then _try
-            elif $type == "TermTypeUnary"    then _unary
-            else _internal_error("unsupported term: \($query)")
+        if $optional or $query.term.suffix_list then
+          ( . as $input
+          | try _e_type
+            catch
+              if _is_internal_error then error # forward internal eror
+              elif $optional then empty # query?
+              else error
+              end
+          | if $query.term.suffix_list then _e_suffix_list($input; $path)
+            else .
             end
-          catch
-            if _is_internal_error then error # forward internal eror
-            elif $optional then empty # query?
-            else error
-            end
-        | if $query.term.suffix_list then _e_suffix_list($input; $path)
-          else .
-          end
-        )
+          )
+        else _e_type
+        end
       elif $op then
         ( $query as {$left, $right}
         | def _l: _e($left; $path; $query_env);
@@ -2158,17 +2163,13 @@ def _alt(lhs; $op; rhs):
       end
   );
 
-def _is_array: type == \"array\";
-def _is_boolean: type == \"boolean\";
-def _is_null: type == \"null\";
-def _is_number: type == \"number\";
-def _is_object: type == \"object\";
-def _is_string: type == \"string\";
-def _is_scalar:
-  _is_boolean or
-  _is_null or
-  _is_number or
-  _is_string;
+def _is_null   : . == null;
+def _is_boolean: . == false or . == true;
+def _is_number: . > true  and . < \"\";
+def _is_string: . >= \"\" and . < [];
+def _is_array : . >= []   and . < {};
+def _is_object: . >= {};
+def _is_scalar: . <  [];
 
 # some are early as they are used by others
 
@@ -2253,15 +2254,21 @@ def min: min_by(.);
 def max_by(f): _minmax(f; .[0] > .[1]);
 def max: max_by(.);
 
+def while(cond; update):
+  def _f: if cond then ., (update | _f) else empty end;
+  _f;
+
+def until(cond; next):
+  def _f: if cond then . else next | _f end;
+  _f;
+
 def range($from; $to; $by):
-  def _f(stop):
-    if stop then empty
-    else ., (. + $by | _f(stop))
-    end;
-  if $by == 0 then empty
-  elif $by > 0 then $from | _f(. >= $to)
-  else $from | _f(. <= $to)
-  end;
+  ( $from
+  |   if $by > 0 then while(. < $to; . + $by)
+    elif $by < 0 then while(. > $to; . + $by)
+    else empty
+    end
+  );
 def range($from; $to): range($from; $to; 1);
 def range($to): range(0; $to; 1);
 
@@ -2313,14 +2320,6 @@ def unique: unique_by(.);
 
 def repeat(f):
   def _f: f, _f;
-  _f;
-
-def while(cond; update):
-  def _f: if cond then ., (update | _f) else empty end;
-  _f;
-
-def until(cond; next):
-  def _f: if cond then . else next | _f end;
   _f;
 
 def to_entries:
@@ -2438,7 +2437,8 @@ def bsearch($target):
 
 def _strindices($i):
   ( . as $s
-  | [range(length) | select($s[.:] | startswith($i))]
+  | ($i | length) as $ilen
+  | [range(length) | if $s[.:.+$ilen] == $i then . else empty end]
   );
 def indices($i):
   if _is_array and ($i | _is_array) then .[$i]

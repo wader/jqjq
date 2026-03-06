@@ -2266,11 +2266,12 @@ def until(cond; next):
   _f;
 
 def range($from; $to; $by):
-  $from
-  | if $by > 0 then while(. < $to; . + $by)
-  elif $by < 0 then while(. > $to; . + $by)
-  else empty
-  end;
+  ( $from
+  |   if $by > 0 then while(. < $to; . + $by)
+    elif $by < 0 then while(. > $to; . + $by)
+    else empty
+    end
+  );
 def range($from; $to): range($from; $to; 1);
 def range($to): range(0; $to; 1);
 

@@ -1979,41 +1979,42 @@ def eval_ast($query; $path; $env; undefined_func):
           _f($suffix_list)
         );
 
+      def _e_type:
+          if $type == "TermTypeNull"     then [[], null] # should be [null] also? jq bug?
+        elif $type == "TermTypeNumber"   then [[null], ($query.term.number | tonumber)]
+        elif $type == "TermTypeString"   then _string
+        elif $type == "TermTypeFormat"   then _format
+        elif $type == "TermTypeTrue"     then [[null], true]
+        elif $type == "TermTypeFalse"    then [[null], false]
+        elif $type == "TermTypeIdentity" then _identity
+        elif $type == "TermTypeIndex"    then _index
+        elif $type == "TermTypeFunc"     then _func
+        elif $type == "TermTypeObject"   then _object
+        elif $type == "TermTypeArray"    then _array
+        elif $type == "TermTypeIf"       then _if
+        elif $type == "TermTypeReduce"   then _reduce
+        elif $type == "TermTypeForeach"  then _foreach
+        elif $type == "TermTypeQuery"    then _e($query.term.query; $path; $query_env)
+        elif $type == "TermTypeTry"      then _try
+        elif $type == "TermTypeUnary"    then _unary
+        else _internal_error("unsupported term: \($query)")
+        end;
+
       if $type then
-        ( . as $input
-        | def cases:
-            if $type == "TermTypeNull"       then [[], null] # should be [null] also? jq bug?
-            elif $type == "TermTypeNumber"   then [[null], ($query.term.number | tonumber)]
-            elif $type == "TermTypeString"   then _string
-            elif $type == "TermTypeFormat"   then _format
-            elif $type == "TermTypeTrue"     then [[null], true]
-            elif $type == "TermTypeFalse"    then [[null], false]
-            elif $type == "TermTypeIdentity" then _identity
-            elif $type == "TermTypeIndex"    then _index
-            elif $type == "TermTypeFunc"     then _func
-            elif $type == "TermTypeObject"   then _object
-            elif $type == "TermTypeArray"    then _array
-            elif $type == "TermTypeIf"       then _if
-            elif $type == "TermTypeReduce"   then _reduce
-            elif $type == "TermTypeForeach"  then _foreach
-            elif $type == "TermTypeQuery"    then _e($query.term.query; $path; $query_env)
-            elif $type == "TermTypeTry"      then _try
-            elif $type == "TermTypeUnary"    then _unary
-            else _internal_error("unsupported term: \($query)")
-            end;
-          if $optional or $query.term.suffix_list then
-          (try cases
-          catch
-            if _is_internal_error then error # forward internal eror
-            elif $optional then empty # query?
-            else error
-            end)
-        | if $query.term.suffix_list then _e_suffix_list($input; $path)
-          else .
-          end
-          else cases
-          end
-        )
+        if $optional or $query.term.suffix_list then
+          ( . as $input
+          | try _e_type
+            catch
+              if _is_internal_error then error # forward internal eror
+              elif $optional then empty # query?
+              else error
+              end
+          | if $query.term.suffix_list then _e_suffix_list($input; $path)
+            else .
+            end
+          )
+        else _e_type
+        end
       elif $op then
         ( $query as {$left, $right}
         | def _l: _e($left; $path; $query_env);

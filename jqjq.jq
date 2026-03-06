@@ -2162,17 +2162,13 @@ def _alt(lhs; $op; rhs):
       end
   );
 
-def _is_boolean: . >= false and . <= true;
-def _is_null: . == null;
-def _is_number: type == \"number\";
+def _is_null   : . == null;
+def _is_boolean: . == false or . == true;
+def _is_number: . > true  and . < \"\";
 def _is_string: . >= \"\" and . < [];
-def _is_array: . >= [] and . < {};
+def _is_array : . >= []   and . < {};
 def _is_object: . >= {};
-def _is_scalar:
-  _is_boolean or
-  _is_null or
-  _is_number or
-  _is_string;
+def _is_scalar: . <  [];
 
 # some are early as they are used by others
 

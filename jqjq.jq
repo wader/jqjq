@@ -1305,11 +1305,7 @@ def eval_ast($query; $path; $env; undefined_func):
 
   def _e($query; $path; $env):
     ( . # debug({c: ., $query, $path, $env})
-    | ( $query
-      # TODO: jaq: destruct null index
-      | if .term == null then .term = {} end
-      | if .term.suffix_list == null then .term.suffix_list = [{}] end
-      ) as
+    | $query as
         { term:
             { type: $type
             , suffix_list: [{$optional}]
@@ -1332,13 +1328,7 @@ def eval_ast($query; $path; $env; undefined_func):
               , $start
               , end: $end_
               }
-          | ( # jaq: for null provide object or array
-              if . == null then
-                if $name then if $name | type == "string" then {} else [] end
-                elif $str then {}
-                end
-              end
-            ) as $input
+          | . as $input
           | if $name then [($query_path + [$name]), $input[$name]]
             elif $str then [($query_path + [$str.str]), $input[$str.str]]
             elif $is_slice then
@@ -1358,10 +1348,7 @@ def eval_ast($query; $path; $env; undefined_func):
               ( $query_input
               | _e($start; []; $query_env) as [$_, $v]
               | [ ($query_path + [$v])
-                , # jaq: only index if non-null
-                  ( $input
-                  | if . != null then .[$v] end
-                  )
+                , $input[$v]
                 ]
               )
             else . # TODO: error?
@@ -1513,9 +1500,8 @@ def eval_ast($query; $path; $env; undefined_func):
         | $query.term.func as {$name, $args}
         | func_name($name; $args) as $name
         | $query_env[$name] as $e
-        # jaq: null | has() is an error
-        | if $e != null and ($e | has("value")) then [[null], $e.value]
-          elif $e != null and $e.body then
+        | if $e | has("value") then [[null], $e.value]
+          elif $e.body then
             ( ($e.args // []) as $func_args
             | ($args // []) as $call_args
             | ( $func_args
@@ -1722,11 +1708,7 @@ def eval_ast($query; $path; $env; undefined_func):
                   | if startswith("$") then .[1:] else . end
                   | _term_str
                   )
-                , ( # TODO: jaq: null index
-                    ( $kv.val
-                    | values
-                    | .queries[0]
-                    )
+                , ( $kv.val.queries[0]
                   //
                     ( $kv.key
                     | if startswith("$") then
@@ -1749,11 +1731,7 @@ def eval_ast($query; $path; $env; undefined_func):
                 ( [ ( $kv.key_string.str
                     | _term_str
                     )
-                  , ( # TODO: jaq: null index
-                      ( $kv.val
-                      | values
-                      | .queries[0]
-                      )
+                  , ( $kv.val.queries[0]
                     //
                       { term:
                           { type: "TermTypeIndex"
@@ -1970,7 +1948,7 @@ def eval_ast($query; $path; $env; undefined_func):
             # .a.b?? case, just skip extra optional "?"
             elif $suffix_list[0].optional then _f($suffix_list[1:])
             else
-              ( ($suffix_list[1] // {}).optional as $opt # TOOO: jaq null index
+              ( $suffix_list[1].optional as $opt
               | $suffix_list[if $opt then 2 else 1 end:] as $n
               | _e_suffix($suffix_list[0]; $path; $input; $opt)
               | _f($n)

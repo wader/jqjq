@@ -43,6 +43,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: |
-          curl -sOLJ 'https://github.com/01mf02/jaq/releases/download/v3.0.0-alpha/jaq-x86_64-unknown-linux-gnu'
+          curl -sOLJ 'https://github.com/01mf02/jaq/releases/download/v3.0.0/jaq-x86_64-unknown-linux-gnu'
           chmod a+x jaq-x86_64-unknown-linux-gnu
           JQ=./jaq-x86_64-unknown-linux-gnu make test-jqjq

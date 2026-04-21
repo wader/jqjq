@@ -1173,9 +1173,34 @@ ascii_downcase
 "123@ABCDEFGHIJKLMNOPQSTUVXYZ["
 "123@abcdefghijklmnopqstuvxyz["
 
+# precedence of expr as $v | ...
+# https://github.com/jqlang/jq/pull/3326
+1 + 2 as $x | -$x
+null
+-3
+
+1 + 2 as $x | 3 | [$x]
+null
+[3]
+
 # SKIP_JQ
 # test below does not work with standard jq because of missing features or
 # they test jqjq specific things
+
+1, 2 as $x | 3 | [$x]
+null
+[1]
+[2]
+
+1, 2 | 3 | [.]
+null
+[3]
+[3]
+
+1, 2 as $x | 3 | [.]
+null
+[3]
+[3]
 
 # TODO: proper message
 # test binding with path
@@ -1270,7 +1295,7 @@ null
 3
 
 # and env don't leak into eval (maybe should be an option?)
-try 3 as $e | eval("$e") catch .
+try (3 as $e | eval("$e")) catch .
 null
 "undefined function $e"
 

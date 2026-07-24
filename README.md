@@ -221,7 +221,7 @@ Note that the tests are meant to be used with jq 1.7.1.
   - [x] `@uri`
   - [x] `@json`
   - [x] `@text`
-- [ ] `label $out | break $out` Break out
+- [x] `label $out | break $out` Break out
 - [ ] `include "f"`, `import "f"` Include
 - [ ] CLI options
   - [x] `--help` / `-h`

@@ -24,9 +24,12 @@ eval "$( \
 #   a string that is parts of string interpolation.
 #
 
-def _internal_error($v): {_internal_error: $v} | error;
-def _is_internal_error: type == "object" and has("_internal_error");
-def _unwrap_internal_error: ._internal_error;
+def _internal_error($v): {__jqjq_error: $v} | error;
+def _internal_break($v): {__jqjq_break: $v} | error;
+def _is_internal_error: type == "object" and has("__jqjq_error");
+def _is_internal_break: type == "object" and has("__jqjq_break");
+def _unwrap_internal_error: .__jqjq_error;
+def _unwrap_internal_break: .__jqjq_break;
 
 # reimplementation of delpaths/1 for jaq
 def _delpaths($paths):
@@ -1050,6 +1053,40 @@ def parse:
         ]
       );
 
+    # label <binding> | ...
+    def _label:
+      ( _keyword("label")
+      | _consume(.binding) as [$rest, {$binding}]
+      | $rest
+      | _consume(.pipe)[0]
+      | _p("query") as [$rest, $body]
+      | $rest
+      | [ .
+        , { term:
+              { type: "TermTypeLabel"
+              , label:
+                  { body: $body
+                  , ident: $binding
+                  }
+              }
+          }
+        ]
+      );
+
+    # break <binding>
+    def _break:
+      ( _keyword("break")
+      | _consume(.binding) as [$rest, {$binding}]
+      | $rest
+      | [ .
+        , { term:
+              { type: "TermTypeBreak"
+              , break: $binding
+              }
+          }
+        ]
+      );
+
     # +<term> etc
     def _unary_op(f; $op):
       ( _consume(f)[0]
@@ -1106,6 +1143,8 @@ def parse:
           // _p("reduce")
           // _p("foreach")
           // _p("try")
+          // _p("label")
+          // _p("break")
           // _p("true")
           // _p("false")
           // _p("null")
@@ -1154,6 +1193,8 @@ def parse:
       elif $type == "reduce" then _reduce
       elif $type == "foreach" then _foreach
       elif $type == "try" then _try
+      elif $type == "label" then _label
+      elif $type == "break" then _break
       elif $type == "unary_plus" then _unary_op(.plus; "+")
       elif $type == "unary_minus" then _unary_op(.dash; "-")
       elif $type == "recurse" then _recurse
@@ -1303,7 +1344,7 @@ def eval_ast($query; $path; $env; undefined_func):
       end;
     _f($path);
 
-  def _e($query; $path; $env):
+  def _e($query; $path; $env; $label_count):
     ( . # debug({c: ., $query, $path, $env})
     | $query as
         { term:
@@ -1333,10 +1374,10 @@ def eval_ast($query; $path; $env; undefined_func):
             elif $str then [($query_path + [$str.str]), $input[$str.str]]
             elif $is_slice then
               ( $query_input
-              | ( if $start then _e($start; []; $query_env)[1]
+              | ( if $start then _e($start; []; $query_env; $label_count)[1]
                   else 0 end
                 ) as $vs
-              | ( if $end_ then _e($end_; []; $query_env)[1]
+              | ( if $end_ then _e($end_; []; $query_env; $label_count)[1]
                   else $input | length
                   end
                 ) as $ve
@@ -1346,7 +1387,7 @@ def eval_ast($query; $path; $env; undefined_func):
               )
             elif $start then
               ( $query_input
-              | _e($start; []; $query_env) as [$_, $v]
+              | _e($start; []; $query_env; $label_count) as [$_, $v]
               | [ ($query_path + [$v])
                 , $input[$v]
                 ]
@@ -1371,7 +1412,7 @@ def eval_ast($query; $path; $env; undefined_func):
                 ( .[0] as $q
                 | .[1:] as $rest
                 | $input
-                | _e($q; []; $query_env) as [$_, $v]
+                | _e($q; []; $query_env; $label_count) as [$_, $v]
                 | $v
                 | ( if $q.term.query then
                       ( _e(
@@ -1381,7 +1422,8 @@ def eval_ast($query; $path; $env; undefined_func):
                               }
                           };
                           [];
-                          $query_env
+                          $query_env;
+                          $label_count
                         ) as [$_, $v]
                       | $v
                       )
@@ -1436,7 +1478,7 @@ def eval_ast($query; $path; $env; undefined_func):
                       elif $kv.key_string then [$kv.key_string.str, $kv.val]
                       elif $kv.key_query then
                         # TODO: {a: 1, b: 2} as {("a","b"): $a} | $a -> 1, 2, probably can't use reduce
-                        ( _e($kv.key_query; $path; $query_env)[1]
+                        ( _e($kv.key_query; $path; $query_env; $label_count)[1]
                         | [., $kv.val]
                         )
                       else _internal_error("unreachable")
@@ -1542,7 +1584,7 @@ def eval_ast($query; $path; $env; undefined_func):
                   ( .[0] as [$name, $ast]
                   | .[1:] as $rest
                   | $input
-                  | _e($ast; []; $query_env) as [$_, $v]
+                  | _e($ast; []; $query_env; $label_count) as [$_, $v]
                   | $rest
                   | _f($env | .[$name] = {value: $v})
                   )
@@ -1550,12 +1592,12 @@ def eval_ast($query; $path; $env; undefined_func):
               _f({}) as $bindings_env
             | $input
             | ($e.env + $bindings_env + $lambda_env + $self_env) as $call_env
-            | _e($e.body; $path; $call_env)
+            | _e($e.body; $path; $call_env; $label_count)
             )
           else
-            ( def a0: _e($args[0]; $path; $query_env)[1];
-              def a1: _e($args[1]; $path; $query_env)[1];
-              def a2: _e($args[2]; $path; $query_env)[1];
+            ( def a0: _e($args[0]; $path; $query_env; $label_count)[1];
+              def a1: _e($args[1]; $path; $query_env; $label_count)[1];
+              def a2: _e($args[2]; $path; $query_env; $label_count)[1];
               if $name == "empty/0"    then empty
               elif $name == "debug/0"  then debug as $_ | [$path, .]
               elif $name == "type/0"   then [[null], type]
@@ -1599,7 +1641,7 @@ def eval_ast($query; $path; $env; undefined_func):
                   ]
                 )
               elif $name == "path/1" then
-                ( _e($args[0]; []; $query_env) as [$p, $_v]
+                ( _e($args[0]; []; $query_env; $label_count) as [$p, $_v]
                 # TODO: try/catch error
                 | if $p | length > 0 and first == null then
                     # TODO: include path and value?
@@ -1757,8 +1799,8 @@ def eval_ast($query; $path; $env; undefined_func):
               ( .[0] as [$key_ast, $val_ast]
               | .[1:] as $rest
               | $input
-              | _e($key_ast; []; $query_env) as [$_, $k]
-              | _e($val_ast; []; $query_env) as [$_, $v]
+              | _e($key_ast; []; $query_env; $label_count) as [$_, $k]
+              | _e($val_ast; []; $query_env; $label_count) as [$_, $v]
               | $rest
               | _f($obj | .[$k] = $v)
               )
@@ -1770,7 +1812,7 @@ def eval_ast($query; $path; $env; undefined_func):
       def _array:
         [ [null]
         # .query only set if there was a query
-        , [ _e($query.term.array.query // empty; []; $query_env) as [$_, $v]
+        , [ _e($query.term.array.query // empty; []; $query_env; $label_count) as [$_, $v]
           | $v
           ]
         ];
@@ -1805,11 +1847,11 @@ def eval_ast($query; $path; $env; undefined_func):
             # does not have base case as we know last else will be true
             ( .[0] as [$cond, $then_]
             | ( $input
-              | _e($cond; $path; $query_env)
+              | _e($cond; $path; $query_env; $label_count)
               ) as [$_, $v]
             | if $v then
                 ( $input
-                | _e($then_; $path; $query_env)
+                | _e($then_; $path; $query_env; $label_count)
                 )
               else .[1:] | _f
               end
@@ -1826,12 +1868,12 @@ def eval_ast($query; $path; $env; undefined_func):
             , start: $start
             , update: $update
             }
-        | _e($start; $path; $query_env) as [$start_path, $start_v]
-        | reduce _e({term: $term}; $start_path; $query_env) as [$p, $v] (
+        | _e($start; $path; $query_env; $label_count) as [$start_path, $start_v]
+        | reduce _e({term: $term}; $start_path; $query_env; $label_count) as [$p, $v] (
             [$start_path, $start_v];
             ( . as [$p, $state]
             | $state
-            | _e($update; $p; $query_env + {($name): {value: $v}})
+            | _e($update; $p; $query_env + {($name): {value: $v}}; $label_count)
             )
           )
         );
@@ -1852,16 +1894,16 @@ def eval_ast($query; $path; $env; undefined_func):
                 { type: "TermTypeIdentity"}
             }
           ) as $extract
-        | _e($start; $path; $query_env) as [$start_path, $start_v]
-        | foreach _e({term: $term}; $path; $query_env) as [$_, $v] (
+        | _e($start; $path; $query_env; $label_count) as [$start_path, $start_v]
+        | foreach _e({term: $term}; $path; $query_env; $label_count) as [$_, $v] (
             [$start_path, $start_v];
             ( . as [$p, $state]
             | $state
-            | _e($update; $p; $query_env + {($name): {value: $v}})
+            | _e($update; $p; $query_env + {($name): {value: $v}}; $label_count)
             );
             ( . as [$update_p, $update_v]
             | $update_v
-            | _e($extract; $update_p; $query_env + {($name): {value: $v}})
+            | _e($extract; $update_p; $query_env + {($name): {value: $v}}; $label_count)
             )
           )
         );
@@ -1882,16 +1924,42 @@ def eval_ast($query; $path; $env; undefined_func):
         # TODO: will catch jqjq bugs causing error
         # do own backtracking? sentinel value somehow?
         | try
-            _e($body; $path; $query_env)
+            _e($body; $path; $query_env; $label_count)
           catch
-            if _is_internal_error then error
-            else _e($catch_; $path; $query_env)
+            if _is_internal_error or _is_internal_break then error
+            else _e($catch_; $path; $query_env; $label_count)
             end
+        );
+
+      def _label:
+        ( $query.term.label as {$body, $ident}
+        | try
+            _e(
+              $body;
+              $path;
+              # @label prefix to not collide with bindings
+              $query_env + {("@label-" + $ident): $label_count};
+              $label_count + 1
+            )
+          catch
+            if _is_internal_break and _unwrap_internal_break == $label_count then empty
+            else error
+            end
+        );
+
+      def _break:
+        ( $query.term.break as $ident
+        | ("@label-" + $ident) as $label_ident
+        | if $query_env | has($label_ident) then
+            _internal_break($query_env[$label_ident])
+          else
+            {name: $ident} | undefined_func_error
+          end
         );
 
       def _unary:
         ( $query.term.unary as {$op, $term}
-        | def _f: _e({term: $term}; $path; $query_env);
+        | def _f: _e({term: $term}; $path; $query_env; $label_count);
           # TODO: not +. as jq don't support + unary operator
           if $op == "+" then _f[1] | [[null], .]
           elif $op == "-" then _f[1] | [[null], -.]
@@ -1912,7 +1980,8 @@ def eval_ast($query; $path; $env; undefined_func):
             | _e(
                 $suffix.bind.body;
                 $path;
-                $query_env + $pattern_env
+                $query_env + $pattern_env;
+                $label_count
               )
             )
           elif $suffix.index then
@@ -1972,8 +2041,10 @@ def eval_ast($query; $path; $env; undefined_func):
         elif $type == "TermTypeIf"       then _if
         elif $type == "TermTypeReduce"   then _reduce
         elif $type == "TermTypeForeach"  then _foreach
-        elif $type == "TermTypeQuery"    then _e($query.term.query; $path; $query_env)
+        elif $type == "TermTypeQuery"    then _e($query.term.query; $path; $query_env; $label_count)
         elif $type == "TermTypeTry"      then _try
+        elif $type == "TermTypeLabel"    then _label
+        elif $type == "TermTypeBreak"    then _break
         elif $type == "TermTypeUnary"    then _unary
         else _internal_error("unsupported term: \($query)")
         end;
@@ -1995,13 +2066,13 @@ def eval_ast($query; $path; $env; undefined_func):
         end
       elif $op then
         ( $query as {$left, $right}
-        | def _l: _e($left; $path; $query_env);
-          def _r: _e($right; $path; $query_env);
+        | def _l: _e($left; $path; $query_env; $label_count);
+          def _r: _e($right; $path; $query_env; $label_count);
           if $op == "," then _l, _r
           elif $op == "|" then
-            ( _e($left; $path; $query_env) as [$p, $v]
+            ( _e($left; $path; $query_env; $label_count) as [$p, $v]
             | $v
-            | _e($right; $p; $query_env)
+            | _e($right; $p; $query_env; $label_count)
             )
           elif $op == "or"  then _l[1] or _r[1] | [[null], .]
           elif $op == "and" then _l[1] and _r[1] | [[null], .]
@@ -2053,7 +2124,8 @@ def eval_ast($query; $path; $env; undefined_func):
                   }
               };
               $path;
-              $query_env
+              $query_env;
+              $label_count
             )
           else _internal_error("unsupported op: \($query)")
           end
@@ -2062,7 +2134,7 @@ def eval_ast($query; $path; $env; undefined_func):
       end
     );
   try
-    _e($query; []; $env)
+    _e($query; []; $env; 0)
   catch
     if _is_internal_error then _unwrap_internal_error | error("internal error: \(.)")
     else error
@@ -2102,43 +2174,38 @@ def _update(lhs; $op; rhs):
   );
 
 # used to implement lhs // rhs
-# TODO: rewrite mess, use label/break once added?
+# TODO: rewrite mess
 def _alt(lhs; $op; rhs):
-  ( \"__jqjq_alt_break\" as $b
-  | try
-      ( foreach (
-            ( (lhs | [\"lhs\",.])
-            , [\"end\",null]
-            , (rhs | [\"rhs\",.])
-            )
-          ) as $v (
-          0;
-          if $v[0] == \"lhs\" then
-            if $v[1] then . + 1
-            else .
-            end
-          elif $v[0] == \"end\" then
-            if . > 0 then error($b)
-            else .
-            end
+  ( label $out
+  | ( foreach (
+          ( (lhs | [\"lhs\",.])
+          , [\"end\",null]
+          , (rhs | [\"rhs\",.])
+          )
+        ) as $v (
+        0;
+        if $v[0] == \"lhs\" then
+          if $v[1] then . + 1
           else .
-          end;
-          # TODO: jaq: foreach empty update backtracks
-          if $v[0] == \"lhs\" then
-            if $v[1] then $v
-            else empty
-            end
-          elif $v[0] == \"end\" then
-            empty
-          else $v
           end
-        )
-      | .[1]
+        elif $v[0] == \"end\" then
+          if . > 0 then break $out
+          else .
+          end
+        else .
+        end;
+        # TODO: jaq: foreach empty update backtracks
+        if $v[0] == \"lhs\" then
+          if $v[1] then $v
+          else empty
+          end
+        elif $v[0] == \"end\" then
+          empty
+        else $v
+        end
       )
-    catch
-      if . == $b then empty
-      else error
-      end
+    | .[1]
+    )
   );
 
 def _is_null   : . == null;
@@ -2337,26 +2404,18 @@ def transpose:
     ]
   );
 
-# TODO: should use label/break when supported instead of special sentinel value
 def limit($n; f):
-  ( \"__jqjq_limit_break\" as $b
-  | if $n == 0 then empty
-    else
-      try
-        foreach f as $v (
-          0;
-          .+1;
-          ( $v
-          , if . == $n then error($b)
-            else empty
-            end
-          )
-        )
-      catch
-        if . == $b then empty
-        else error(.)
+  ( if $n == 0 then empty end
+  | label $out
+  | foreach f as $v (
+      0;
+      .+1;
+      ( $v
+      , if . == $n then break $out
+        else empty
         end
-    end
+      )
+    )
   );
 
 def first(f): limit(1; f);

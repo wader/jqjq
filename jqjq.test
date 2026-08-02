@@ -984,14 +984,14 @@ null
 [[2,3],[4,5]]
 
 # object key using a keyword
-{and: 1, as: 2, catch: 3, def: 4, elif: 5, else: 6, end: 7, false: 8, foreach: 9, if: 10, null: 11, or: 12, reduce: 13, then: 14, true: 15, try: 16}
+{and: 1, as: 2, break: 3, catch: 4, def: 5, elif: 6, else: 7, end: 8, false: 9, foreach: 10, if: 11, label: 12, null: 13, or: 14, reduce: 15, then: 16, true: 17, try: 18}
 null
-{"and":1,"as":2,"catch":3,"def":4,"elif":5,"else":6,"end":7,"false":8,"foreach":9,"if":10,"null":11,"or":12,"reduce":13,"then":14,"true":15,"try":16}
+{"and":1,"as":2,"break":3,"catch":4,"def":5,"elif":6,"else":7,"end":8,"false":9,"foreach":10,"if":11,"label":12,"null":13,"or":14,"reduce":15,"then":16,"true":17,"try":18}
 
 # index using a keyword
-[.and, .as, .catch, .def, .elif, .else, .end, .false, .foreach, .if, .null, .or, .reduce, .then, .true, .try]
-{"and":1,"as":2,"catch":3,"def":4,"elif":5,"else":6,"end":7,"false":8,"foreach":9,"if":10,"null":11,"or":12,"reduce":13,"then":14,"true":15,"try":16}
-[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]
+[.and, .as, .break, .catch, .def, .elif, .else, .end, .false, .foreach, .if, .label, .null, .or, .reduce, .then, .true, .try]
+{"and":1,"as":2,"break":3,"catch":4,"def":5,"elif":6,"else":7,"end":8,"false":9,"foreach":10,"if":11,"label":12,"null":13,"or":14,"reduce":15,"then":16,"true":17,"try":18}
+[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
 
 # //
 empty // empty // 123
@@ -1173,9 +1173,36 @@ ascii_downcase
 "123@ABCDEFGHIJKLMNOPQSTUVXYZ["
 "123@abcdefghijklmnopqstuvxyz["
 
+# label/break
+# these are based on tests from jq's jq.test file
+
+[(label $here | .[] | if .>1 then break $here else . end), "hi!"]
+[0,1,2]
+[0,1,"hi!"]
+
+[(label $here | .[] | if .>1 then break $here else . end), "hi!"]
+[0,2,1]
+[0,"hi!"]
+
+[label $out | foreach .[] as $item ([3, null]; if .[0] < 1 then break $out else [.[0] -1, $item] end; .[1])]
+[11,22,33,44,55,66,77,88,99]
+[11,22,33]
+
+[label $if | range(10) | ., (select(. == 5) | break $if)]
+null
+[0,1,2,3,4,5]
+
+123 as $label | $label
+null
+123
+
 # SKIP_JQ
 # test below does not work with standard jq because of missing features or
 # they test jqjq specific things
+
+try eval(". as $foo | break $foo") catch .
+null
+"undefined function $foo"
 
 # TODO: proper message
 # test binding with path
@@ -1219,7 +1246,7 @@ eval("empty")
 null
 
 # make sure internal errors are not caught
-try eval("try error({_internal_error: 123}) catch 456") catch .
+try eval("try error({__jqjq_error: 123}) catch 456") catch .
 null
 "internal error: 123"
 
